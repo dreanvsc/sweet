@@ -1,0 +1,94 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// O Utilizador (Jogador)
+model User {
+  id         Int          @id @default(autoincrement())
+  username   String       @unique // ID oficial da Steam
+  nome       String?      // O nome (Nickname) da Steam
+  avatar     String?      // O link da Foto de Perfil
+  saldo      Float        @default(0.0)
+  xp         Int          @default(0)
+  inventario Inventario[]
+  totalDepositado Float     @default(0)
+  ultimoBonus     DateTime?
+  historicoJogo   HistoricoJogo[]
+  role      String   @default("USER")
+}
+
+// O Inventário (Atualizado)
+model Inventario {
+  id        Int      @id @default(autoincrement())
+  nome      String
+  imagem    String
+  raridade  String
+  valor     Float
+  dataGanho DateTime @default(now())
+  
+  // A "Etiqueta" que diz de quem é esta skin
+  userId    Int?
+  dono      User?    @relation(fields: [userId], references: [id])
+}
+
+// A Tabela Item (que tu já tens, podes manter igual ao que lá está)
+model Item {
+  id       Int     @id @default(autoincrement())
+  nome     String
+  imagem   String
+  preco    Float
+  raridade String
+}
+
+model Caixa {
+  id        Int      @id @default(autoincrement())
+  nome      String
+  preco     Float
+  ordem  Int    @default(0)
+  imagem    String
+  itens     String   // Vai guardar um "pacote" (JSON) com as skins que tu escolheres
+}
+
+model PromoCode {
+  id        Int      @id @default(autoincrement())
+  codigo    String   @unique
+  valor     Float
+  usos      Int      @default(0) // Quantas vezes já foi usado
+  limite    Int      @default(100) // Quantas vezes pode ser usado no máximo (ex: os 100 primeiros ganham)
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+model CodigoUsado {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  codigo    String
+  createdAt DateTime @default(now())
+}
+
+model Transacao {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  metodo      String   // Vai guardar: 'mbway', 'cartao' ou 'crypto'
+  valor       Float
+  status      String   @default("Pendente") // 'Pendente', 'Concluido', 'Cancelado'
+  referencia  String?  // Para guardar a ref do Multibanco, o ID da Stripe ou o Hash da Crypto
+  createdAt   DateTime @default(now())
+}
+
+model HistoricoJogo {
+  id         Int      @id @default(autoincrement())
+  acao       String   
+  detalhe    String   
+  valor      Float    
+  tipo       String   
+  data       DateTime @default(now())
+  
+  userId     Int
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+

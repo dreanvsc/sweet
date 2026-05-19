@@ -1,21 +1,30 @@
+'use client';
+
 import React, { useState, useEffect } from 'react';
 import UpgraderInventory from './UpgraderInventory';
 import UpgraderWheel from './UpgraderWheel';
 import UpgraderStore from './UpgraderStore';
 
-export default function Upgrader({ userId, inventario, setSaldo, setInventario, setView }: any) {
+export default function Upgrader({ userId, inventario, setSaldo, setInventario, setView, atualizarTudo }: any) {
   const [userSkins, setUserSkins] = useState<any[]>([]); 
   const [targetSkin, setTargetSkin] = useState<any>(null);
   const [lojaItens, setLojaItens] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [spinning, setSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
+  
+  // 🔥 NOVO: Estado para guardar o lado escolhido (under = Esquerda, over = Direita)
+  const [lado, setLado] = useState<'under' | 'over'>('under');
 
   const inventarioUnico = (Array.isArray(inventario) ? inventario : []).map((item: any, index: number) => ({
-    ...item, uniqueClickId: `${item.id}-${index}` 
+    ...item, uniqueClickId: `${item?.id || 'temp'}-${index}` 
   }));
 
   useEffect(() => {
+    if (typeof atualizarTudo === 'function') {
+      atualizarTudo();
+    }
+
     fetch('http://localhost:3000/itens')
       .then(res => res.json())
       .then(data => setLojaItens(data)); 
@@ -54,7 +63,8 @@ export default function Upgrader({ userId, inventario, setSaldo, setInventario, 
     try {
       const res = await fetch('http://localhost:3000/upgrade', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, skinIds: userSkins.map(s => s.id), alvoId: targetSkin.id })
+        // 🔥 ENVIAMOS O LADO PARA O SERVIDOR!
+        body: JSON.stringify({ userId, skinIds: userSkins.map(s => s.id), alvoId: targetSkin.id, lado })
       });
       const data = await res.json();
       if (res.ok) iniciarAnimacao(data);
@@ -64,15 +74,13 @@ export default function Upgrader({ userId, inventario, setSaldo, setInventario, 
 
   const iniciarAnimacao = (data: any) => {
     setSpinning(true);
-    const voltasExtras = 5 * 360; 
     const chanceNumerica = Number(data.chance);
     const limiteVerde = chanceNumerica * 3.6; 
-    
-    let anguloAlvo;
-    if (data.sucesso) anguloAlvo = 1 + Math.random() * (limiteVerde - 2); 
-    else anguloAlvo = limiteVerde + 2 + Math.random() * (360 - limiteVerde - 4); 
+    const roll = data.roll * 3.6; // Onde o servidor disse que o ponteiro devia cair (0 a 360)
 
-    setRotation(voltasExtras + anguloAlvo);
+    // A roda dá sempre 5 voltas completas de suspense + o sítio exato de paragem
+    const voltasExtras = 5 * 360; 
+    setRotation(voltasExtras + roll);
 
     setTimeout(() => {
       setSpinning(false);
@@ -85,6 +93,9 @@ export default function Upgrader({ userId, inventario, setSaldo, setInventario, 
         alert("❌ Falhaste o upgrade... as tuas skins foram destruídas.");
         setInventario((prev: any) => prev.filter((s: any) => !data.idsDestruidos.includes(s.id)));
       }
+      
+      if (typeof atualizarTudo === 'function') atualizarTudo();
+
       setUserSkins([]); 
       setTargetSkin(null);
       setRotation(0);
@@ -105,10 +116,11 @@ export default function Upgrader({ userId, inventario, setSaldo, setInventario, 
           spinning={spinning} setView={setView} getPreco={getPreco} 
         />
         
+        {/* 🔥 PASSAMOS O LADO PARA A RODA */}
         <UpgraderWheel 
           chance={chance} rotation={rotation} spinning={spinning} loading={loading} 
           isDowngrade={isDowngrade} userSkins={userSkins} targetSkin={targetSkin} 
-          handleUpgrade={handleUpgrade} 
+          handleUpgrade={handleUpgrade} lado={lado} setLado={setLado}
         />
         
         <UpgraderStore 

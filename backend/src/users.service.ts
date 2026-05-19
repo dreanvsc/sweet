@@ -4,6 +4,7 @@ import Stripe from 'stripe';
 
 @Injectable()
 export class UsersService {
+  // A tua chave de testes do Stripe
   private stripe = new Stripe('sk_test_51Rpmc74OmjLR4F9r9O1pLeNghohaJ147VrG1p2hUmpBTjUgCNxO6VOYRJiXwNbzUrXuPgaHj0EagEbd05v4i7FJL00TLzbBaFb', {
     apiVersion: '2026-04-22.dahlia' as any,
   });
@@ -34,15 +35,63 @@ export class UsersService {
     return await (this.prisma as any).user.findUnique({ where: { id: id } });
   }
 
+  // ==========================================
+  // 🔥 SISTEMA DE PROGRESSÃO (ESTILO KEY-DROP)
+  // ==========================================
+
+  // 1. Calcula o XP necessário para passar de nível (ex: Nível 1 = 100xp, Nível 2 = 200xp...)
+  getXpNecessarioParaNivel(level: number): number {
+    return level * 100; 
+  }
+
+  // 2. Injeta XP e sobe o nível de forma persistente
+  async adicionarXp(userId: number, valorGasto: number) {
+    const user = await (this.prisma as any).user.findUnique({ where: { id: userId } });
+    if (!user) return;
+
+    // 1€ = 10 XP. Math.floor garante que é um número Inteiro sem vírgulas!
+    const xpGanho = Math.floor(valorGasto * 10); 
+    
+    let novoXp = user.xp + xpGanho;
+    let novoNivel = user.level;
+
+    let xpNecessario = this.getXpNecessarioParaNivel(novoNivel);
+    
+    // Loop para subir de nível caso ganhe muito XP de uma vez
+    while (novoXp >= xpNecessario) {
+      novoXp -= xpNecessario;
+      novoNivel += 1;
+      xpNecessario = this.getXpNecessarioParaNivel(novoNivel);
+    }
+
+    return await (this.prisma as any).user.update({
+      where: { id: userId },
+      data: {
+        level: novoNivel,
+        xp: novoXp
+      }
+    });
+  }
+
+  // ==========================================
+  // DEPARTAMENTO FINANCEIRO
+  // ==========================================
+
   async gastarSaldo(userId: string, valor: number) {
     const idNumero = Number(userId);
     const user = await (this.prisma as any).user.findUnique({ where: { id: idNumero } });
     if (!user) throw new Error('Utilizador não encontrado na Base de Dados');
 
-    return await (this.prisma as any).user.update({
+    // 1. Tira o saldo
+    const userAtualizado = await (this.prisma as any).user.update({
       where: { id: idNumero },
       data: { saldo: user.saldo - valor }
     });
+
+    // 2. 🔥 Dá XP pela aposta/abertura!
+    await this.adicionarXp(idNumero, valor);
+
+    return userAtualizado;
   }
 
   async venderItem(userId: number, inventarioId: number) {
@@ -67,48 +116,9 @@ export class UsersService {
     return { sucesso: true, novoSaldo: parseFloat(novoSaldo.toFixed(2)), idVendido: inventarioId, valorRecebido: valorDeVenda };
   }
 
-  async estadoBonusDiario(userId: number) {
-    const user = await (this.prisma as any).user.findUnique({ where: { id: Number(userId) } });
-    if (!user) throw new BadRequestException("Jogador não encontrado.");
-
-    const DEPOSITO_MINIMO = 5.00;
-    const faltaDepositar = Math.max(0, DEPOSITO_MINIMO - (user.totalDepositado || 0));
-
-    let pronto = false;
-    let horasRestantes = 0;
-
-    if (faltaDepositar === 0) {
-      if (!user.ultimoBonus) {
-        pronto = true;
-      } else {
-        const agora = new Date().getTime();
-        const ultimo = new Date(user.ultimoBonus).getTime();
-        const horasPassadas = (agora - ultimo) / (1000 * 60 * 60);
-
-        if (horasPassadas >= 24) pronto = true;
-        else horasRestantes = 24 - horasPassadas;
-      }
-    }
-
-    return { faltaDepositar: parseFloat(faltaDepositar.toFixed(2)), pronto, horasRestantes: parseFloat(horasRestantes.toFixed(1)) };
-  }
-
-  async resgatarBonusDiario(userId: number) {
-    const estado = await this.estadoBonusDiario(userId);
-    if (estado.faltaDepositar > 0) throw new BadRequestException(`Precisas de depositar mais ${estado.faltaDepositar}€!`);
-    if (!estado.pronto) throw new BadRequestException(`Calma! Faltam ${estado.horasRestantes} horas.`);
-
-    const premio = parseFloat((Math.random() * (2.00 - 0.10) + 0.10).toFixed(2));
-    const user = await (this.prisma as any).user.findUnique({ where: { id: Number(userId) } });
-    const novoSaldo = user.saldo + premio;
-
-    await (this.prisma as any).user.update({
-      where: { id: Number(userId) },
-      data: { saldo: parseFloat(novoSaldo.toFixed(2)), ultimoBonus: new Date() }
-    });
-
-    return { sucesso: true, premio, novoSaldo: parseFloat(novoSaldo.toFixed(2)) };
-  }
+  // ==========================================
+  // DEPARTAMENTO DE DEPÓSITOS
+  // ==========================================
 
   async iniciarDeposito(dados: { userId: number, metodo: string, valor: number, telemovel?: string }) {
     if (dados.valor < 5) throw new BadRequestException("O depósito mínimo é de 5.00€");
@@ -163,9 +173,13 @@ export class UsersService {
     return { sucesso: true, valorDepositado: tx.valor, novoSaldo: parseFloat(novoSaldo.toFixed(2)) };
   }
 
+  // ==========================================
+  // DEPARTAMENTO DE INVENTÁRIO
+  // ==========================================
+
   async verInventario(userId: number) {
     return await (this.prisma as any).inventario.findMany({
-      where: { userId: userId }, // 🔥 Agora só puxa as skins deste jogador!
+      where: { userId: userId },
       orderBy: { dataGanho: 'desc' }
     });
   }

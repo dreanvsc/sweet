@@ -113,9 +113,19 @@ export default function Home() {
           {view === 'opening' && (
             <CaseOpening caixaSelecionada={caixaSelecionada} saldo={saldo} setSaldo={setSaldo} setXp={setXp} setView={setView} setInventario={setInventario} userId={userId} addDropToFeed={() => {}} />
           )}
+          
+          {/* 🔥 AGORA SIM, O UPGRADER ESTÁ PROTEGIDO E A RECEBER O USERID CORRETO */}
           {view === 'upgrader' && (
-            <Upgrader userId={userId} inventario={inventario || []} setSaldo={setSaldo} setInventario={setInventario} setView={setView} />
+            <Upgrader 
+              userId={userId} 
+              inventario={inventario} 
+              setSaldo={setSaldo} 
+              setInventario={setInventario} 
+              setView={setView} 
+              atualizarTudo={atualizarTudo}  
+            />
           )}
+
           {view === 'daily' && (
              <div className="max-w-4xl mx-auto w-full text-center">
                  <h2 className="text-4xl font-black italic uppercase">Bónus Diário</h2>

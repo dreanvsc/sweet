@@ -1,7 +1,10 @@
+'use client';
+
 import React, { useState } from 'react';
 import ModalDeposito from './ModalDeposito'; 
+import LiveChatWidget from './support/LiveChatWidget';
 
-export default function Sidebar({ view, setView, nivel, progressoNivel, saldo, userId, userData }: any) {
+export default function Sidebar({ view, setView, saldo, userId, userData }: any) {
   const [modalAberto, setModalAberto] = useState(false);
 
   React.useEffect(() => {
@@ -25,21 +28,49 @@ export default function Sidebar({ view, setView, nivel, progressoNivel, saldo, u
     }
   }, []);
 
+  // ==========================================
+  // 🔥 LÓGICA DE PROGRESSÃO DO NÍVEL
+  // ==========================================
+  const currentLevel = userData?.level || 1;
+  const currentXp = userData?.xp || 0;
+  
+  // A fórmula que usaste no Backend: Cada nível pede Nível * 100 XP
+  const xpTotalNecessario = currentLevel * 100; 
+  
+  // Calcula a percentagem para a largura da barra
+  const percentagemProgresso = Math.min(Math.round((currentXp / xpTotalNecessario) * 100), 100);
+
   return (
     <>
-      {/* 🔥 CORREÇÃO: 'h-screen' em vez de 'h-full', e 'overflow-y-auto' para scroll caso o ecrã seja pequeno */}
       <aside className="w-64 bg-[#121215] border-r border-white/5 p-6 flex flex-col gap-2 fixed inset-y-0 left-0 h-screen overflow-y-auto custom-scrollbar pt-10 pb-6 z-40">
         <div className="mb-8">
           <h1 className="text-2xl font-black italic text-emerald-500 tracking-tighter">IMPÉRIO</h1>
+          
+          {/* 🔥 BARRA DE NÍVEL DINÂMICA */}
           {userId && (
-            <div className="mt-4 bg-black/40 p-3 rounded-xl border border-white/5">
-              <div className="flex justify-between items-center mb-1">
-                <span className="text-[10px] font-black text-zinc-500 uppercase">Nível {nivel}</span>
-                <span className="text-[10px] font-black text-emerald-500">{progressoNivel}%</span>
+            <div className="mt-4 bg-black/40 p-3 rounded-xl border border-white/5 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-16 h-16 bg-emerald-500/10 blur-xl rounded-full"></div>
+              
+              <div className="flex justify-between items-center mb-1 relative z-10">
+                <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest group-hover:text-white transition-colors">
+                  Nível {currentLevel}
+                </span>
+                <span className="text-[10px] font-black text-emerald-500 drop-shadow-[0_0_5px_rgba(16,185,129,0.5)]">
+                  {percentagemProgresso}%
+                </span>
               </div>
-              <div className="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden">
-                <div className="h-full bg-emerald-500 shadow-[0_0_10px_#10b981]" style={{ width: `${progressoNivel}%` }}></div>
+              
+              <div className="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden relative z-10 border border-black shadow-inner">
+                <div 
+                  className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.8)] transition-all duration-1000 ease-out" 
+                  style={{ width: `${percentagemProgresso}%` }}
+                ></div>
               </div>
+              
+              {/* O texto mostra o XP exato em relação ao objetivo total */}
+              <p className="text-[8px] text-zinc-600 font-mono mt-1.5 text-right font-bold uppercase tracking-wider group-hover:text-zinc-400 transition-colors">
+                {currentXp} / {xpTotalNecessario} XP
+              </p>
             </div>
           )}
         </div>
@@ -48,10 +79,6 @@ export default function Sidebar({ view, setView, nivel, progressoNivel, saldo, u
           🛒 <span className="text-xs font-bold uppercase tracking-widest">Loja de Caixas</span>
         </button>
         
-        <button onClick={() => setView('daily')} className={`flex items-center gap-4 p-4 rounded-xl transition-all ${view === 'daily' ? 'bg-emerald-500 text-black font-bold' : 'hover:bg-white/5'}`}>
-          🎁 <span className="text-xs font-bold uppercase tracking-widest">Bónus Diário</span>
-        </button>
-
         <button onClick={() => setView('upgrader')} className={`flex items-center gap-4 p-4 rounded-xl transition-all ${view === 'upgrader' ? 'bg-emerald-500 text-black font-bold' : 'hover:bg-white/5'}`}>
           ⚖️ <span className="text-xs font-bold uppercase tracking-widest">Upgrader</span>
         </button>
@@ -75,7 +102,6 @@ export default function Sidebar({ view, setView, nivel, progressoNivel, saldo, u
         )}
 
         
-        {/* 🔥 CORREÇÃO: Garantir que não cola demasiado ao fundo */}
         <div className="mt-auto pt-6">
           {userId ? (
             <div className="bg-emerald-500/5 p-4 rounded-2xl border border-emerald-500/20 flex flex-col items-center animate-in fade-in shadow-lg shrink-0">
@@ -137,6 +163,9 @@ export default function Sidebar({ view, setView, nivel, progressoNivel, saldo, u
           onClose={() => setModalAberto(false)} 
         />
       )}
+      
+      {/* 🔥 WIDGET DE CHAT INJETADO AQUI */}
+      <LiveChatWidget userId={userId} userName={userData?.nome} />
     </>
   );
 }

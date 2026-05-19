@@ -81,15 +81,6 @@ export class AppController {
     return await this.usersService.venderItem(body.userId, body.inventarioId);
   }
 
-  @Get('bonus-diario/:userId')
-  async estadoBonus(@Param('userId') userId: string) {
-    return await this.usersService.estadoBonusDiario(Number(userId));
-  }
-
-  @Post('resgatar-bonus')
-  async resgatarBonus(@Body() body: { userId: number }) {
-    return await this.usersService.resgatarBonusDiario(body.userId);
-  }
 
   // 🔥 NOTA: Atualizei esta rota para ser mais segura e só mostrar o inventário DESTE jogador
   @Get('meu-inventario/:userId')
@@ -182,40 +173,355 @@ export class AppController {
     return { sucesso: true, mensagem: `${alvo.nome} foi promovido a Admin!` };
   }
 
+  @Post('admin/despromover')
+  async despromoverAdmin(@Body() body: { adminId: string, alvoId: string }) {
+    // 1. Verifica se quem pede é Admin
+    const admin = await this.prisma.user.findUnique({ where: { id: Number(body.adminId) } });
+    if (!admin || (admin.role !== 'ADMIN' && admin.role !== 'admin' && admin.id !== 1)) {
+      return { erro: 'Acesso Negado! Não tens permissão.' };
+    }
+
+    const alvoIdNum = Number(body.alvoId);
+
+    // 2. Proteções de Segurança Máxima
+    if (alvoIdNum === 1) {
+      return { erro: 'ERRO: Não podes despedir o Fundador do Império!' };
+    }
+    if (alvoIdNum === Number(body.adminId)) {
+      return { erro: 'Não podes despedir-te a ti próprio por aqui.' };
+    }
+
+    // 3. Verifica se o alvo existe
+    const alvo = await this.prisma.user.findUnique({ where: { id: alvoIdNum } });
+    if (!alvo) {
+      return { erro: 'Jogador não encontrado na Base de Dados.' };
+    }
+
+    // 4. Retira os poderes!
+    await this.prisma.user.update({
+      where: { id: alvoIdNum },
+      data: { role: 'USER' } // Volta a ser um jogador normal
+    });
+
+    return { sucesso: true, mensagem: `O utilizador ${alvo.nome} foi removido da equipa!` };
+  }
+
   // =======================================================
   // 🔥 ROTA DE CÓDIGOS PROMOCIONAIS (Para o Perfil)
   // =======================================================
   @Post('codigos/resgatar')
   async resgatarCodigo(@Body() body: { userId: string, codigo: string }) {
-    const { userId, codigo } = body;
-    const user = await this.prisma.user.findUnique({ where: { id: Number(userId) } });
+    const idNum = Number(body.userId);
+    const user = await (this.prisma as any).user.findUnique({ where: { id: idNum } });
+    
     if (!user) return { erro: 'Jogador não encontrado.' };
 
-    const promo = await (this.prisma as any).promoCode.findUnique({ where: { codigo } });
+    // 1. Procura o código na tabela correta (promoCode)
+    const promo = await (this.prisma as any).promoCode.findUnique({ 
+      where: { codigo: body.codigo } 
+    });
 
-    if (!promo) return { erro: 'CÓDIGO INEXISTENTE OU EXPIRADO.' };
-    if (promo.usos >= promo.maxUsos) return { erro: 'ESTE CÓDIGO JÁ ATINGIU O LIMITE DE USOS.' };
+    if (!promo || !promo.ativo) return { erro: 'CÓDIGO INEXISTENTE OU DESATIVADO.' };
+    
+    // 🔥 Correção: Agora lê 'promo.limite' em vez de 'maxUsos'
+    if (promo.usos >= promo.limite) return { erro: 'ESTE CÓDIGO JÁ ATINGIU O LIMITE DE USOS.' };
 
-    const jaUsou = await (this.prisma as any).promoUsage.findFirst({
-      where: { userId: user.id, promoId: promo.id }
+    // 2. Verifica se o jogador já usou na tabela correta (codigoUsado)
+    const jaUsou = await (this.prisma as any).codigoUsado.findFirst({
+      where: { 
+        userId: idNum, 
+        codigo: promo.codigo 
+      }
     });
 
     if (jaUsou) return { erro: 'JÁ RESGATASTE ESTE CÓDIGO ANTERIORMENTE.' };
 
-    await this.prisma.user.update({
-      where: { id: user.id },
+    // 3. Adiciona o saldo ao jogador
+    await (this.prisma as any).user.update({
+      where: { id: idNum },
       data: { saldo: user.saldo + promo.valor }
     });
 
+    // 4. Aumenta o contador de usos do código
     await (this.prisma as any).promoCode.update({
       where: { id: promo.id },
       data: { usos: promo.usos + 1 }
     });
 
-    await (this.prisma as any).promoUsage.create({
-      data: { userId: user.id, promoId: promo.id }
+    // 5. Regista que este jogador já usou este código
+    await (this.prisma as any).codigoUsado.create({
+      data: { 
+        userId: idNum, 
+        codigo: promo.codigo 
+      }
     });
 
     return { sucesso: true, valor: promo.valor };
+  }
+
+  @Post('utilizador/configuracoes')
+  async atualizarConfiguracoes(@Body() body: { userId: number, tradeUrl?: string, email?: string, newsletter?: boolean }) {
+    const updateData: any = {};
+    if (body.tradeUrl !== undefined) updateData.tradeUrl = body.tradeUrl;
+    if (body.email !== undefined) updateData.email = body.email;
+    if (body.newsletter !== undefined) updateData.newsletter = body.newsletter;
+
+    await (this.prisma as any).user.update({
+      where: { id: Number(body.userId) },
+      data: updateData
+    });
+
+    return { sucesso: true, msg: "Configurações guardadas com sucesso!" };
+  }
+
+  @Get('utilizador/historico/:userId')
+  async obterHistorico(@Param('userId') userId: string) {
+    return await (this.prisma as any).historicoJogo.findMany({
+      where: { userId: Number(userId) },
+      orderBy: { createdAt: 'desc' }, 
+      take: 50
+    });
+  }
+
+  @Get('suporte/tickets/:userId')
+  async obterTicketsUtilizador(@Param('userId') userId: string) {
+    return await (this.prisma as any).ticketSuporte.findMany({
+      where: { userId: Number(userId) },
+      orderBy: { id: 'desc' }
+    });
+  }
+
+  // 2. Rota para criar um novo ticket
+  @Post('suporte/ticket')
+  async criarTicket(@Body() body: { userId: number, assunto: string, message: string }) {
+    await (this.prisma as any).ticketSuporte.create({
+      data: {
+        userId: Number(body.userId),
+        assunto: body.assunto.toUpperCase(),
+        mensagem: body.message
+      }
+    });
+    return { Guide: true, sucesso: true };
+  }
+
+  @Get('admin/tickets')
+  async adminObterTodosTickets() {
+    return await (this.prisma as any).ticketSuporte.findMany({
+      include: { user: true }, // Inclui os dados do jogador (nome, avatar) para saberes com quem falas!
+      orderBy: { id: 'desc' }
+    });
+  }
+
+  // 🔥 ADMIN: Responder a um ticket
+  @Post('admin/ticket/responder')
+  async adminResponderTicket(@Body() body: { ticketId: number, resposta: string, status: string }) {
+    await (this.prisma as any).ticketSuporte.update({
+      where: { id: Number(body.ticketId) },
+      data: {
+        resposta: body.resposta,
+        status: body.status // Vai passar a 'RESPONDIDO' ou 'FECHADO'
+      }
+    });
+    return { sucesso: true, msg: "Resposta enviada ao jogador!" };
+  }
+
+  @Get('suporte/livechat/:userId')
+  async obterHistoricoLiveChat(@Param('userId') userId: string) {
+    const chat = await (this.prisma as any).liveChat.findFirst({
+      where: { 
+        userId: Number(userId), 
+        status: 'ABERTO' 
+      },
+      orderBy: { createdAt: 'desc' }, // 🔥 Ignora as antigas e vai buscar a última!
+      include: { mensagens: { orderBy: { createdAt: 'asc' } } }
+    });
+    
+    return chat || { mensagens: [] };
+  }
+
+  @Get('admin/livechats')
+  async adminObterLiveChats() {
+    return await (this.prisma as any).liveChat.findMany({
+      where: { status: 'ABERTO' }, 
+      include: { 
+        user: true, 
+        mensagens: { orderBy: { createdAt: 'asc' } } 
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+  }
+
+  // ====================================================================
+  // 🔥 SISTEMA DE MISSÕES: SUBMISSÃO DE LINKS (DINÂMICO)
+  // ====================================================================
+  @Post('missoes/submeter-link')
+  async submeterLinkMissao(@Body() dados: { userId: number, link: string }) {
+    try {
+      const { userId, link } = dados;
+
+      // 🔥 A VACINA: Corta o link no "?" e fica só com o link puro do vídeo!
+      const linkLimpo = link.split('?')[0];
+
+      // 1. Descobrir a plataforma pelo link LIMPO
+      let plataforma = '';
+      if (linkLimpo.includes('tiktok.com')) plataforma = 'TikTok';
+      else if (linkLimpo.includes('instagram.com')) plataforma = 'Instagram';
+      else if (linkLimpo.includes('youtube.com')) plataforma = 'YouTube';
+      else throw new Error('Link inválido. Usa TikTok, Instagram ou YouTube.');
+
+      // 2. ANTI-SPAM: Verificar se o jogador já tem um vídeo pendente NESTA plataforma
+      const submissaoPendente = await (this.prisma as any).submissaoMissao.findFirst({
+        where: { userId: Number(userId), plataforma, status: 'PENDENTE' }
+      });
+      if (submissaoPendente) {
+        throw new Error(`Já tens um vídeo do ${plataforma} em análise! Aguarda a nossa aprovação.`);
+      }
+
+      // 3. ANTI-BATOTA: Verificar se o LINK LIMPO já existe na base de dados
+      const linkRepetido = await (this.prisma as any).submissaoMissao.findUnique({
+        where: { link: linkLimpo }
+      });
+      if (linkRepetido) {
+        throw new Error('Este link já foi utilizado. Tens de gravar um vídeo original!');
+      }
+
+      // 4. 🔥 BUSCAR O VALOR DINÂMICO AO COFRE DE CONFIGURAÇÕES!
+      const configSocial = await (this.prisma as any).configuracao.findUnique({ 
+        where: { chave: 'recompensa_social' }
+      });
+      const recompensaFinal = configSocial ? parseFloat(configSocial.valor) : 0.09;
+
+      // 5. Guardar na Base de Dados com o LINK LIMPO e o valor extraído da DB
+      await (this.prisma as any).submissaoMissao.create({
+        data: {
+          userId: Number(userId),
+          plataforma,
+          link: linkLimpo, 
+          recompensa: recompensaFinal, 
+          status: 'PENDENTE'
+        }
+      });
+
+      return { sucesso: true, mensagem: 'Vídeo enviado com sucesso para análise!' };
+
+    } catch (error: any) {
+      return { sucesso: false, mensagem: error.message };
+    }
+  }
+
+  @Get('missoes/status/:userId')
+  async obterStatusMissoesUser(@Param('userId') userId: string) {
+    try {
+      const submissoes = await (this.prisma as any).submissaoMissao.findMany({
+        where: { userId: Number(userId) }
+      });
+
+      const statusFinal = { tiktok: 'LIVRE', instagram: 'LIVRE', youtube: 'LIVRE' };
+
+      submissoes.forEach((sub: any) => {
+        if (sub.plataforma === 'TikTok') statusFinal.tiktok = sub.status;
+        if (sub.plataforma === 'Instagram') statusFinal.instagram = sub.status;
+        if (sub.plataforma === 'YouTube') statusFinal.youtube = sub.status;
+      });
+
+      return statusFinal;
+    } catch (error) {
+      return { erro: 'Erro ao buscar missões' };
+    }
+  }
+
+  // ====================================================================
+  // 🔥 ADMIN: MODERAÇÃO DE MISSÕES (Aprovar / Rejeitar)
+  // ====================================================================
+
+  @Get('admin/missoes/pendentes')
+  async obterMissoesPendentes() {
+    return await (this.prisma as any).submissaoMissao.findMany({
+      where: { status: 'PENDENTE' },
+      include: {
+        user: { select: { nome: true, avatar: true } }
+      },
+      orderBy: { createdAt: 'asc' }
+    });
+  }
+
+  @Post('admin/missoes/aprovar/:id')
+  async aprovarMissao(@Param('id') id: string) {
+    try {
+      const missaoId = Number(id);
+      const missao = await (this.prisma as any).submissaoMissao.findUnique({ where: { id: missaoId }});
+      
+      if (!missao || missao.status !== 'PENDENTE') throw new Error('Missão inválida ou já processada.');
+
+      await (this.prisma as any).submissaoMissao.update({
+        where: { id: missaoId },
+        data: { status: 'APROVADA' }
+      });
+
+      await (this.prisma as any).user.update({
+        where: { id: missao.userId },
+        data: { saldo: { increment: missao.recompensa } }
+      });
+
+      await (this.prisma as any).historicoJogo.create({
+        data: {
+          userId: missao.userId,
+          acao: 'Missão Social',
+          detalhe: `Vídeo do ${missao.plataforma} Aprovado`,
+          valor: missao.recompensa,
+          tipo: 'GANHO'
+        }
+      });
+
+      return { sucesso: true, mensagem: `Missão aprovada! ${missao.recompensa}€ enviados para o jogador.` };
+    } catch (error: any) {
+      return { sucesso: false, mensagem: error.message };
+    }
+  }
+
+  @Post('admin/missoes/rejeitar/:id')
+  async rejeitarMissao(@Param('id') id: string) {
+    try {
+      await (this.prisma as any).submissaoMissao.update({
+        where: { id: Number(id) },
+        data: { status: 'REJEITADA' }
+      });
+      return { sucesso: true, mensagem: 'Missão rejeitada. O jogador não recebeu saldo.' };
+    } catch (error: any) {
+      return { sucesso: false, mensagem: error.message };
+    }
+  }
+
+  // ====================================================================
+  // 🔥 CONFIGURAÇÕES GLOBAIS DA COFRE
+  // ====================================================================
+  @Get('config')
+  async obterConfiguracoes() {
+    let configs = await (this.prisma as any).configuracao.findMany();
+
+    if (configs.length === 0) {
+      await (this.prisma as any).configuracao.createMany({
+        data: [
+          { chave: 'recompensa_social', valor: '0.09', descricao: 'Recompensa por vídeo (TikTok, Insta, YT)' },
+          { chave: 'recompensa_discord', valor: '0.03', descricao: 'Recompensa por entrar no Discord' },
+          { chave: 'recompensa_email', valor: '0.03', descricao: 'Recompensa por validar E-mail' }
+        ]
+      });
+      configs = await (this.prisma as any).configuracao.findMany();
+    }
+    return configs;
+  }
+
+  @Post('admin/config')
+  async atualizarConfiguracao(@Body() dados: { chave: string, valor: string }) {
+    try {
+      await (this.prisma as any).configuracao.update({
+        where: { chave: dados.chave },
+        data: { valor: String(dados.valor) }
+      });
+      return { sucesso: true, mensagem: 'Valor atualizado com sucesso!' };
+    } catch (error: any) {
+      return { sucesso: false, message: error.message };
+    }
   }
 }

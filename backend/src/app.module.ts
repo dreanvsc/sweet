@@ -10,6 +10,7 @@ import { FeedGateway } from './feed.gateway';
 import { SteamStrategy, SessionSerializer } from './steam.strategy';
 import { BattlesGateway } from './battles.gateway';
 import { CoinflipGateway } from './coinflip.gateway';
+import { ChatGateway } from './chat.gateway';
 
 @Module({
   imports: [],
@@ -24,7 +25,8 @@ import { CoinflipGateway } from './coinflip.gateway';
     SteamStrategy,
     SessionSerializer,
     BattlesGateway,
-    CoinflipGateway
+    CoinflipGateway,
+    ChatGateway
   ],
 })
 export class AppModule {}

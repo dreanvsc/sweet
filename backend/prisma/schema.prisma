@@ -7,19 +7,24 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// O Utilizador (Jogador)
 model User {
-  id         Int          @id @default(autoincrement())
-  username   String       @unique // ID oficial da Steam
-  nome       String?      // O nome (Nickname) da Steam
-  avatar     String?      // O link da Foto de Perfil
-  saldo      Float        @default(0.0)
-  xp         Int          @default(0)
-  inventario Inventario[]
-  totalDepositado Float     @default(0)
-  ultimoBonus     DateTime?
+  id              Int             @id @default(autoincrement())
+  username        String          @unique // ID oficial da Steam
+  nome            String?         // O nome (Nickname) da Steam
+  avatar          String?         // O link da Foto de Perfil
+  saldo           Float           @default(0.0)
+  totalDepositado Float           @default(0)
+  role            String          @default("USER")
+  level           Int             @default(1)
+  xp              Int             @default(0)
+  inventario      Inventario[]
   historicoJogo   HistoricoJogo[]
-  role      String   @default("USER")
+  tradeUrl        String?
+  email           String?
+  newsletter      Boolean         @default(false)
+  tickets         TicketSuporte[] 
+  liveChats   LiveChat[]
+  submissoes    SubmissaoMissao[]
 }
 
 // O Inventário (Atualizado)
@@ -36,7 +41,7 @@ model Inventario {
   dono      User?    @relation(fields: [userId], references: [id])
 }
 
-// A Tabela Item (que tu já tens, podes manter igual ao que lá está)
+// A Tabela Item
 model Item {
   id       Int     @id @default(autoincrement())
   nome     String
@@ -46,23 +51,24 @@ model Item {
 }
 
 model Caixa {
-  id        Int      @id @default(autoincrement())
-  nome      String
-  preco     Float
-  ordem  Int    @default(0)
-  imagem    String
-  itens     String   // Vai guardar um "pacote" (JSON) com as skins que tu escolheres
+  id      Int     @id @default(autoincrement())
+  nome    String
+  preco   Float
+  ordem   Int     @default(0)
+  imagem  String
+  itens   String   // Vai guardar um "pacote" (JSON) com as skins
 }
 
 model PromoCode {
   id        Int      @id @default(autoincrement())
   codigo    String   @unique
   valor     Float
-  usos      Int      @default(0) // Quantas vezes já foi usado
-  limite    Int      @default(100) // Quantas vezes pode ser usado no máximo (ex: os 100 primeiros ganham)
+  usos      Int      @default(0)
+  limite    Int      @default(100)
   ativo     Boolean  @default(true)
   createdAt DateTime @default(now())
 }
+
 model CodigoUsado {
   id        Int      @id @default(autoincrement())
   userId    Int
@@ -71,24 +77,74 @@ model CodigoUsado {
 }
 
 model Transacao {
-  id          Int      @id @default(autoincrement())
-  userId      Int
-  metodo      String   // Vai guardar: 'mbway', 'cartao' ou 'crypto'
-  valor       Float
-  status      String   @default("Pendente") // 'Pendente', 'Concluido', 'Cancelado'
-  referencia  String?  // Para guardar a ref do Multibanco, o ID da Stripe ou o Hash da Crypto
-  createdAt   DateTime @default(now())
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  metodo     String   
+  valor      Float
+  status     String   @default("Pendente")
+  referencia String?  
+  createdAt  DateTime @default(now())
 }
 
 model HistoricoJogo {
-  id         Int      @id @default(autoincrement())
-  acao       String   
-  detalhe    String   
-  valor      Float    
-  tipo       String   
-  data       DateTime @default(now())
-  
-  userId     Int
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        Int      @id @default(autoincrement())
+  acao      String   
+  detalhe   String   
+  valor     Float    
+  tipo      String   
+  data      DateTime @default(now())
+  createdAt DateTime @default(now())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
+
+model TicketSuporte {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  assunto   String
+  mensagem  String
+  resposta  String?  
+  status    String   @default("ABERTO") 
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model LiveChat {
+  id        Int               @id @default(autoincrement())
+  userId    Int               
+  status    String            @default("ABERTO")
+  user      User              @relation(fields: [userId], references: [id])
+  mensagens LiveChatMessage[]
+  createdAt DateTime          @default(now())
+}
+
+model LiveChatMessage {
+  id         Int      @id @default(autoincrement())
+  chatId     Int
+  remetente  String   // 'JOGADOR' ou 'ADMIN'
+  texto      String
+  createdAt  DateTime @default(now())
+  chat       LiveChat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+}
+
+model SubmissaoMissao {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  plataforma  String   // 'TikTok', 'Instagram', ou 'YouTube'
+  link        String   @unique // 🔥 UNIQUE garante que NUNCA 2 jogadores usam o mesmo link!
+  recompensa  Float    @default(0.09)
+  status      String   @default("PENDENTE") // Pode ser: PENDENTE, APROVADA, REJEITADA
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id])
+}
+
+model Configuracao {
+  id          Int      @id @default(autoincrement())
+  chave       String   @unique // Ex: "recompensa_social", "recompensa_discord"
+  valor       String   // Guardamos como texto para poder ser "0.15" ou até "true/false"
+  descricao   String?  // Só para tu saberes o que isto faz
+  updatedAt   DateTime @updatedAt
+}

@@ -1,13 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
-import { FeedGateway } from './feed.gateway'; // 🔥 Importado perfeitamente
+import { FeedGateway } from './feed.gateway';
+import { UsersService } from './users.service';
 
 @Injectable()
 export class CaixasService {
-  // 🛠️ CORREÇÃO: Injetamos o FeedGateway aqui dentro do constructor para o NestJS o reconhecer
   constructor(
     private prisma: PrismaService,
-    private feedGateway: FeedGateway 
+    private feedGateway: FeedGateway,
+    private readonly usersService: UsersService // 🔥 O gerente de XP está pronto!
   ) {}
 
   async criarCaixa(dados: { nome: string, preco: number, imagem: string, itens: any[], ordem?: number }) {
@@ -81,10 +82,15 @@ export class CaixasService {
 
       const novoSaldo = user.saldo - precoTotal;
 
+      // 1. Tira o dinheiro do jogador
       await (this.prisma as any).user.update({
         where: { id: Number(dados.userId) }, data: { saldo: parseFloat(novoSaldo.toFixed(2)) }
       });
 
+      // 2. 🔥 INJETA O XP! (Isto faz o nível subir de verdade!)
+      await this.usersService.adicionarXp(Number(dados.userId), precoTotal);
+
+      // 3. Guarda as skins no inventário
       const inventarioData = skinsGanhas.map(skin => ({
         nome: skin.nome, imagem: skin.imagem || skin.image, raridade: skin.raridade || 'Comum', valor: parseFloat(Number(skin.preco || skin.valor || 0).toFixed(2)), userId: Number(dados.userId)
       }));

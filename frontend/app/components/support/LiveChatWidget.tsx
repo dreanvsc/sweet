@@ -14,7 +14,7 @@ export default function LiveChatWidget({ userId, userName }: any) {
   useEffect(() => {
     if (!userId || !isOpen) return;
 
-    fetch(`http://localhost:3000/suporte/livechat/${userId}`)
+    fetch(`https://sweet-7ifa.onrender.com/suporte/livechat/${userId}`)
       .then(async res => {
         const text = await res.text();
         return text ? JSON.parse(text) : null;
@@ -24,7 +24,7 @@ export default function LiveChatWidget({ userId, userName }: any) {
         if (data && data.mensagens) setMessages(data.mensagens);
       });
 
-    const newSocket = io('http://localhost:3000');
+    const newSocket = io('https://sweet-7ifa.onrender.com');
     setSocket(newSocket);
     newSocket.emit('entrarChat', userId);
 

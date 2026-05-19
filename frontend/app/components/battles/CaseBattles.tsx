@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
 import BattleArena from './BattleArena';
 
-const socket = io('http://localhost:3000');
+const socket = io('https://sweet-7ifa.onrender.com');
 
 export default function CaseBattles({ userId, user, saldo, caixas, setView, atualizarTudo }: any) {
   const [batalhas, setBatalhas] = useState<any[]>([]);

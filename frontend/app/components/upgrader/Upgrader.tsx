@@ -25,7 +25,7 @@ export default function Upgrader({ userId, inventario, setSaldo, setInventario, 
       atualizarTudo();
     }
 
-    fetch('http://localhost:3000/itens')
+    fetch('https://sweet-7ifa.onrender.com/itens')
       .then(res => res.json())
       .then(data => setLojaItens(data)); 
   }, []);
@@ -61,7 +61,7 @@ export default function Upgrader({ userId, inventario, setSaldo, setInventario, 
 
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:3000/upgrade', {
+      const res = await fetch('https://sweet-7ifa.onrender.com/upgrade', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         // 🔥 ENVIAMOS O LADO PARA O SERVIDOR!
         body: JSON.stringify({ userId, skinIds: userSkins.map(s => s.id), alvoId: targetSkin.id, lado })

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
 
 // Ligação Direta à Torre de Controlo do teu Backend
-const socket = io('http://localhost:3000'); 
+const socket = io('https://sweet-7ifa.onrender.com'); 
 
 export default function LiveFeed() {
   const [drops, setDrops] = useState<any[]>([]);

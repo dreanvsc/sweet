@@ -8,7 +8,7 @@ export default function AdminMissoes() {
 
   const carregarMissoes = async () => {
     try {
-      const res = await fetch('http://localhost:3000/admin/missoes/pendentes');
+      const res = await fetch('https://sweet-7ifa.onrender.com/admin/missoes/pendentes');
       const data = await res.json();
       setMissoes(data);
     } catch (error) {
@@ -25,7 +25,7 @@ export default function AdminMissoes() {
     if (!confirm('Queres mesmo aprovar este vídeo e pagar 0.09€ ao jogador?')) return;
     
     try {
-      const res = await fetch(`http://localhost:3000/admin/missoes/aprovar/${id}`, { method: 'POST' });
+      const res = await fetch(`https://sweet-7ifa.onrender.com/admin/missoes/aprovar/${id}`, { method: 'POST' });
       const data = await res.json();
       if (data.sucesso) {
         alert('✅ ' + data.mensagem);
@@ -40,7 +40,7 @@ export default function AdminMissoes() {
     if (!confirm('Rejeitar este vídeo? O jogador não vai receber nada.')) return;
 
     try {
-      const res = await fetch(`http://localhost:3000/admin/missoes/rejeitar/${id}`, { method: 'POST' });
+      const res = await fetch(`https://sweet-7ifa.onrender.com/admin/missoes/rejeitar/${id}`, { method: 'POST' });
       const data = await res.json();
       if (data.sucesso) {
         alert('✅ ' + data.mensagem);

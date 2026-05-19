@@ -40,7 +40,7 @@ export default function CaseOpening({
     setItemSorteado(null); 
 
     try {
-      const res = await fetch('http://localhost:3000/abrir-caixa', {
+      const res = await fetch('https://sweet-7ifa.onrender.com/abrir-caixa', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, caixaSelecionada, quantidade })
       });

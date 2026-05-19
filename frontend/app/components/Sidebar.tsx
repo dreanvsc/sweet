@@ -13,7 +13,7 @@ export default function Sidebar({ view, setView, saldo, userId, userData }: any)
     const txId = params.get('tx');
 
     if (status === 'sucesso' && txId) {
-      fetch(`http://localhost:3000/confirmar-deposito/${txId}`)
+      fetch(`https://sweet-7ifa.onrender.com/confirmar-deposito/${txId}`)
         .then(res => res.json())
         .then(data => {
           if (data.sucesso) {
@@ -145,7 +145,7 @@ export default function Sidebar({ view, setView, saldo, userId, userData }: any)
             </div>
           ) : (
             <button 
-              onClick={() => window.location.href = 'http://localhost:3000/auth/steam'}
+              onClick={() => window.location.href = 'https://sweet-7ifa.onrender.com/auth/steam'}
               className="w-full py-5 px-4 bg-[#171a21] hover:bg-[#2a303c] transition-all rounded-2xl border border-white/10 flex flex-col items-center gap-3 group shadow-[0_0_15px_rgba(23,26,33,0.5)]"
             >
               <svg className="w-10 h-10 fill-current text-white/80 group-hover:text-white group-hover:scale-110 transition-all duration-300" viewBox="0 0 496 512">

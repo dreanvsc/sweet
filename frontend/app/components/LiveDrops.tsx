@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
 
 // 📡 LIGAÇÃO À TORRE DE CONTROLO DO TEU SERVIDOR
-const socket = io('http://localhost:3000');
+const socket = io('https://sweet-7ifa.onrender.com');
 
 export default function LiveDrops() {
   // O estado agora é gerido internamente pelo próprio componente

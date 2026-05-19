@@ -8,8 +8,8 @@ export class SteamStrategy extends PassportStrategy(Strategy, 'steam') {
   // 🔥 Trocámos o AppService pelo UsersService aqui
   constructor(private usersService: UsersService) {
     super({
-      returnURL: 'http://localhost:3000/auth/steam/return',
-      realm: 'http://localhost:3000/',
+      returnURL: 'https://sweet-7ifa.onrender.com/auth/steam/return',
+      realm: 'https://sweet-7ifa.onrender.com/',
       apiKey: '70414B811C0BEB087375922452721CCA',
     });
   }

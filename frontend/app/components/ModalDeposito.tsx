@@ -14,7 +14,7 @@ export default function ModalDeposito({ onClose, userId }: { onClose: () => void
 
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:3000/depositar', {
+      const res = await fetch('https://sweet-7ifa.onrender.com/depositar', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: Number(userId), metodo, valor: Number(valor), telemovel })
       });

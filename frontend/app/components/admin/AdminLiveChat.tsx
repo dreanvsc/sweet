@@ -12,7 +12,7 @@ export default function AdminLiveChat() {
 
   // Carrega apenas os chats abertos do servidor
   const carregarChats = () => {
-    fetch('http://localhost:3000/admin/livechats')
+    fetch('https://sweet-7ifa.onrender.com/admin/livechats')
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) setChats(data);
@@ -21,7 +21,7 @@ export default function AdminLiveChat() {
 
   useEffect(() => {
     carregarChats();
-    const newSocket = io('http://localhost:3000');
+    const newSocket = io('https://sweet-7ifa.onrender.com');
     setSocket(newSocket);
 
     // Ouve mensagens novas do jogador

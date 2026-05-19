@@ -11,7 +11,7 @@ export default function AdminTickets() {
 
   const carregarTickets = () => {
     setLoading(true);
-    fetch('http://localhost:3000/admin/tickets')
+    fetch('https://sweet-7ifa.onrender.com/admin/tickets')
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) setTickets(data);
@@ -27,7 +27,7 @@ export default function AdminTickets() {
     if (!resposta.trim()) return alert("Escreve uma resposta!");
     
     try {
-      const res = await fetch('http://localhost:3000/admin/ticket/responder', {
+      const res = await fetch('https://sweet-7ifa.onrender.com/admin/ticket/responder', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 

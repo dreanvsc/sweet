@@ -6,7 +6,7 @@ export default function TabClientes() {
   const [userEspiado, setUserEspiado] = useState<any>(null);
 
   useEffect(() => {
-    fetch('http://localhost:3000/admin/utilizadores')
+    fetch('https://sweet-7ifa.onrender.com/admin/utilizadores')
       .then(res => res.json())
       .then(setUsers)
       .catch(console.error);
@@ -16,7 +16,7 @@ export default function TabClientes() {
     const novoSaldo = editSaldo[userId];
     if (!novoSaldo) return;
     try {
-      const res = await fetch('http://localhost:3000/admin/utilizador/saldo', {
+      const res = await fetch('https://sweet-7ifa.onrender.com/admin/utilizador/saldo', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId, novoSaldo: parseFloat(novoSaldo) })
       });
       if (res.ok) {

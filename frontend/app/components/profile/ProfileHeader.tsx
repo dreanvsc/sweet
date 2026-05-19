@@ -39,7 +39,7 @@ export default function ProfileHeader({ nome, avatar, userData, userId, tradeUrl
     setMsgPromo(null);
 
     try {
-      const res = await fetch('http://localhost:3000/codigos/resgatar', {
+      const res = await fetch('https://sweet-7ifa.onrender.com/codigos/resgatar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: String(userId), codigo: codigo.toUpperCase() })

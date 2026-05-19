@@ -18,7 +18,7 @@ export default function ProfileSupport({ userId }: any) {
   const carregarTickets = () => {
     if (!userId) return;
     setLoading(true);
-    fetch(`http://localhost:3000/suporte/tickets/${userId}`)
+    fetch(`https://sweet-7ifa.onrender.com/suporte/tickets/${userId}`)
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data)) setTickets(data);
@@ -37,7 +37,7 @@ export default function ProfileSupport({ userId }: any) {
     setEnviando(true);
 
     try {
-      const res = await fetch('http://localhost:3000/suporte/ticket', {
+      const res = await fetch('https://sweet-7ifa.onrender.com/suporte/ticket', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, assunto, message: mensagem })

@@ -19,7 +19,7 @@ export default function ProfileSettings({ userData, userId }: any) {
     setLoader(true);
     
     try {
-      const res = await fetch('http://localhost:3000/utilizador/configuracoes', {
+      const res = await fetch('https://sweet-7ifa.onrender.com/utilizador/configuracoes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, [campo]: valor })

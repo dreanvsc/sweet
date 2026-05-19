@@ -13,7 +13,7 @@ export default function ProfileHistory({ userId }: any) {
   useEffect(() => {
     if (!userId) return;
 
-    fetch(`http://localhost:3000/utilizador/historico/${userId}`)
+    fetch(`https://sweet-7ifa.onrender.com/utilizador/historico/${userId}`)
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data)) setHistorico(data);

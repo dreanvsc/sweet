@@ -17,7 +17,7 @@ export default function ProfileMissions({ userId }: any) {
   // 1. PUXAR O ESTADO DAS TAREFAS (F5 Seguro)
   useEffect(() => {
     if (!userId) return;
-    fetch(`http://localhost:3000/missoes/status/${userId}`)
+    fetch(`https://sweet-7ifa.onrender.com/missoes/status/${userId}`)
       .then(res => res.json())
       .then(data => {
         if (!data.erro) setStatusPlataformas(data);
@@ -27,7 +27,7 @@ export default function ProfileMissions({ userId }: any) {
 
   // 2. 🔥 PUXAR OS PREÇOS DINÂMICOS DA ADMIN!
   useEffect(() => {
-    fetch('http://localhost:3000/config')
+    fetch('https://sweet-7ifa.onrender.com/config')
       .then(res => res.json())
       .then(data => {
         const valoresNovos = { social: 0.09, discord: 0.03, email: 0.03, push: 0.05 };
@@ -71,7 +71,7 @@ export default function ProfileMissions({ userId }: any) {
 
     setLoading(platId); 
     try {
-      const res = await fetch('http://localhost:3000/missoes/submeter-link', {
+      const res = await fetch('https://sweet-7ifa.onrender.com/missoes/submeter-link', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, link: linkAtual }) 

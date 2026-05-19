@@ -46,7 +46,7 @@ export default function Home() {
     if (!userId) return;
     
     // 1. Puxa o Saldo Atualizado
-    fetch(`http://localhost:3000/utilizador/${userId}`)
+    fetch(`https://sweet-7ifa.onrender.com/utilizador/${userId}`)
       .then(res => res.json())
       .then(dados => {
         if (dados) {
@@ -56,7 +56,7 @@ export default function Home() {
       }).catch(err => console.error(err));
 
     // 2. Puxa a Mochila Atualizada
-    fetch(`http://localhost:3000/meu-inventario/${userId}`)
+    fetch(`https://sweet-7ifa.onrender.com/meu-inventario/${userId}`)
       .then(res => res.json())
       .then(data => { setInventario(Array.isArray(data) ? data : []); })
       .catch(err => console.error(err));
@@ -67,7 +67,7 @@ export default function Home() {
   }, [userId]); 
 
   useEffect(() => {
-    fetch('http://localhost:3000/caixas')
+    fetch('https://sweet-7ifa.onrender.com/caixas')
       .then(res => res.json())
       .then(data => {
         const caixasProntas = Array.isArray(data) ? data.map((caixa: any) => ({

@@ -12,7 +12,7 @@ export default function TabSistema() {
 
   // 1. CARREGAR OS VALORES ATUAIS DA BASE DE DADOS AO ABRIR A ABA
   useEffect(() => {
-    fetch('http://localhost:3000/config')
+    fetch('https://sweet-7ifa.onrender.com/config')
       .then(res => res.json())
       .then(data => {
         data.forEach((item: any) => {
@@ -29,7 +29,7 @@ export default function TabSistema() {
     if (!valor) return alert("Insere um valor válido!");
 
     try {
-      const res = await fetch('http://localhost:3000/admin/config', {
+      const res = await fetch('https://sweet-7ifa.onrender.com/admin/config', {
         method: 'POST', 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ chave, valor })
@@ -47,7 +47,7 @@ export default function TabSistema() {
     if(!window.confirm("Atenção! Isto vai importar milhares de skins. Queres continuar?")) return;
     setSyncLoading(true);
     try {
-      const res = await fetch('http://localhost:3000/sincronizar-arsenal', { method: 'POST' });
+      const res = await fetch('https://sweet-7ifa.onrender.com/sincronizar-arsenal', { method: 'POST' });
       const data = await res.json();
       alert(data.message || '✅ Sincronizado!');
     } catch (e) { 
@@ -64,7 +64,7 @@ export default function TabSistema() {
     if(!codigo || !valor || !limite) return alert("Preenche o código, o valor e o limite de usos!");
 
     try {
-      const res = await fetch('http://localhost:3000/admin/criar-promo', {
+      const res = await fetch('https://sweet-7ifa.onrender.com/admin/criar-promo', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ codigo, valor: parseFloat(valor), limite: parseInt(limite) })
       });

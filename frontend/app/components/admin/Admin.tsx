@@ -26,7 +26,7 @@ export default function Admin({ userId }: any) {
     if (!alvoIdPromover) return setMsgPromover({ texto: 'Insere o ID do jogador!', tipo: 'erro' });
 
     try {
-      const res = await fetch('http://localhost:3000/admin/promover', {
+      const res = await fetch('https://sweet-7ifa.onrender.com/admin/promover', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ adminId: userId, alvoId: alvoIdPromover })
@@ -49,7 +49,7 @@ export default function Admin({ userId }: any) {
     if (!alvoIdRemover) return setMsgRemover({ texto: 'Insere o ID do jogador!', tipo: 'erro' });
 
     try {
-      const res = await fetch('http://localhost:3000/admin/despromover', {
+      const res = await fetch('https://sweet-7ifa.onrender.com/admin/despromover', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ adminId: userId, alvoId: alvoIdRemover })

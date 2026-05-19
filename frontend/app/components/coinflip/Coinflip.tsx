@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
 
-const socket = io('http://localhost:3000');
+const socket = io('https://sweet-7ifa.onrender.com');
 
 // =========================================================================
 // 🔥 COMPONENTE DA LINHA DE JOGO (Animação 3D de Elite)

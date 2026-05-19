@@ -16,11 +16,11 @@ export default function TabFabrica() {
   const [jsonInput, setJsonInput] = useState('');
 
   useEffect(() => {
-    fetch('http://localhost:3000/itens').then(res => res.json()).then(setTodosItens).catch(console.error);
+    fetch('https://sweet-7ifa.onrender.com/itens').then(res => res.json()).then(setTodosItens).catch(console.error);
     carregarCaixas();
   }, []);
 
-  const carregarCaixas = () => fetch('http://localhost:3000/caixas').then(res => res.json()).then(setCaixasCriadas);
+  const carregarCaixas = () => fetch('https://sweet-7ifa.onrender.com/caixas').then(res => res.json()).then(setCaixasCriadas);
 
   // 🔥 ESCUDO ANTI-BLOQUEIO DE IMAGENS 🔥
   const getImagemSegura = (url: string) => {
@@ -79,7 +79,7 @@ export default function TabFabrica() {
       if(!window.confirm(`Atenção: As probabilidades somam ${somaProbabilidades.toFixed(2)}%. Gravar na mesma?`)) return;
     }
     
-    const url = caixaEmEdicaoId ? `http://localhost:3000/admin/caixa/${caixaEmEdicaoId}` : 'http://localhost:3000/admin/caixa';
+    const url = caixaEmEdicaoId ? `https://sweet-7ifa.onrender.com/admin/caixa/${caixaEmEdicaoId}` : 'https://sweet-7ifa.onrender.com/admin/caixa';
     const metodo = caixaEmEdicaoId ? 'PUT' : 'POST';
 
     try {
@@ -111,7 +111,7 @@ export default function TabFabrica() {
   const apagarCaixa = async (id: number) => {
     if (!window.confirm("⚠️ Apagar esta caixa da loja?")) return;
     try {
-      const res = await fetch(`http://localhost:3000/admin/caixa/${id}`, { method: 'DELETE' });
+      const res = await fetch(`https://sweet-7ifa.onrender.com/admin/caixa/${id}`, { method: 'DELETE' });
       if (res.ok) carregarCaixas();
     } catch(e) { alert('Erro ao apagar'); }
   };

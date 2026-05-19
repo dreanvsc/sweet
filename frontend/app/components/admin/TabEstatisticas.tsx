@@ -4,7 +4,7 @@ export default function TabEstatisticas() {
   const [stats, setStats] = useState({ totalUsers: 0, saldoEmCirculacao: 0, armasEmCirculacao: 0, totalCaixasCriadas: 0 });
 
   useEffect(() => {
-    fetch('http://localhost:3000/admin/estatisticas')
+    fetch('https://sweet-7ifa.onrender.com/admin/estatisticas')
       .then(res => res.json())
       .then(setStats)
       .catch(console.log);

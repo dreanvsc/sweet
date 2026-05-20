@@ -74,7 +74,7 @@ export default function Sidebar({ view, setView, saldo, userId, userData }: any)
         
         {/* 🔥 BOTÕES COM PADDING REDUZIDO (p-3 em vez de p-4) */}
         <button onClick={() => setView('store')} className={`flex items-center gap-3 p-3 rounded-xl transition-all duration-300 ${view === 'store' || view === 'opening' ? 'bg-gradient-to-r from-emerald-500/20 to-transparent border-l-4 border-emerald-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.1)]' : 'text-zinc-400 hover:text-white hover:bg-white/5 hover:translate-x-1'}`}>
-          <span className="text-lg drop-shadow-md">🛒</span> <span className="text-[10px] font-bold uppercase tracking-widest">Loja</span>
+          <span className="text-lg drop-shadow-md">🛒</span> <span className="text-[10px] font-bold uppercase tracking-widest">Store</span>
         </button>
         
         <button onClick={() => setView('upgrader')} className={`flex items-center gap-3 p-3 rounded-xl transition-all duration-300 ${view === 'upgrader' ? 'bg-gradient-to-r from-emerald-500/20 to-transparent border-l-4 border-emerald-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.1)]' : 'text-zinc-400 hover:text-white hover:bg-white/5 hover:translate-x-1'}`}>

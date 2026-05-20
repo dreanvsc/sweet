@@ -91,7 +91,7 @@ export default function Home() {
             <div className="animate-in fade-in pb-20 w-full">
               <div className="mb-10 flex flex-col items-center justify-center text-center">
                 <span className="text-5xl mb-4">🛒</span>
-                <h2 className="text-3xl sm:text-4xl font-black italic uppercase text-white tracking-tighter">Loja do Império</h2>
+                <h2 className="text-3xl sm:text-4xl font-black italic uppercase text-white tracking-tighter">SWEET DROP STORE</h2>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 w-full max-w-7xl mx-auto">
                 {caixasDaLoja.map((caixa) => (

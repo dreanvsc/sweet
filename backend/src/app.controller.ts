@@ -185,7 +185,7 @@ export class AppController {
 
     // 2. Proteções de Segurança Máxima
     if (alvoIdNum === 1) {
-      return { erro: 'ERRO: Não podes despedir o Fundador do Império!' };
+      return { erro: 'ERRO: Não podes despedir o Fundador!' };
     }
     if (alvoIdNum === Number(body.adminId)) {
       return { erro: 'Não podes despedir-te a ti próprio por aqui.' };

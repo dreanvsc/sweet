@@ -76,28 +76,49 @@ export default function CaseBattles({ userId, user, saldo, caixas, setView, atua
   }
 
   return (
-    <div className="max-w-7xl mx-auto p-4 sm:p-6 animate-in fade-in pb-20">
-      <div className="flex justify-between items-end mb-10 border-b border-white/5 pb-6">
-        <div>
-          <h2 className="text-4xl font-black text-white italic tracking-tighter">CASE <span className="text-red-500">BATTLES</span> ⚔️</h2>
-          <p className="text-zinc-500 text-xs font-bold uppercase tracking-[0.3em] mt-2">O vencedor leva tudo</p>
-        </div>
-        <button onClick={() => setModalCriar(true)} className="bg-red-500 hover:bg-red-400 text-black px-8 py-4 rounded-xl font-black uppercase tracking-widest transition-transform hover:scale-105 shadow-[0_0_30px_rgba(239,68,68,0.3)]">
-          CRIAR BATALHA
-        </button>
+    <div className="w-full max-w-[1400px] mx-auto animate-in fade-in pb-20 pt-4">
+      
+      {/* HEADER PANORÂMICO */}
+      <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-8 bg-black/20 p-6 rounded-2xl border border-white/5 backdrop-blur-sm shadow-lg">
+         <div className="flex items-center gap-4">
+            <div className="w-14 h-14 bg-red-500/10 rounded-xl flex items-center justify-center border border-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.2)]">
+               <span className="text-3xl">⚔️</span>
+            </div>
+            <div className="text-left">
+               <h2 className="text-2xl sm:text-3xl font-black italic uppercase text-white tracking-tighter drop-shadow-md">
+                 Case <span className="text-red-500">Battles</span>
+               </h2>
+               <p className="text-zinc-400 text-xs sm:text-sm font-bold tracking-widest uppercase mt-1">O Vencedor Leva Tudo</p>
+            </div>
+         </div>
+         
+         <button 
+           onClick={() => setModalCriar(true)} 
+           className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-400 hover:to-red-500 text-white font-black uppercase tracking-widest rounded-xl transition-all shadow-[0_0_20px_rgba(239,68,68,0.4)] hover:shadow-[0_0_30px_rgba(239,68,68,0.6)] hover:-translate-y-1"
+         >
+           Criar Batalha
+         </button>
       </div>
 
       <div className="flex flex-col gap-4">
         {batalhas.length === 0 ? (
-          <div className="py-20 text-center border border-dashed border-white/10 rounded-2xl bg-black/20">
-            <p className="text-zinc-500 font-bold uppercase tracking-widest">Nenhuma batalha a decorrer. Cria tu a primeira!</p>
+          /* EMPTY STATE PANORÂMICO LIGADO */
+          <div className="w-full border border-dashed border-white/10 rounded-2xl p-16 flex flex-col items-center justify-center bg-gradient-to-b from-white/[0.02] to-transparent group hover:border-red-500/30 transition-colors">
+            <div className="w-24 h-24 bg-red-500/5 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500 relative">
+               <div className="absolute inset-0 bg-red-500/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
+               <span className="text-5xl relative z-10 opacity-50 group-hover:opacity-100 transition-opacity drop-shadow-[0_0_15px_rgba(239,68,68,0.8)]">🛡️</span>
+            </div>
+            <h3 className="text-xl sm:text-2xl font-black text-white uppercase tracking-widest mb-3 drop-shadow-md">A Arena está Silenciosa</h3>
+            <p className="text-zinc-500 text-sm max-w-lg text-center leading-relaxed">
+              Nenhuma batalha a decorrer neste momento. Sê o primeiro a desafiar o Império, cria a tua própria sala e aniquila a concorrência!
+            </p>
           </div>
         ) : (
           batalhas.map((b) => {
             const estouNaSala = b.jogadores.find((j: any) => String(j.id) === String(user.id));
             
             return (
-            <div key={b.id} className="bg-[#121215] border border-white/5 rounded-2xl p-4 flex flex-col md:flex-row items-center justify-between hover:border-red-500/30 transition-colors gap-6">
+            <div key={b.id} className="bg-[#121215]/80 backdrop-blur-sm border border-white/5 rounded-2xl p-4 flex flex-col md:flex-row items-center justify-between hover:border-red-500/30 transition-all duration-300 gap-6 shadow-lg hover:shadow-[0_0_20px_rgba(239,68,68,0.1)] hover:-translate-y-1">
               
               <div className="flex items-center gap-2 w-full md:w-1/3 flex-wrap">
                 {b.caixas.slice(0, 5).map((c: any, i: number) => (
@@ -121,17 +142,17 @@ export default function CaseBattles({ userId, user, saldo, caixas, setView, atua
 
               <div className="w-full md:w-1/3 flex items-center justify-end gap-6">
                 <div className="text-right">
-                   <p className="text-emerald-500 font-mono font-black text-lg">{b.precoTotal.toFixed(2)}€</p>
+                   <p className="text-emerald-400 font-mono font-black text-lg drop-shadow-[0_0_5px_rgba(52,211,153,0.4)]">{b.precoTotal.toFixed(2)}€</p>
                    <p className="text-zinc-500 text-[9px] uppercase font-black tracking-widest">{b.jogadores.length}/{b.maxJogadores} Jogadores</p>
                 </div>
                 
                 {b.estado === 'espera' ? (
                   estouNaSala ? (
-                    <button onClick={() => socket.emit('chamar_bot', { batalhaId: b.id })} className="bg-gradient-to-r from-amber-500 to-orange-600 text-black px-6 py-3 rounded-xl font-black uppercase tracking-widest text-xs transition-all hover:scale-105 shadow-[0_0_20px_rgba(245,158,11,0.2)]">
+                    <button onClick={() => socket.emit('chamar_bot', { batalhaId: b.id })} className="bg-gradient-to-r from-amber-500 to-orange-600 text-white px-6 py-3 rounded-xl font-black uppercase tracking-widest text-xs transition-all hover:scale-105 shadow-[0_0_20px_rgba(245,158,11,0.2)] hover:shadow-[0_0_25px_rgba(245,158,11,0.4)]">
                       🤖 +1 BOT
                     </button>
                   ) : (
-                    <button onClick={() => entrarBatalha(b)} className="bg-zinc-800 hover:bg-white text-white hover:text-black px-8 py-3 rounded-xl font-black uppercase tracking-widest transition-colors">
+                    <button onClick={() => entrarBatalha(b)} className="bg-white/10 border border-white/20 hover:bg-white text-zinc-300 hover:text-black px-8 py-3 rounded-xl font-black uppercase tracking-widest transition-all duration-300 shadow-lg hover:shadow-[0_0_20px_rgba(255,255,255,0.3)]">
                       ENTRAR
                     </button>
                   )
@@ -146,35 +167,39 @@ export default function CaseBattles({ userId, user, saldo, caixas, setView, atua
       </div>
 
       {modalCriar && (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-[#121215] border border-white/10 p-8 rounded-3xl max-w-4xl w-full flex flex-col h-[85vh]">
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-md">
+          <div className="bg-[#121215] border border-white/10 p-8 rounded-3xl max-w-4xl w-full flex flex-col h-[85vh] shadow-[0_0_50px_rgba(0,0,0,0.8)]">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-2xl font-black text-white italic uppercase">Construir Batalha</h3>
-              <button onClick={() => setModalCriar(false)} className="text-zinc-500 hover:text-white font-bold">X</button>
+              <div className="flex items-center gap-3">
+                 <span className="text-2xl drop-shadow-[0_0_10px_rgba(239,68,68,0.5)]">⚙️</span>
+                 <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter">Construir Batalha</h3>
+              </div>
+              <button onClick={() => setModalCriar(false)} className="w-10 h-10 flex items-center justify-center bg-white/5 hover:bg-red-500/20 text-zinc-400 hover:text-red-400 border border-white/5 hover:border-red-500/50 rounded-xl transition-all">X</button>
             </div>
             
-            <div className="flex bg-black/50 p-1 rounded-xl mb-4 border border-white/5">
+            <div className="flex bg-black/50 p-1.5 rounded-xl mb-4 border border-white/5">
               {[2, 3, 4].map(n => (
                 <button 
                   key={n} 
                   onClick={() => setNumJogadores(n)} 
-                  className={`flex-1 py-3 rounded-lg font-black uppercase text-xs tracking-widest transition-colors ${numJogadores === n ? 'bg-red-500 text-white shadow-lg' : 'text-zinc-500 hover:text-white'}`}
+                  className={`flex-1 py-3 rounded-lg font-black uppercase text-xs tracking-widest transition-all ${numJogadores === n ? 'bg-gradient-to-r from-red-500 to-red-600 text-white shadow-[0_0_15px_rgba(239,68,68,0.5)]' : 'text-zinc-500 hover:text-white hover:bg-white/5'}`}
                 >
                   {n} Jogadores
                 </button>
               ))}
             </div>
 
-            <div className="bg-black/50 border border-white/5 rounded-2xl p-4 min-h-[100px] mb-6 flex flex-col justify-center">
-               <div className="flex items-center gap-2 overflow-x-auto pb-2">
+            <div className="bg-black/40 border border-white/5 rounded-2xl p-4 min-h-[100px] mb-6 flex flex-col justify-center relative overflow-hidden">
+               <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/5 blur-2xl rounded-full"></div>
+               <div className="flex items-center gap-2 overflow-x-auto pb-2 relative z-10 custom-scrollbar">
                  {filaCaixas.length === 0 ? (
                    <p className="text-zinc-600 font-bold uppercase tracking-widest text-xs w-full text-center">Nenhuma caixa selecionada</p>
                  ) : (
                    filaCaixas.map((c, i) => (
                      <div key={i} onClick={() => removerCaixa(i)} className="relative group cursor-pointer flex-shrink-0">
-                        <img src={c.imagem} className="w-16 h-16 object-contain bg-zinc-900 rounded-xl border border-white/10 p-1 group-hover:border-red-500 transition-colors" alt="caixa" />
-                        <div className="absolute inset-0 bg-red-500/80 hidden group-hover:flex items-center justify-center rounded-xl backdrop-blur-sm">
-                          <span className="text-white font-black text-xs">REMOVER</span>
+                        <img src={c.imagem} className="w-16 h-16 object-contain bg-black/60 rounded-xl border border-white/10 p-1.5 group-hover:border-red-500 transition-colors" alt="caixa" />
+                        <div className="absolute inset-0 bg-red-500/90 hidden group-hover:flex items-center justify-center rounded-xl backdrop-blur-sm transition-all">
+                          <span className="text-white font-black text-[10px] tracking-widest uppercase">Remover</span>
                         </div>
                      </div>
                    ))
@@ -182,27 +207,27 @@ export default function CaseBattles({ userId, user, saldo, caixas, setView, atua
                </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto pr-2 grid grid-cols-3 sm:grid-cols-5 gap-4">
+            <div className="flex-1 overflow-y-auto pr-2 grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-3 custom-scrollbar">
               {caixas?.map((c: any) => (
-                <div key={c.id} onClick={() => addCaixa(c)} className="bg-[#161619] border border-white/5 p-4 rounded-2xl flex flex-col items-center cursor-pointer hover:border-emerald-500 hover:bg-emerald-500/10 transition-colors group">
-                  <img src={c.imagem} className="w-14 h-14 object-contain mb-2 group-hover:scale-110 transition-transform" alt={c.nome} />
-                  <p className="text-[9px] text-zinc-400 font-black text-center truncate w-full uppercase">{c.nome}</p>
-                  <p className="text-emerald-500 font-mono text-xs font-black mt-1">{c.preco.toFixed(2)}€</p>
+                <div key={c.id} onClick={() => addCaixa(c)} className="bg-white/[0.03] border border-white/5 p-4 rounded-2xl flex flex-col items-center cursor-pointer hover:border-emerald-500/50 hover:bg-emerald-500/10 transition-all duration-300 group hover:-translate-y-1">
+                  <img src={c.imagem} className="w-14 h-14 object-contain mb-3 group-hover:scale-110 transition-transform duration-500 drop-shadow-lg" alt={c.nome} />
+                  <p className="text-[10px] text-zinc-300 font-black text-center truncate w-full uppercase tracking-widest">{c.nome}</p>
+                  <p className="text-emerald-400 font-mono text-xs font-black mt-1 drop-shadow-md">{c.preco.toFixed(2)}€</p>
                 </div>
               ))}
             </div>
 
-            <div className="mt-6 pt-6 border-t border-white/5 flex justify-between items-center">
+            <div className="mt-6 pt-6 border-t border-white/5 flex justify-between items-center bg-[#121215]">
               <div>
-                 <p className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">Custo Total</p>
-                 <p className="text-3xl font-mono font-black text-white">{valorTotalFila.toFixed(2)}€</p>
+                 <p className="text-zinc-500 text-[10px] font-black uppercase tracking-widest mb-1">Custo Total</p>
+                 <p className="text-3xl font-mono font-black text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]">{valorTotalFila.toFixed(2)}<span className="text-emerald-500">€</span></p>
               </div>
               <button 
                 onClick={criarBatalha}
                 disabled={filaCaixas.length === 0}
-                className="bg-emerald-500 hover:bg-emerald-400 text-black px-10 py-4 rounded-xl font-black uppercase tracking-widest transition-transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(16,185,129,0.3)]"
+                className="bg-gradient-to-r from-emerald-500 to-emerald-400 hover:from-emerald-400 hover:to-emerald-300 text-black px-10 py-4 rounded-xl font-black uppercase tracking-widest transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_30px_rgba(16,185,129,0.5)]"
               >
-                CRIAR SALA ({numJogadores}P)
+                Criar Sala ({numJogadores}P)
               </button>
             </div>
           </div>

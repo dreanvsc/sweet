@@ -69,124 +69,215 @@ export default function Admin({ userId }: any) {
   };
 
   return (
-    <div className="max-w-7xl mx-auto animate-in fade-in pb-20 flex gap-8 relative w-full">
+    <div className="w-full max-w-[1400px] mx-auto animate-in fade-in pb-20 pt-4 flex flex-col md:flex-row gap-8 relative">
       
-      {/* MENU LATERAL */}
-      <div className="w-64 flex-shrink-0 flex flex-col gap-2">
-        <div className="mb-6 px-4">
-          <span className="text-4xl block mb-2">👑</span>
-          <h2 className="text-2xl font-black italic uppercase text-white tracking-tighter">Admin</h2>
+      {/* ================================================= */}
+      {/* MENU LATERAL (DASHBOARD PREMIUM) */}
+      {/* ================================================= */}
+      <div className="w-full md:w-72 flex-shrink-0 flex flex-col gap-2">
+        
+        {/* CABEÇALHO DO MENU */}
+        <div className="mb-6 px-4 py-6 bg-black/20 rounded-2xl border border-white/5 backdrop-blur-sm shadow-lg flex items-center gap-4">
+          <div className="w-12 h-12 bg-amber-500/10 rounded-xl flex items-center justify-center border border-amber-500/20 shadow-[0_0_15px_rgba(245,158,11,0.2)]">
+             <span className="text-2xl drop-shadow-[0_0_8px_rgba(245,158,11,0.8)]">👑</span>
+          </div>
+          <div>
+            <h2 className="text-xl font-black italic uppercase text-white tracking-tighter drop-shadow-md">Admin</h2>
+            <p className="text-zinc-500 text-[9px] font-black tracking-widest uppercase mt-0.5">Centro de Comando</p>
+          </div>
         </div>
         
-        <button onClick={() => setActiveTab('users')} className={`p-4 rounded-xl text-left font-black uppercase tracking-widest text-xs transition-all ${activeTab === 'users' ? 'bg-amber-500 text-black' : 'bg-[#121215] text-zinc-500 hover:text-white hover:bg-white/5'}`}>👥 Clientes</button>
-        <button onClick={() => setActiveTab('stats')} className={`p-4 rounded-xl text-left font-black uppercase tracking-widest text-xs transition-all ${activeTab === 'stats' ? 'bg-amber-500 text-black shadow-[0_0_20px_rgba(245,158,11,0.2)]' : 'bg-[#121215] text-zinc-500 hover:text-white hover:bg-white/5'}`}>📊 Estatísticas</button>
-        <button onClick={() => setActiveTab('boxes')} className={`p-4 rounded-xl text-left font-black uppercase tracking-widest text-xs transition-all ${activeTab === 'boxes' ? 'bg-amber-500 text-black' : 'bg-[#121215] text-zinc-500 hover:text-white hover:bg-white/5'}`}>📦 Fábrica</button>
-        <button onClick={() => setActiveTab('system')} className={`p-4 rounded-xl text-left font-black uppercase tracking-widest text-xs transition-all ${activeTab === 'system' ? 'bg-amber-500 text-black' : 'bg-[#121215] text-zinc-500 hover:text-white hover:bg-white/5'}`}>⚙️ Sistema</button>
-        
-        {/* ABA DA EQUIPA */}
-        <button onClick={() => setActiveTab('staff')} className={`p-4 rounded-xl text-left font-black uppercase tracking-widest text-xs transition-all mt-4 border border-white/5 ${activeTab === 'staff' ? 'bg-amber-500 text-black' : 'bg-[#121215] text-zinc-500 hover:text-white hover:bg-white/5'}`}>🛡️ Equipa</button>
+        {/* BOTÕES PRINCIPAIS */}
+        <div className="flex flex-col gap-1.5 mb-4">
+          <p className="text-zinc-600 text-[10px] font-black uppercase tracking-widest px-4 mb-2">Gestão Principal</p>
+          
+          <button 
+            onClick={() => setActiveTab('stats')} 
+            className={`flex items-center gap-3 p-4 rounded-xl text-left transition-all duration-300 ${activeTab === 'stats' ? 'bg-gradient-to-r from-amber-500/20 to-transparent border-l-4 border-amber-500 text-white shadow-[0_0_15px_rgba(245,158,11,0.1)] translate-x-2' : 'bg-transparent text-zinc-400 hover:text-white hover:bg-white/5 hover:translate-x-1'}`}
+          >
+            <span className="text-lg w-6 text-center drop-shadow-md">📊</span> 
+            <span className="text-xs font-bold uppercase tracking-widest">Estatísticas</span>
+          </button>
+          
+          <button 
+            onClick={() => setActiveTab('users')} 
+            className={`flex items-center gap-3 p-4 rounded-xl text-left transition-all duration-300 ${activeTab === 'users' ? 'bg-gradient-to-r from-amber-500/20 to-transparent border-l-4 border-amber-500 text-white shadow-[0_0_15px_rgba(245,158,11,0.1)] translate-x-2' : 'bg-transparent text-zinc-400 hover:text-white hover:bg-white/5 hover:translate-x-1'}`}
+          >
+            <span className="text-lg w-6 text-center drop-shadow-md">👥</span> 
+            <span className="text-xs font-bold uppercase tracking-widest">Clientes</span>
+          </button>
+          
+          <button 
+            onClick={() => setActiveTab('boxes')} 
+            className={`flex items-center gap-3 p-4 rounded-xl text-left transition-all duration-300 ${activeTab === 'boxes' ? 'bg-gradient-to-r from-amber-500/20 to-transparent border-l-4 border-amber-500 text-white shadow-[0_0_15px_rgba(245,158,11,0.1)] translate-x-2' : 'bg-transparent text-zinc-400 hover:text-white hover:bg-white/5 hover:translate-x-1'}`}
+          >
+            <span className="text-lg w-6 text-center drop-shadow-md">📦</span> 
+            <span className="text-xs font-bold uppercase tracking-widest">Fábrica de Caixas</span>
+          </button>
+          
+          <button 
+            onClick={() => setActiveTab('system')} 
+            className={`flex items-center gap-3 p-4 rounded-xl text-left transition-all duration-300 ${activeTab === 'system' ? 'bg-gradient-to-r from-amber-500/20 to-transparent border-l-4 border-amber-500 text-white shadow-[0_0_15px_rgba(245,158,11,0.1)] translate-x-2' : 'bg-transparent text-zinc-400 hover:text-white hover:bg-white/5 hover:translate-x-1'}`}
+          >
+            <span className="text-lg w-6 text-center drop-shadow-md">⚙️</span> 
+            <span className="text-xs font-bold uppercase tracking-widest">Sistema / API</span>
+          </button>
+        </div>
 
-        {/* ABA DE SUPORTE */}
-        <button onClick={() => setActiveTab('tickets')} className={`p-4 rounded-xl text-left font-black uppercase tracking-widest text-xs transition-all border border-white/5 ${activeTab === 'tickets' ? 'bg-amber-500 text-black' : 'bg-[#121215] text-zinc-500 hover:text-white hover:bg-white/5'}`}>🎫 Tickets Formais</button>
+        <div className="w-full h-px bg-white/5 my-2"></div>
 
-        {/* ABA DO CHAT AO VIVO */}
-        <button onClick={() => setActiveTab('livechat')} className={`p-4 rounded-xl text-left font-black uppercase tracking-widest text-xs transition-all border border-white/5 ${activeTab === 'livechat' ? 'bg-emerald-500 text-black shadow-[0_0_20px_rgba(16,185,129,0.2)]' : 'bg-[#121215] text-zinc-500 hover:text-white hover:bg-white/5'}`}>⚡ Chat ao Vivo</button>
+        {/* SUPORTE E SEGURANÇA */}
+        <div className="flex flex-col gap-1.5 mt-2 mb-4">
+          <p className="text-zinc-600 text-[10px] font-black uppercase tracking-widest px-4 mb-2">Suporte & Segurança</p>
 
-        {/* 🔥 NOVA ABA: MODERAÇÃO DE MISSÕES */}
-        <button onClick={() => setActiveTab('missoes')} className={`p-4 rounded-xl text-left font-black uppercase tracking-widest text-xs transition-all mt-4 border border-white/5 ${activeTab === 'missoes' ? 'bg-purple-600 text-white shadow-[0_0_20px_rgba(147,51,234,0.3)]' : 'bg-[#121215] text-zinc-500 hover:text-white hover:bg-white/5'}`}>📹 Moderação (Links)</button>
+          <button 
+            onClick={() => setActiveTab('livechat')} 
+            className={`flex items-center gap-3 p-4 rounded-xl text-left transition-all duration-300 ${activeTab === 'livechat' ? 'bg-gradient-to-r from-emerald-500/20 to-transparent border-l-4 border-emerald-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.15)] translate-x-2' : 'bg-transparent text-zinc-400 hover:text-white hover:bg-white/5 hover:translate-x-1'}`}
+          >
+            <span className="text-lg w-6 text-center drop-shadow-md">⚡</span> 
+            <span className="text-xs font-bold uppercase tracking-widest">Chat ao Vivo</span>
+          </button>
+
+          <button 
+            onClick={() => setActiveTab('tickets')} 
+            className={`flex items-center gap-3 p-4 rounded-xl text-left transition-all duration-300 ${activeTab === 'tickets' ? 'bg-gradient-to-r from-blue-500/20 to-transparent border-l-4 border-blue-500 text-white shadow-[0_0_15px_rgba(59,130,246,0.1)] translate-x-2' : 'bg-transparent text-zinc-400 hover:text-white hover:bg-white/5 hover:translate-x-1'}`}
+          >
+            <span className="text-lg w-6 text-center drop-shadow-md">🎫</span> 
+            <span className="text-xs font-bold uppercase tracking-widest">Tickets</span>
+          </button>
+          
+          <button 
+            onClick={() => setActiveTab('missoes')} 
+            className={`flex items-center gap-3 p-4 rounded-xl text-left transition-all duration-300 ${activeTab === 'missoes' ? 'bg-gradient-to-r from-purple-500/20 to-transparent border-l-4 border-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.15)] translate-x-2' : 'bg-transparent text-zinc-400 hover:text-white hover:bg-white/5 hover:translate-x-1'}`}
+          >
+            <span className="text-lg w-6 text-center drop-shadow-md">📹</span> 
+            <span className="text-xs font-bold uppercase tracking-widest">Moderação</span>
+          </button>
+        </div>
+
+        {/* GESTÃO DE EQUIPA (DESTACADO) */}
+        <button 
+          onClick={() => setActiveTab('staff')} 
+          className={`flex items-center gap-3 p-4 rounded-xl text-left transition-all duration-300 mt-auto border ${activeTab === 'staff' ? 'bg-gradient-to-r from-red-500/20 to-red-500/5 border-red-500/50 text-white shadow-[0_0_20px_rgba(239,68,68,0.2)]' : 'bg-[#161619] border-white/5 text-zinc-400 hover:text-white hover:border-red-500/30'}`}
+        >
+          <span className="text-lg w-6 text-center drop-shadow-md">🛡️</span> 
+          <span className="text-xs font-black uppercase tracking-widest">A Minha Equipa</span>
+        </button>
       </div>
 
-      {/* ÁREA DE CONTEÚDO */}
-      <div className="flex-1 bg-[#121215] p-8 rounded-3xl border border-white/5 shadow-2xl min-h-[700px] w-full">
-        {activeTab === 'stats' && <TabEstatisticas />}
-        {activeTab === 'system' && <TabSistema />}
-        {activeTab === 'users' && <TabClientes />}
-        {activeTab === 'boxes' && <TabFabrica />}
-        {activeTab === 'tickets' && <AdminTickets />}
-        {activeTab === 'livechat' && <AdminLiveChat />}
+      {/* ================================================= */}
+      {/* ÁREA DE CONTEÚDO (O PALCO PRINCIPAL) */}
+      {/* ================================================= */}
+      <div className="flex-1 bg-black/40 backdrop-blur-md p-6 sm:p-8 rounded-3xl border border-white/5 shadow-2xl min-h-[700px] w-full relative overflow-hidden">
         
-        {/* 🔥 RENDER DA NOVA ABA */}
-        {activeTab === 'missoes' && <AdminMissoes />}
+        {/* LUZ DE FUNDO GERAL */}
+        <div className="absolute -top-40 -right-40 w-96 h-96 bg-amber-500/5 blur-[100px] rounded-full pointer-events-none"></div>
 
-        {/* ABA DA EQUIPA (GESTÃO) */}
-        {activeTab === 'staff' && (
-          <div className="animate-in fade-in">
-            <h3 className="text-2xl font-black italic uppercase text-white mb-8 border-b border-white/5 pb-4">Gestão de Equipa</h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="relative z-10 w-full h-full">
+          {activeTab === 'stats' && <TabEstatisticas />}
+          {activeTab === 'system' && <TabSistema />}
+          {activeTab === 'users' && <TabClientes />}
+          {activeTab === 'boxes' && <TabFabrica />}
+          {activeTab === 'tickets' && <AdminTickets />}
+          {activeTab === 'livechat' && <AdminLiveChat />}
+          {activeTab === 'missoes' && <AdminMissoes />}
+
+          {/* ABA DA EQUIPA (GESTÃO) - VISUAL RENOVADO */}
+          {activeTab === 'staff' && (
+            <div className="animate-in fade-in slide-in-from-bottom-4">
               
-              {/* CARD: PROMOVER ADMIN */}
-              <div className="bg-black/40 border border-white/5 rounded-3xl p-6 md:p-8 shadow-xl relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 blur-3xl rounded-full"></div>
-                
-                <h3 className="text-xl font-black uppercase italic mb-2 text-white">Adicionar Admin</h3>
-                <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest mb-6">Dá permissões a um membro</p>
-
-                <div className="flex flex-col gap-4 relative z-10">
-                  <div>
-                    <label className="text-zinc-400 text-[10px] uppercase font-black tracking-widest ml-2">ID da Conta</label>
-                    <input 
-                      type="number" 
-                      value={alvoIdPromover} 
-                      onChange={(e) => setAlvoIdPromover(e.target.value)} 
-                      placeholder="Ex: 5"
-                      className="w-full bg-[#161619] border border-zinc-800 text-white font-mono font-bold rounded-xl p-4 mt-1 outline-none focus:border-amber-500 transition-colors" 
-                    />
-                  </div>
-
-                  <button 
-                    onClick={promoverJogador}
-                    className="w-full bg-amber-500 hover:bg-amber-400 text-black py-4 rounded-xl font-black uppercase tracking-widest transition-transform hover:scale-[1.02] shadow-[0_0_20px_rgba(245,158,11,0.2)] mt-2"
-                  >
-                    👑 PROMOVER
-                  </button>
-
-                  {msgPromover && (
-                    <div className={`p-4 rounded-xl text-center text-xs font-black uppercase tracking-widest mt-2 border ${msgPromover.tipo === 'sucesso' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'}`}>
-                      {msgPromover.texto}
-                    </div>
-                  )}
+              {/* TÍTULO DA ABA */}
+              <div className="flex items-center gap-4 mb-8 pb-6 border-b border-white/5">
+                <div className="w-12 h-12 bg-red-500/10 rounded-xl flex items-center justify-center border border-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.2)]">
+                   <span className="text-2xl">🛡️</span>
+                </div>
+                <div>
+                  <h3 className="text-2xl font-black italic uppercase text-white tracking-tighter">Gestão de Equipa</h3>
+                  <p className="text-zinc-400 text-[10px] font-bold tracking-widest uppercase mt-1">Atribui ou remove poderes imperiais</p>
                 </div>
               </div>
-
-              {/* CARD: REMOVER ADMIN */}
-              <div className="bg-black/40 border border-red-500/10 rounded-3xl p-6 md:p-8 shadow-xl relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/5 blur-3xl rounded-full"></div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 
-                <h3 className="text-xl font-black uppercase italic mb-2 text-red-500">Despromover Admin</h3>
-                <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest mb-6">Remove as permissões de um membro</p>
-
-                <div className="flex flex-col gap-4 relative z-10">
-                  <div>
-                    <label className="text-zinc-400 text-[10px] uppercase font-black tracking-widest ml-2">ID da Conta</label>
-                    <input 
-                      type="number" 
-                      value={alvoIdRemover} 
-                      onChange={(e) => setAlvoIdRemover(e.target.value)} 
-                      placeholder="Ex: 5"
-                      className="w-full bg-[#161619] border border-zinc-800 text-white font-mono font-bold rounded-xl p-4 mt-1 outline-none focus:border-red-500 transition-colors" 
-                    />
+                {/* CARD: PROMOVER ADMIN */}
+                <div className="bg-[#161619]/80 backdrop-blur-sm border border-amber-500/10 rounded-3xl p-6 md:p-8 shadow-xl relative overflow-hidden group hover:border-amber-500/30 transition-all duration-300 hover:shadow-[0_0_30px_rgba(245,158,11,0.05)]">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 blur-3xl rounded-full group-hover:bg-amber-500/10 transition-colors"></div>
+                  
+                  <div className="flex items-center gap-3 mb-2 relative z-10">
+                     <span className="text-xl">👑</span>
+                     <h3 className="text-xl font-black uppercase italic text-white drop-shadow-md">Promover a Admin</h3>
                   </div>
+                  <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest mb-8 relative z-10">Dá acesso total ao painel de controlo</p>
 
-                  <button 
-                    onClick={despromoverJogador}
-                    className="w-full bg-red-600 hover:bg-red-500 text-white py-4 rounded-xl font-black uppercase tracking-widest transition-transform hover:scale-[1.02] shadow-[0_0_20px_rgba(220,38,38,0.2)] mt-2"
-                  >
-                    ❌ REMOVER PODERES
-                  </button>
-
-                  {msgRemover && (
-                    <div className={`p-4 rounded-xl text-center text-xs font-black uppercase tracking-widest mt-2 border ${msgRemover.tipo === 'sucesso' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'}`}>
-                      {msgRemover.texto}
+                  <div className="flex flex-col gap-4 relative z-10">
+                    <div>
+                      <label className="text-zinc-400 text-[9px] uppercase font-black tracking-widest ml-2 block mb-2">ID do Jogador na Base de Dados</label>
+                      <input 
+                        type="number" 
+                        value={alvoIdPromover} 
+                        onChange={(e) => setAlvoIdPromover(e.target.value)} 
+                        placeholder="Ex: 5"
+                        className="w-full bg-black/50 border border-white/10 text-white font-mono font-black text-xl rounded-xl p-4 outline-none focus:border-amber-500 transition-colors shadow-inner text-center placeholder:text-zinc-700" 
+                      />
                     </div>
-                  )}
-                </div>
-              </div>
 
+                    <button 
+                      onClick={promoverJogador}
+                      className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black py-4 rounded-xl font-black uppercase tracking-widest transition-all hover:scale-[1.02] shadow-[0_0_20px_rgba(245,158,11,0.2)] hover:shadow-[0_0_30px_rgba(245,158,11,0.4)] mt-2 flex items-center justify-center gap-2"
+                    >
+                      <span>ATRIBUIR PODERES</span>
+                    </button>
+
+                    {msgPromover && (
+                      <div className={`p-4 rounded-xl text-center text-[10px] font-black uppercase tracking-widest mt-2 border flex items-center justify-center gap-2 animate-in fade-in ${msgPromover.tipo === 'sucesso' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'}`}>
+                        {msgPromover.tipo === 'sucesso' ? '✅' : '❌'} {msgPromover.texto}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* CARD: REMOVER ADMIN */}
+                <div className="bg-[#161619]/80 backdrop-blur-sm border border-red-500/10 rounded-3xl p-6 md:p-8 shadow-xl relative overflow-hidden group hover:border-red-500/30 transition-all duration-300 hover:shadow-[0_0_30px_rgba(239,68,68,0.05)]">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/5 blur-3xl rounded-full group-hover:bg-red-500/10 transition-colors"></div>
+                  
+                  <div className="flex items-center gap-3 mb-2 relative z-10">
+                     <span className="text-xl">⚔️</span>
+                     <h3 className="text-xl font-black uppercase italic text-red-500 drop-shadow-md">Despromover Admin</h3>
+                  </div>
+                  <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest mb-8 relative z-10">Rebaixa um membro a jogador comum</p>
+
+                  <div className="flex flex-col gap-4 relative z-10">
+                    <div>
+                      <label className="text-zinc-400 text-[9px] uppercase font-black tracking-widest ml-2 block mb-2">ID do Jogador na Base de Dados</label>
+                      <input 
+                        type="number" 
+                        value={alvoIdRemover} 
+                        onChange={(e) => setAlvoIdRemover(e.target.value)} 
+                        placeholder="Ex: 5"
+                        className="w-full bg-black/50 border border-white/10 text-white font-mono font-black text-xl rounded-xl p-4 outline-none focus:border-red-500 transition-colors shadow-inner text-center placeholder:text-zinc-700" 
+                      />
+                    </div>
+
+                    <button 
+                      onClick={despromoverJogador}
+                      className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white py-4 rounded-xl font-black uppercase tracking-widest transition-all hover:scale-[1.02] shadow-[0_0_20px_rgba(220,38,38,0.2)] hover:shadow-[0_0_30px_rgba(220,38,38,0.4)] mt-2 flex items-center justify-center gap-2"
+                    >
+                      <span>REMOVER PERMISSÕES</span>
+                    </button>
+
+                    {msgRemover && (
+                      <div className={`p-4 rounded-xl text-center text-[10px] font-black uppercase tracking-widest mt-2 border flex items-center justify-center gap-2 animate-in fade-in ${msgRemover.tipo === 'sucesso' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'}`}>
+                        {msgRemover.tipo === 'sucesso' ? '✅' : '❌'} {msgRemover.texto}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
+        </div>
       </div>
     </div>
   );

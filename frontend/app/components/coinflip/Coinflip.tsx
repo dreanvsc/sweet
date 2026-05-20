@@ -70,7 +70,7 @@ function CoinflipRow({ jogo, user, chamarBot, entrarJogo, atualizarTudo }: any) 
   }, [jogo.estado]);
 
   return (
-    <div className={`bg-[#121215] border border-white/5 rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden shadow-lg transition-colors duration-1000 ${fase === 'terminado' ? 'border-amber-500/20 bg-amber-500/5' : ''}`}>
+    <div className={`bg-[#121215]/80 backdrop-blur-sm border border-white/5 rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden shadow-lg hover:shadow-[0_0_20px_rgba(245,158,11,0.15)] hover:-translate-y-1 transition-all duration-500 ${fase === 'terminado' ? 'border-amber-500/30 bg-amber-500/10' : ''}`}>
       
       {/* JOGADOR 1 (CRIADOR) */}
       <div className={`flex items-center gap-4 w-full md:w-1/3 z-10 transition-all duration-700 ${fase === 'terminado' && jogo.resultado?.vencedorId === jogo.criador.id ? 'opacity-100 scale-105' : fase !== 'espera' ? 'opacity-30 grayscale' : ''}`}>
@@ -86,7 +86,7 @@ function CoinflipRow({ jogo, user, chamarBot, entrarJogo, atualizarTudo }: any) 
         {fase === 'espera' ? (
           <div className="text-center animate-in zoom-in">
             <p className="text-amber-500 font-mono font-black text-3xl drop-shadow-md">{jogo.valorTotal.toFixed(2)}€</p>
-            <p className="text-zinc-500 text-[10px] uppercase font-bold tracking-widest mt-1 bg-white/5 px-3 py-1 rounded-full inline-block">{jogo.tipo === 'saldo' ? 'Saldo' : 'Skins'}</p>
+            <p className="text-zinc-500 text-[10px] uppercase font-bold tracking-widest mt-1 bg-white/5 px-3 py-1 rounded-full inline-block border border-white/5">{jogo.tipo === 'saldo' ? 'Saldo' : 'Skins'}</p>
           </div>
         ) : fase === 'girando' ? (
           <div className="relative w-20 h-20 animate-in zoom-in duration-300">
@@ -127,7 +127,7 @@ function CoinflipRow({ jogo, user, chamarBot, entrarJogo, atualizarTudo }: any) 
                 🤖 Bot
               </button>
             ) : (
-              <button onClick={() => entrarJogo(jogo)} className="bg-zinc-800 hover:bg-white text-white hover:text-black px-8 py-3 rounded-xl font-black uppercase tracking-widest transition-colors text-xs">
+              <button onClick={() => entrarJogo(jogo)} className="bg-white/10 border border-white/20 hover:bg-white text-zinc-300 hover:text-black px-8 py-3 rounded-xl font-black uppercase tracking-widest transition-all duration-300 shadow-lg hover:shadow-[0_0_20px_rgba(255,255,255,0.3)] text-xs">
                 ENTRAR
               </button>
             )}
@@ -177,7 +177,6 @@ export default function Coinflip({ userId, user, saldo, inventario, atualizarTud
     return () => { socket.off('coinflips_atualizados'); };
   }, []);
 
-  // 🔥 CORREÇÃO: Usamos o INDEX real da mochila para garantir que seleciona apenas 1
   const toggleSkin = (skin: any, index: number) => {
     const jaSelecionada = skinsApostadas.some(s => s.ui_index === index);
     if (jaSelecionada) {
@@ -221,7 +220,6 @@ export default function Coinflip({ userId, user, saldo, inventario, atualizarTud
     }
   };
 
-  // 🔥 CORREÇÃO: Mesma proteção para o modal de entrar!
   const toggleSkinEntrar = (skin: any, index: number) => {
     const jaSelecionada = skinsParaEntrar.some(s => s.ui_index === index);
     if (jaSelecionada) {
@@ -258,28 +256,43 @@ export default function Coinflip({ userId, user, saldo, inventario, atualizarTud
   };
 
   return (
-    <div className="max-w-7xl mx-auto p-4 sm:p-6 animate-in fade-in pb-20">
+    <div className="w-full max-w-[1400px] mx-auto animate-in fade-in pb-20 pt-4">
       
-      {/* HEADER */}
-      <div className="flex justify-between items-end mb-10 border-b border-white/5 pb-6">
-        <div>
-          <h2 className="text-4xl sm:text-5xl font-black text-white italic tracking-tighter">COIN<span className="text-amber-500">FLIP</span> 🪙</h2>
-          <p className="text-zinc-500 text-[10px] sm:text-xs font-bold uppercase tracking-[0.3em] mt-2">A sorte favorece os audazes</p>
-        </div>
-        <button 
-          onClick={() => setModalCriar(true)}
-          className="bg-amber-500 hover:bg-amber-400 text-black px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-black uppercase tracking-widest transition-transform hover:scale-105 shadow-[0_0_30px_rgba(245,158,11,0.3)] text-xs sm:text-base"
-        >
-          CRIAR APOSTA
-        </button>
+      {/* HEADER PANORÂMICO */}
+      <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-8 bg-black/20 p-6 rounded-2xl border border-white/5 backdrop-blur-sm shadow-lg">
+         <div className="flex items-center gap-4">
+            <div className="w-14 h-14 bg-amber-500/10 rounded-xl flex items-center justify-center border border-amber-500/20 shadow-[0_0_15px_rgba(245,158,11,0.2)]">
+               <span className="text-3xl">🪙</span>
+            </div>
+            <div className="text-left">
+               <h2 className="text-2xl sm:text-3xl font-black italic uppercase text-white tracking-tighter drop-shadow-md">
+                 Coin<span className="text-amber-500">flip</span>
+               </h2>
+               <p className="text-zinc-400 text-xs sm:text-sm font-bold tracking-widest uppercase mt-1">A Sorte Favorece os Audazes</p>
+            </div>
+         </div>
+         
+         <button 
+           onClick={() => setModalCriar(true)}
+           className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-black uppercase tracking-widest rounded-xl transition-all shadow-[0_0_20px_rgba(245,158,11,0.4)] hover:shadow-[0_0_30px_rgba(245,158,11,0.6)] hover:-translate-y-1 text-xs sm:text-sm"
+         >
+           Criar Aposta
+         </button>
       </div>
 
       {/* LOBBY DOS JOGOS */}
       <div className="flex flex-col gap-4">
         {jogos.length === 0 ? (
-          <div className="py-24 text-center border border-dashed border-white/10 rounded-3xl bg-black/20">
-            <span className="text-7xl mb-4 block opacity-50">🪙</span>
-            <p className="text-zinc-500 font-bold uppercase tracking-widest">A arena está vazia. Atira a primeira moeda!</p>
+          /* EMPTY STATE PANORÂMICO */
+          <div className="w-full border border-dashed border-white/10 rounded-2xl p-16 flex flex-col items-center justify-center bg-gradient-to-b from-white/[0.02] to-transparent group hover:border-amber-500/30 transition-colors">
+              <div className="w-24 h-24 bg-amber-500/5 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500 relative">
+                 <div className="absolute inset-0 bg-amber-500/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                 <span className="text-5xl relative z-10 opacity-50 group-hover:opacity-100 transition-opacity drop-shadow-[0_0_15px_rgba(245,158,11,0.8)]">💰</span>
+              </div>
+              <h3 className="text-xl sm:text-2xl font-black text-white uppercase tracking-widest mb-3 drop-shadow-md">A Mesa está Vazia</h3>
+              <p className="text-zinc-500 text-sm max-w-lg text-center leading-relaxed">
+                Ninguém atirou a moeda ao ar ainda. Escolhe o teu lado, entra na disputa e dobra o teu inventário num piscar de olhos!
+              </p>
           </div>
         ) : (
           jogos.map((jogo) => (
@@ -290,38 +303,44 @@ export default function Coinflip({ userId, user, saldo, inventario, atualizarTud
 
       {/* MODAL CRIAR APOSTA */}
       {modalCriar && (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-[#121215] border border-white/10 p-8 rounded-3xl max-w-2xl w-full flex flex-col h-[90vh]">
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-md animate-in fade-in">
+          <div className="bg-[#121215] border border-white/10 p-8 rounded-3xl max-w-2xl w-full flex flex-col h-[90vh] shadow-[0_0_50px_rgba(0,0,0,0.8)]">
             <div className="flex justify-between items-center mb-6 flex-shrink-0">
-              <h3 className="text-2xl font-black text-white italic uppercase">Criar Coinflip</h3>
-              <button onClick={() => setModalCriar(false)} className="text-zinc-500 hover:text-white font-bold">X</button>
+              <div className="flex items-center gap-3">
+                 <span className="text-2xl drop-shadow-[0_0_10px_rgba(245,158,11,0.5)]">⚙️</span>
+                 <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter">Criar Coinflip</h3>
+              </div>
+              <button onClick={() => setModalCriar(false)} className="w-10 h-10 flex items-center justify-center bg-white/5 hover:bg-amber-500/20 text-zinc-400 hover:text-amber-400 border border-white/5 hover:border-amber-500/50 rounded-xl transition-all">X</button>
             </div>
             
             {/* TIPO DE APOSTA */}
-            <div className="flex bg-black/50 p-1 rounded-xl mb-6 border border-white/5 flex-shrink-0">
-              <button onClick={() => setTipoAposta('saldo')} className={`flex-1 py-3 rounded-lg font-black uppercase text-xs tracking-widest transition-colors ${tipoAposta === 'saldo' ? 'bg-amber-500 text-black shadow-lg' : 'text-zinc-500 hover:text-white'}`}>Apostar Saldo</button>
-              <button onClick={() => setTipoAposta('skins')} className={`flex-1 py-3 rounded-lg font-black uppercase text-xs tracking-widest transition-colors ${tipoAposta === 'skins' ? 'bg-amber-500 text-black shadow-lg' : 'text-zinc-500 hover:text-white'}`}>Apostar Skins</button>
+            <div className="flex bg-black/50 p-1.5 rounded-xl mb-6 border border-white/5 flex-shrink-0">
+              <button onClick={() => setTipoAposta('saldo')} className={`flex-1 py-3 rounded-lg font-black uppercase text-xs tracking-widest transition-all ${tipoAposta === 'saldo' ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-black shadow-[0_0_15px_rgba(245,158,11,0.5)]' : 'text-zinc-500 hover:text-white hover:bg-white/5'}`}>Apostar Saldo</button>
+              <button onClick={() => setTipoAposta('skins')} className={`flex-1 py-3 rounded-lg font-black uppercase text-xs tracking-widest transition-all ${tipoAposta === 'skins' ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-black shadow-[0_0_15px_rgba(245,158,11,0.5)]' : 'text-zinc-500 hover:text-white hover:bg-white/5'}`}>Apostar Skins</button>
             </div>
 
             {/* ESCOLHER LADO */}
             <div className="mb-6 flex-shrink-0">
               <p className="text-zinc-500 text-xs font-black uppercase tracking-widest mb-3 text-center">Escolhe o teu lado</p>
               <div className="flex justify-center gap-6">
-                <button onClick={() => setLadoSelecionado('CT')} className={`w-28 h-28 rounded-3xl flex items-center justify-center border-4 transition-all ${ladoSelecionado === 'CT' ? 'border-blue-500 bg-blue-500/20 shadow-[0_0_20px_rgba(59,130,246,0.3)] scale-105' : 'border-zinc-800 bg-black/50 hover:border-zinc-600'}`}>
+                <button onClick={() => setLadoSelecionado('CT')} className={`w-28 h-28 rounded-3xl flex items-center justify-center border-4 transition-all ${ladoSelecionado === 'CT' ? 'border-blue-500 bg-blue-500/20 shadow-[0_0_20px_rgba(59,130,246,0.3)] scale-105' : 'border-zinc-800 bg-black/50 hover:border-zinc-600 hover:bg-black'}`}>
                    <span className="text-blue-500 font-black text-4xl">CT</span>
                 </button>
-                <button onClick={() => setLadoSelecionado('T')} className={`w-28 h-28 rounded-3xl flex items-center justify-center border-4 transition-all ${ladoSelecionado === 'T' ? 'border-orange-500 bg-orange-500/20 shadow-[0_0_20px_rgba(249,115,22,0.3)] scale-105' : 'border-zinc-800 bg-black/50 hover:border-zinc-600'}`}>
+                <button onClick={() => setLadoSelecionado('T')} className={`w-28 h-28 rounded-3xl flex items-center justify-center border-4 transition-all ${ladoSelecionado === 'T' ? 'border-orange-500 bg-orange-500/20 shadow-[0_0_20px_rgba(249,115,22,0.3)] scale-105' : 'border-zinc-800 bg-black/50 hover:border-zinc-600 hover:bg-black'}`}>
                    <span className="text-orange-500 font-black text-4xl">T</span>
                 </button>
               </div>
             </div>
 
             {/* SELEÇÃO DE VALOR / SKINS */}
-            <div className="flex-1 bg-black/30 border border-white/5 rounded-2xl p-6 mb-6 overflow-hidden">
+            <div className="flex-1 bg-black/30 border border-white/5 rounded-2xl p-6 mb-6 overflow-hidden relative">
               {tipoAposta === 'saldo' ? (
                 <div className="flex flex-col items-center justify-center h-full py-4">
-                  <p className="text-zinc-500 text-xs font-black uppercase tracking-widest mb-4">Valor a Apostar (€)</p>
-                  <input type="number" value={valorApostaSaldo} onChange={(e) => setValorApostaSaldo(parseFloat(e.target.value) || 0)} className="bg-[#161619] border border-zinc-700 text-center text-4xl font-mono font-black text-amber-500 rounded-2xl p-4 w-64 outline-none focus:border-amber-500 transition-colors shadow-inner" />
+                  <p className="text-zinc-500 text-xs font-black uppercase tracking-widest mb-4">Valor a Apostar</p>
+                  <div className="relative group">
+                    <input type="number" value={valorApostaSaldo} onChange={(e) => setValorApostaSaldo(parseFloat(e.target.value) || 0)} className="bg-[#161619] border border-zinc-700 text-center text-4xl font-mono font-black text-amber-500 rounded-2xl p-4 w-64 outline-none focus:border-amber-500 transition-all shadow-inner group-hover:border-amber-500/50" />
+                    <span className="absolute right-6 top-1/2 -translate-y-1/2 text-2xl font-black text-zinc-600">€</span>
+                  </div>
                 </div>
               ) : (
                 <div className="flex flex-col h-full overflow-hidden">
@@ -329,14 +348,13 @@ export default function Coinflip({ userId, user, saldo, inventario, atualizarTud
                    {inventario.length === 0 ? (
                      <div className="flex-1 flex items-center justify-center text-zinc-600 font-bold uppercase tracking-widest text-xs border-2 border-dashed border-white/5 rounded-2xl bg-black/20">Inventário Vazio</div>
                    ) : (
-                     <div className="flex-1 overflow-y-auto grid grid-cols-4 sm:grid-cols-5 gap-2 pr-2">
-                       {/* 🔥 AQUI ENVIAMOS O `i` (INDEX) PARA A FUNÇÃO */}
+                     <div className="flex-1 overflow-y-auto grid grid-cols-4 sm:grid-cols-5 gap-2 pr-2 custom-scrollbar">
                        {inventario.map((skin: any, i: number) => {
                          const selecionada = skinsApostadas.some(s => s.ui_index === i);
                          return (
-                           <div key={i} onClick={() => toggleSkin(skin, i)} className={`bg-[#161619] border-2 rounded-xl p-2 cursor-pointer transition-all flex flex-col items-center ${selecionada ? 'border-amber-500 bg-amber-500/10 shadow-[0_0_10px_rgba(245,158,11,0.2)]' : 'border-white/5 hover:border-zinc-500'}`}>
-                             <img src={skin.imagem || skin.image} className="w-10 h-10 object-contain mb-2" alt="" />
-                             <p className="text-emerald-500 font-mono text-[9px] font-black">{parseFloat(skin.preco || skin.valor).toFixed(2)}€</p>
+                           <div key={i} onClick={() => toggleSkin(skin, i)} className={`bg-white/[0.03] border-2 rounded-xl p-2 cursor-pointer transition-all flex flex-col items-center group ${selecionada ? 'border-amber-500 bg-amber-500/10 shadow-[0_0_10px_rgba(245,158,11,0.2)]' : 'border-white/5 hover:border-zinc-500'}`}>
+                             <img src={skin.imagem || skin.image} className="w-10 h-10 object-contain mb-2 group-hover:scale-110 transition-transform" alt="" />
+                             <p className="text-emerald-400 font-mono text-[9px] font-black">{parseFloat(skin.preco || skin.valor).toFixed(2)}€</p>
                            </div>
                          )
                        })}
@@ -346,7 +364,7 @@ export default function Coinflip({ userId, user, saldo, inventario, atualizarTud
               )}
             </div>
 
-            <button onClick={criarJogo} className="w-full bg-emerald-500 hover:bg-emerald-400 text-black py-4 rounded-xl font-black uppercase tracking-widest transition-transform hover:scale-[1.02] shadow-[0_0_20px_rgba(16,185,129,0.3)] flex-shrink-0">
+            <button onClick={criarJogo} className="w-full bg-gradient-to-r from-emerald-500 to-emerald-400 hover:from-emerald-400 hover:to-emerald-300 text-black py-4 rounded-xl font-black uppercase tracking-widest transition-transform hover:scale-[1.02] shadow-[0_0_20px_rgba(16,185,129,0.3)] flex-shrink-0">
                CONFIRMAR APOSTA ({tipoAposta === 'saldo' ? valorApostaSaldo.toFixed(2) : valorSkins.toFixed(2)}€)
             </button>
           </div>
@@ -355,28 +373,32 @@ export default function Coinflip({ userId, user, saldo, inventario, atualizarTud
 
       {/* MODAL ENTRAR COM SKINS */}
       {modalEntrarSkins && (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-[#121215] border border-white/10 p-8 rounded-3xl max-w-2xl w-full flex flex-col h-[80vh] shadow-2xl">
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-md animate-in fade-in">
+          <div className="bg-[#121215] border border-white/10 p-8 rounded-3xl max-w-2xl w-full flex flex-col h-[85vh] shadow-[0_0_50px_rgba(0,0,0,0.8)]">
             <div className="flex justify-between items-center mb-6 flex-shrink-0">
-              <h3 className="text-2xl font-black text-white italic uppercase">Cobrir Aposta</h3>
-              <button onClick={() => { setModalEntrarSkins(null); setSkinsParaEntrar([]); }} className="text-zinc-500 hover:text-white font-bold bg-white/5 w-8 h-8 rounded-full flex items-center justify-center">X</button>
+              <div className="flex items-center gap-3">
+                 <span className="text-2xl drop-shadow-[0_0_10px_rgba(59,130,246,0.5)]">🛡️</span>
+                 <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter">Cobrir Aposta</h3>
+              </div>
+              <button onClick={() => { setModalEntrarSkins(null); setSkinsParaEntrar([]); }} className="text-zinc-500 hover:text-white font-bold bg-white/5 w-10 h-10 rounded-xl flex items-center justify-center hover:bg-red-500/20 hover:text-red-400 transition-all">X</button>
             </div>
 
-            <div className="bg-black/30 border border-white/5 p-4 rounded-xl mb-2 flex justify-between items-center flex-shrink-0">
+            <div className="bg-black/40 border border-white/5 p-5 rounded-2xl mb-4 flex justify-between items-center flex-shrink-0 relative overflow-hidden">
+               <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 blur-2xl rounded-full"></div>
                <div>
-                  <p className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">Valor do Adversário</p>
-                  <p className="text-amber-500 font-mono font-black text-2xl">{modalEntrarSkins.valorTotal.toFixed(2)}€</p>
+                  <p className="text-zinc-500 text-[10px] font-black uppercase tracking-widest mb-1">Valor do Adversário</p>
+                  <p className="text-amber-500 font-mono font-black text-3xl drop-shadow-md">{modalEntrarSkins.valorTotal.toFixed(2)}€</p>
                </div>
                <div className="text-right">
-                  <p className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">A tua Seleção</p>
-                  <p className={`${valorSkinsEntrar >= (modalEntrarSkins.valorTotal * 0.9) && valorSkinsEntrar <= (modalEntrarSkins.valorTotal * 1.1) ? 'text-emerald-500' : 'text-red-500'} font-mono font-black text-2xl transition-colors`}>
+                  <p className="text-zinc-500 text-[10px] font-black uppercase tracking-widest mb-1">A tua Seleção</p>
+                  <p className={`${valorSkinsEntrar >= (modalEntrarSkins.valorTotal * 0.9) && valorSkinsEntrar <= (modalEntrarSkins.valorTotal * 1.1) ? 'text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.4)]' : 'text-red-500'} font-mono font-black text-3xl transition-colors`}>
                     {valorSkinsEntrar.toFixed(2)}€
                   </p>
                </div>
             </div>
             
-            <p className="text-zinc-600 text-[10px] text-center uppercase font-bold tracking-widest mb-6 flex-shrink-0">
-              Margem permitida: <span className="text-zinc-300">{(modalEntrarSkins.valorTotal * 0.9).toFixed(2)}€</span> até <span className="text-zinc-300">{(modalEntrarSkins.valorTotal * 1.1).toFixed(2)}€</span>
+            <p className="text-zinc-500 text-[10px] text-center uppercase font-bold tracking-widest mb-6 flex-shrink-0">
+              Margem justa: <span className="text-white">{(modalEntrarSkins.valorTotal * 0.9).toFixed(2)}€</span> a <span className="text-white">{(modalEntrarSkins.valorTotal * 1.1).toFixed(2)}€</span>
             </p>
 
             <div className="flex-1 bg-black/30 border border-white/5 rounded-2xl p-4 mb-6 overflow-hidden flex flex-col">
@@ -384,14 +406,13 @@ export default function Coinflip({ userId, user, saldo, inventario, atualizarTud
                {inventario.length === 0 ? (
                  <div className="flex-1 flex items-center justify-center text-zinc-600 font-bold uppercase tracking-widest text-xs border-2 border-dashed border-white/5 rounded-2xl bg-black/20">Inventário Vazio</div>
                ) : (
-                 <div className="flex-1 overflow-y-auto grid grid-cols-4 sm:grid-cols-5 gap-2 pr-2">
-                   {/* 🔥 AQUI ENVIAMOS O `i` (INDEX) PARA A FUNÇÃO DE ENTRAR */}
+                 <div className="flex-1 overflow-y-auto grid grid-cols-4 sm:grid-cols-5 gap-2 pr-2 custom-scrollbar">
                    {inventario.map((skin: any, i: number) => {
                      const selecionada = skinsParaEntrar.some(s => s.ui_index === i);
                      return (
-                       <div key={i} onClick={() => toggleSkinEntrar(skin, i)} className={`bg-[#161619] border-2 rounded-xl p-2 cursor-pointer transition-all flex flex-col items-center ${selecionada ? 'border-amber-500 bg-amber-500/10 shadow-[0_0_10px_rgba(245,158,11,0.2)]' : 'border-white/5 hover:border-zinc-500'}`}>
-                         <img src={skin.imagem || skin.image} className="w-10 h-10 object-contain mb-2" alt="" />
-                         <p className="text-emerald-500 font-mono text-[9px] font-black">{parseFloat(skin.preco || skin.valor).toFixed(2)}€</p>
+                       <div key={i} onClick={() => toggleSkinEntrar(skin, i)} className={`bg-white/[0.03] border-2 rounded-xl p-2 cursor-pointer transition-all flex flex-col items-center group ${selecionada ? 'border-amber-500 bg-amber-500/10 shadow-[0_0_10px_rgba(245,158,11,0.2)]' : 'border-white/5 hover:border-zinc-500'}`}>
+                         <img src={skin.imagem || skin.image} className="w-10 h-10 object-contain mb-2 group-hover:scale-110 transition-transform" alt="" />
+                         <p className="text-emerald-400 font-mono text-[9px] font-black">{parseFloat(skin.preco || skin.valor).toFixed(2)}€</p>
                        </div>
                      )
                    })}
@@ -401,7 +422,7 @@ export default function Coinflip({ userId, user, saldo, inventario, atualizarTud
 
             <button 
               onClick={confirmarEntradaSkins} 
-              className="w-full bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-xl font-black uppercase tracking-widest transition-transform hover:scale-[1.02] shadow-[0_0_20px_rgba(37,99,235,0.3)] flex-shrink-0"
+              className="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white py-4 rounded-xl font-black uppercase tracking-widest transition-transform hover:scale-[1.02] shadow-[0_0_20px_rgba(37,99,235,0.4)] flex-shrink-0"
             >
                ENTRAR NA APOSTA
             </button>

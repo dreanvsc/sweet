@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
 import BattleArena from './BattleArena';
+import { toast } from 'react-hot-toast';
 
 const socket = io('https://sweet-7ifa.onrender.com');
 
@@ -26,7 +27,7 @@ export default function CaseBattles({ userId, user, saldo, caixas, setView, atua
   }, []);
 
   const addCaixa = (caixa: any) => {
-    if (filaCaixas.length >= 10) return alert("Máximo de 10 caixas por batalha!");
+    if (filaCaixas.length >= 10) return toast.error("Máximo de 10 caixas por batalha!");
     setFilaCaixas([...filaCaixas, caixa]);
   };
 
@@ -37,8 +38,8 @@ export default function CaseBattles({ userId, user, saldo, caixas, setView, atua
   const valorTotalFila = filaCaixas.reduce((acc, c) => acc + parseFloat(c.preco), 0);
 
   const criarBatalha = () => {
-    if (filaCaixas.length === 0) return alert("Adiciona pelo menos 1 caixa!");
-    if (saldo < valorTotalFila) return alert("Saldo insuficiente!");
+    if (filaCaixas.length === 0) return toast.error("Adiciona pelo menos 1 caixa!");
+    if (saldo < valorTotalFila) return toast.error("Saldo insuficiente!");
     
     socket.emit('criar_batalha', {
       userId: user.id, userNome: user.nome || 'Jogador 1', userFoto: user.avatar || '/skins/glock.png',
@@ -47,14 +48,16 @@ export default function CaseBattles({ userId, user, saldo, caixas, setView, atua
     });
     setFilaCaixas([]);
     setModalCriar(false);
+    toast.success("Batalha criada com sucesso!");
 
     // 🔥 ATUALIZA SALDO APÓS GASTAR
     setTimeout(() => { if (typeof atualizarTudo === 'function') atualizarTudo(); }, 500);
   };
 
   const entrarBatalha = (batalha: any) => {
-    if (saldo < batalha.precoTotal) return alert("Saldo insuficiente para entrar!");
+    if (saldo < batalha.precoTotal) return toast.error("Saldo insuficiente para entrar!");
     socket.emit('entrar_batalha', { batalhaId: batalha.id, userId: user.id, userNome: user.nome || 'Jogador', userFoto: user.avatar || '/skins/glock.png' });
+    toast.success("Entraste na batalha!");
 
     // 🔥 ATUALIZA SALDO APÓS GASTAR
     setTimeout(() => { if (typeof atualizarTudo === 'function') atualizarTudo(); }, 500);

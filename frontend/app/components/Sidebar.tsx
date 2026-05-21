@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import ModalDeposito from './ModalDeposito'; 
 import LiveChatWidget from './support/LiveChatWidget';
+import { toast } from 'react-hot-toast'; // 🔥 Import do Motor de Notificações Premium adicionado!
 
 export default function Sidebar({ view, setView, saldo, userId, userData }: any) {
   const [modalAberto, setModalAberto] = useState(false);
@@ -17,13 +18,15 @@ export default function Sidebar({ view, setView, saldo, userId, userData }: any)
         .then(res => res.json())
         .then(data => {
           if (data.sucesso) {
-            alert(`🎉 PAGAMENTO CONFIRMADO! Foram adicionados ${data.valorDepositado}€ à tua conta!`);
+            // 🔥 Toast de Sucesso em vez de Alert
+            toast.success(`🎉 SUCESSO! Foram adicionados ${data.valorDepositado}€ à tua conta!`);
             window.history.replaceState(null, '', window.location.pathname);
             window.location.reload(); 
           }
         });
     } else if (status === 'cancelado') {
-      alert("❌ O pagamento foi cancelado.");
+      // 🔥 Toast de Erro em vez de Alert
+      toast.error("❌ O pagamento foi cancelado.");
       window.history.replaceState(null, '', window.location.pathname);
     }
   }, []);

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { toast } from 'react-hot-toast'; // 🔥 Import adicionado
 
 export default function ProfileSupport({ userId }: any) {
   const [tickets, setTickets] = useState([]);
@@ -45,16 +46,16 @@ export default function ProfileSupport({ userId }: any) {
       const data = await res.json();
       
       if (data.sucesso || res.ok) {
-        alert("✅ Ticket criado com sucesso!");
+        toast.success("✅ Ticket criado com sucesso!"); // 🔥
         setAssunto('');
         setMensagem('');
         setAbaCriar(false);
         carregarTickets();
       } else {
-        alert("❌ Erro ao criar ticket.");
+        toast.error("❌ Erro ao criar ticket."); // 🔥
       }
     } catch (error) {
-      alert("❌ Erro de ligação ao servidor.");
+      toast.error("❌ Erro de ligação ao servidor."); // 🔥
     }
     setEnviando(false);
   };

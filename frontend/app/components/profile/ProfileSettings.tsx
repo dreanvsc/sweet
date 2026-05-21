@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { toast } from 'react-hot-toast'; // 🔥 Import adicionado
 
 export default function ProfileSettings({ userData, userId }: any) {
   const [tradeUrl, setTradeUrl] = useState(userData?.tradeUrl || '');
@@ -15,7 +16,7 @@ export default function ProfileSettings({ userData, userId }: any) {
 
   // Função genérica para guardar na Base de Dados
   const guardarConfiguracao = async (campo: string, valor: any, setLoader: any) => {
-    if (!userId) return alert("Erro: ID do jogador não encontrado.");
+    if (!userId) return toast.error("Erro: ID do jogador não encontrado.");
     setLoader(true);
     
     try {
@@ -26,12 +27,12 @@ export default function ProfileSettings({ userData, userId }: any) {
       });
       const data = await res.json();
       if (data.sucesso) {
-        alert(`✅ Guardado com sucesso!`);
+        toast.success(`✅ Guardado com sucesso!`); // 🔥
       } else {
-        alert('❌ Erro ao guardar.');
+        toast.error('❌ Erro ao guardar.'); // 🔥
       }
     } catch (error) {
-      alert('❌ Erro de conexão ao servidor.');
+      toast.error('❌ Erro de conexão ao servidor.'); // 🔥
     }
     setLoader(false);
   };

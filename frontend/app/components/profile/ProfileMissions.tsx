@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { toast } from 'react-hot-toast'; // 🔥 Import do Motor de Notificações Premium adicionado!
 
 export default function ProfileMissions({ userId }: any) {
   const [modalMissao, setModalMissao] = useState(false);
@@ -59,14 +60,14 @@ export default function ProfileMissions({ userId }: any) {
 
   const handleComecarMissao = (tipo: string) => {
     if (tipo === 'social') setModalMissao(true);
-    else alert('Esta missão será ativada automaticamente no futuro!');
+    else toast.error('Esta missão será ativada automaticamente no futuro!'); // 🔥 Toast em vez de alert
   };
 
   const enviarLink = async (platId: string, urlMatch: string) => {
     const linkAtual = links[platId as keyof typeof links];
 
     if (!linkAtual.includes(urlMatch)) {
-      return alert(`Por favor, insere um link válido do ${platId}.`);
+      return toast.error(`Por favor, insere um link válido do ${platId}.`); // 🔥 Toast
     }
 
     setLoading(platId); 
@@ -80,13 +81,13 @@ export default function ProfileMissions({ userId }: any) {
       const data = await res.json();
       
       if (data.sucesso) {
-        alert('✅ ' + data.mensagem);
+        toast.success(data.mensagem); // 🔥 Toast
         setStatusPlataformas((prev: any) => ({ ...prev, [platId]: 'PENDENTE' }));
       } else {
-        alert('❌ Erro: ' + data.mensagem); 
+        toast.error(data.mensagem); // 🔥 Toast
       }
     } catch (error) {
-      alert('Erro ao ligar ao servidor.');
+      toast.error('Erro ao ligar ao servidor.'); // 🔥 Toast
     }
     setLoading(null);
   };

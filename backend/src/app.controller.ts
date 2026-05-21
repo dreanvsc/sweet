@@ -128,7 +128,66 @@ export class AppController {
 
   @Post('sincronizar-arsenal')
   async sincronizarArsenal() {
-    return await this.adminService.sincronizarArsenal();
+    try {
+      // 1. Vai buscar a lista crua à API pública
+      const respostaApi = await fetch('https://raw.githubusercontent.com/bybndr/csgo-skins-api/main/skins.json');
+      const skinsCruas = await respostaApi.json();
+
+      if (!Array.isArray(skinsCruas)) {
+        return { sucesso: false, message: "Erro: API externa não retornou uma lista válida." };
+      }
+
+      console.log(`🤖 A multiplicar estados para ${skinsCruas.length} skins base...`);
+
+      // 2. Os multiplicadores do mercado
+      const qualidades = [
+        { sufixo: ' (Factory New)', multiplicador: 1.45 },
+        { sufixo: ' (Minimal Wear)', multiplicador: 1.15 },
+        { sufixo: ' (Field-Tested)', multiplicador: 1.00 },
+        { sufixo: ' (Well-Worn)', multiplicador: 0.85 },
+        { sufixo: ' (Battle-Scarred)', multiplicador: 0.55 }
+      ];
+
+      let totalInserido = 0;
+
+      // 3. Gerar todas as skins e injetar no Prisma
+      for (const skin of skinsCruas) {
+        if (!skin.name || !skin.price) continue;
+
+        const precoBase = parseFloat(skin.price);
+
+        for (const q of qualidades) {
+          const nomeCompleto = `${skin.name}${q.sufixo}`;
+          // Calcula o preço final (no mínimo 0.03€)
+          const precoCalculado = Math.max(0.03, parseFloat((precoBase * q.multiplicador).toFixed(2)));
+          const imagemSegura = skin.image || skin.imageUrl || '/skins/glock.png';
+          const raridade = skin.rarity || 'Consumer Grade';
+
+          // O upsert cria a skin nova ou atualiza o preço se ela já existir!
+          await this.prisma.item.upsert({
+            where: { nome: nomeCompleto },
+            update: { preco: precoCalculado, imagem: imagemSegura, raridade: raridade },
+            create: { 
+              nome: nomeCompleto, 
+              preco: precoCalculado, 
+              imagem: imagemSegura, 
+              raridade: raridade 
+            }
+          });
+
+          totalInserido++;
+        }
+      }
+
+      return { 
+        sucesso: true, 
+        message: `🎯 Arsenal expandido com sucesso! Foram geradas ${totalInserido} skins com todas as qualidades.` 
+      };
+
+    } catch (error) {
+      console.error("Erro crítico na sincronização:", error);
+      return { sucesso: false, message: "Erro ao sincronizar o arsenal com multiplicador." };
+    }
   }
 
 
@@ -522,6 +581,25 @@ export class AppController {
       return { sucesso: true, mensagem: 'Valor atualizado com sucesso!' };
     } catch (error: any) {
       return { sucesso: false, message: error.message };
+    }
+  }
+
+  @Put('admin/item/preco')
+  async atualizarPrecoItem(@Body() body: { itemId: number, preco: number }) {
+    if (!body.itemId || body.preco === undefined) {
+      return { sucesso: false, message: "Dados incompletos." };
+    }
+
+    try {
+      // Usa o Prisma para atualizar a skin na Base de Dados
+      await this.prisma.item.update({
+        where: { id: Number(body.itemId) },
+        data: { preco: Number(body.preco) }
+      });
+      return { sucesso: true, message: "Preço atualizado com sucesso no arsenal!" };
+    } catch (error) {
+      console.error("Erro ao atualizar preço:", error);
+      return { sucesso: false, message: "Erro interno no servidor ao atualizar preço." };
     }
   }
 }

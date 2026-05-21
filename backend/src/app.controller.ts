@@ -128,14 +128,13 @@ export class AppController {
 
   @Post('sincronizar-arsenal')
   async sincronizarArsenal(@Body() body: { offset: number }) {
-    const offset = body.offset || 0; // O frontend diz quantas já foram processadas
-    const LOTE = 200; // Processamos 200 armas (1000 linhas) por vez
+    const offset = body.offset || 0; 
+    const LOTE = 200; 
 
     try {
       const respostaApi = await fetch('https://raw.githubusercontent.com/ByMykel/CSGO-API/main/public/api/en/skins.json');
       const skinsCruas = await respostaApi.json();
 
-      // Pegar no lote específico
       const loteSkins = skinsCruas.slice(offset, offset + LOTE);
       if (loteSkins.length === 0) return { sucesso: true, finalizado: true, message: "Todas as skins carregadas!" };
 
@@ -157,11 +156,26 @@ export class AppController {
           const nomeCompleto = `${skin.name}${q.sufixo}`;
           const precoCalculado = Math.max(0.03, parseFloat((precoBase * q.multiplicador).toFixed(2)));
           
-          await this.prisma.item.upsert({
-            where: { nome: nomeCompleto },
-            update: { preco: precoCalculado, imagem: imagemSegura, raridade: raridadeNome },
-            create: { nome: nomeCompleto, preco: precoCalculado, imagem: imagemSegura, raridade: raridadeNome }
+          // 🔥 CORREÇÃO: Procurar primeiro pelo nome, depois decidir entre Update ou Create
+          const itemExistente = await this.prisma.item.findFirst({
+            where: { nome: nomeCompleto }
           });
+
+          if (itemExistente) {
+            await this.prisma.item.update({
+              where: { id: itemExistente.id },
+              data: { preco: precoCalculado, imagem: imagemSegura, raridade: raridadeNome }
+            });
+          } else {
+            await this.prisma.item.create({
+              data: { 
+                nome: nomeCompleto, 
+                preco: precoCalculado, 
+                imagem: imagemSegura, 
+                raridade: raridadeNome 
+              }
+            });
+          }
         }
       }
 
@@ -173,6 +187,7 @@ export class AppController {
       };
 
     } catch (error: any) {
+      console.error("Erro na sincronização:", error);
       return { sucesso: false, message: error.message };
     }
   }

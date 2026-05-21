@@ -129,9 +129,17 @@ export class AppController {
   @Post('sincronizar-arsenal')
   async sincronizarArsenal() {
     try {
-      // 1. Usar fetch para ir buscar a lista à API pública
-      const respostaApi = await fetch('https://raw.githubusercontent.com/bybndr/csgo-skins-api/main/skins.json');
-      const skinsCruas = await respostaApi.json();
+      // 1. Link NOVO e Fiável da API ByMykel
+      const respostaApi = await fetch('https://bymykel.github.io/CSGO-API/api/en/skins.json');
+      
+      // Lê como texto primeiro para evitar o erro do "Position 3" caso a API falhe
+      const textoResposta = await respostaApi.text(); 
+      let skinsCruas;
+      try {
+        skinsCruas = JSON.parse(textoResposta);
+      } catch (e) {
+        return { sucesso: false, message: "A API externa está em baixo ou devolveu um formato inválido." };
+      }
 
       if (!Array.isArray(skinsCruas)) {
         return { sucesso: false, message: "Erro: API externa não retornou uma lista." };
@@ -147,17 +155,28 @@ export class AppController {
 
       let totalInserido = 0;
 
-      for (const skin of skinsCruas) {
-        if (!skin.name || !skin.price) continue;
+      // 🔥 Para não sobrecarregar o teu servidor gratuito (Render) e não dar Timeout,
+      // vamos carregar apenas as 150 armas mais populares (150 * 5 qualidades = 750 skins instantâneas).
+      // Se quiseres TODAS (milhares), apaga o ".slice(0, 150)" abaixo, mas o Render pode ir abaixo.
+      const skinsParaProcessar = skinsCruas.slice(0, 150);
 
-        const precoBase = parseFloat(skin.price);
+      for (const skin of skinsParaProcessar) {
+        if (!skin.name) continue;
+
+        const raridadeNome = skin.rarity?.name || 'Mil-Spec Grade';
+        const imagemSegura = skin.image || '/skins/glock.png';
+
+        // 🤖 MOTOR DE PREÇOS INTELIGENTE: Avalia a raridade para dar um preço realista
+        let precoBase = 5.0; 
+        if (raridadeNome.includes('Covert')) precoBase = 120.0;
+        else if (raridadeNome.includes('Classified')) precoBase = 45.0;
+        else if (raridadeNome.includes('Restricted')) precoBase = 15.0;
+        else precoBase = 3.5;
 
         for (const q of qualidades) {
           const nomeCompleto = `${skin.name}${q.sufixo}`;
           const precoCalculado = Math.max(0.03, parseFloat((precoBase * q.multiplicador).toFixed(2)));
-          const imagemSegura = skin.image || skin.imageUrl || '/skins/glock.png';
-          const raridade = skin.rarity || 'Consumer Grade';
-
+          
           const skinExistente = await this.prisma.item.findFirst({
             where: { nome: nomeCompleto }
           });
@@ -165,7 +184,7 @@ export class AppController {
           if (skinExistente) {
             await this.prisma.item.update({
               where: { id: skinExistente.id },
-              data: { preco: precoCalculado, imagem: imagemSegura, raridade: raridade }
+              data: { preco: precoCalculado, imagem: imagemSegura, raridade: raridadeNome }
             });
           } else {
             await this.prisma.item.create({
@@ -173,7 +192,7 @@ export class AppController {
                 nome: nomeCompleto, 
                 preco: precoCalculado, 
                 imagem: imagemSegura, 
-                raridade: raridade 
+                raridade: raridadeNome 
               }
             });
           }
@@ -183,12 +202,11 @@ export class AppController {
 
       return { 
         sucesso: true, 
-        message: `🎯 Arsenal expandido! Foram geradas ${totalInserido} skins.` 
+        message: `🎯 Arsenal expandido! Foram geradas ${totalInserido} skins com sucesso.` 
       };
 
     } catch (error: any) {
       console.error("Erro crítico na sincronização:", error);
-      // 🔥 A MÁGICA ESTÁ AQUI: Enviamos o erro real (error.message) para o site!
       return { 
         sucesso: false, 
         message: `ERRO TÉCNICO: ${error.message || 'Desconhecido'}` 

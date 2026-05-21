@@ -98,16 +98,30 @@ export default function TabSistema() {
     }
   };
 
-  const handleSincronizar = async () => {
-    if(!window.confirm("⚠️ ATENÇÃO! Isto vai importar milhares de skins da base de dados global. Queres continuar?")) return;
+  const handleSincronizar = async (offset = 0) => {
     setSyncLoading(true);
-    const toastId = toast.loading("A transferir arsenal... Isto pode demorar um bocado.");
+    const toastId = toast.loading(`A sincronizar lote ${offset}...`);
+    
     try {
-      const res = await fetch('https://sweet-7ifa.onrender.com/sincronizar-arsenal', { method: 'POST' });
+      const res = await fetch('https://sweet-7ifa.onrender.com/sincronizar-arsenal', { 
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ offset })
+      });
       const data = await res.json();
-      toast.success(data.message || '✅ Arsenal sincronizado com sucesso!', { id: toastId });
-    } catch (e) { toast.error('❌ Erro ao sincronizar o arsenal.', { id: toastId }); }
-    setSyncLoading(false);
+      
+      if (data.finalizado) {
+        toast.success("✅ Arsenal completo! Todas as skins carregadas.", { id: toastId });
+        setSyncLoading(false);
+      } else {
+        // 🔥 A MÁGICA: Chama a si mesma com o próximo lote automaticamente
+        toast.dismiss(toastId);
+        handleSincronizar(data.proximoOffset);
+      }
+    } catch (e) { 
+      toast.error('❌ Erro na sincronização.', { id: toastId }); 
+      setSyncLoading(false);
+    }
   };
 
   const gerarPromo = async () => {

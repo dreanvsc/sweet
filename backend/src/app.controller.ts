@@ -127,22 +127,17 @@ export class AppController {
   }
 
   @Post('sincronizar-arsenal')
-  async sincronizarArsenal() {
-    try {
-      // 1. LINK BLINDADO - Vai direto à fonte crua (raw) do GitHub para evitar bloqueios 404
-      const respostaApi = await fetch('https://raw.githubusercontent.com/ByMykel/CSGO-API/main/public/api/en/skins.json');
-      
-      const textoResposta = await respostaApi.text(); 
-      let skinsCruas;
-      try {
-        skinsCruas = JSON.parse(textoResposta);
-      } catch (e) {
-        return { sucesso: false, message: "A API externa bloqueou o acesso ou mudou de endereço." };
-      }
+  async sincronizarArsenal(@Body() body: { offset: number }) {
+    const offset = body.offset || 0; // O frontend diz quantas já foram processadas
+    const LOTE = 200; // Processamos 200 armas (1000 linhas) por vez
 
-      if (!Array.isArray(skinsCruas)) {
-        return { sucesso: false, message: "Erro: API externa não retornou uma lista." };
-      }
+    try {
+      const respostaApi = await fetch('https://raw.githubusercontent.com/ByMykel/CSGO-API/main/public/api/en/skins.json');
+      const skinsCruas = await respostaApi.json();
+
+      // Pegar no lote específico
+      const loteSkins = skinsCruas.slice(offset, offset + LOTE);
+      if (loteSkins.length === 0) return { sucesso: true, finalizado: true, message: "Todas as skins carregadas!" };
 
       const qualidades = [
         { sufixo: ' (Factory New)', multiplicador: 1.45 },
@@ -152,63 +147,33 @@ export class AppController {
         { sufixo: ' (Battle-Scarred)', multiplicador: 0.55 }
       ];
 
-      let totalInserido = 0;
-
-      // 🔥 Limitamos às 150 armas principais para o servidor Render gratuito não ir abaixo com Timeout
-      // Isto vai gerar 150 * 5 = 750 skins. (Podes aumentar o 150 se tiveres um servidor pago mais tarde)
-      const skinsParaProcessar = skinsCruas.slice(0, 150);
-
-      for (const skin of skinsParaProcessar) {
+      for (const skin of loteSkins) {
         if (!skin.name) continue;
-
         const raridadeNome = skin.rarity?.name || 'Mil-Spec Grade';
         const imagemSegura = skin.image || '/skins/glock.png';
-
-        // 🤖 MOTOR DE PREÇOS INTELIGENTE
-        let precoBase = 5.0; 
-        if (raridadeNome.includes('Covert')) precoBase = 120.0;
-        else if (raridadeNome.includes('Classified')) precoBase = 45.0;
-        else if (raridadeNome.includes('Restricted')) precoBase = 15.0;
-        else precoBase = 3.5;
+        let precoBase = raridadeNome.includes('Covert') ? 120.0 : raridadeNome.includes('Classified') ? 45.0 : 5.0;
 
         for (const q of qualidades) {
           const nomeCompleto = `${skin.name}${q.sufixo}`;
           const precoCalculado = Math.max(0.03, parseFloat((precoBase * q.multiplicador).toFixed(2)));
           
-          const skinExistente = await this.prisma.item.findFirst({
-            where: { nome: nomeCompleto }
+          await this.prisma.item.upsert({
+            where: { nome: nomeCompleto },
+            update: { preco: precoCalculado, imagem: imagemSegura, raridade: raridadeNome },
+            create: { nome: nomeCompleto, preco: precoCalculado, imagem: imagemSegura, raridade: raridadeNome }
           });
-
-          if (skinExistente) {
-            await this.prisma.item.update({
-              where: { id: skinExistente.id },
-              data: { preco: precoCalculado, imagem: imagemSegura, raridade: raridadeNome }
-            });
-          } else {
-            await this.prisma.item.create({
-              data: { 
-                nome: nomeCompleto, 
-                preco: precoCalculado, 
-                imagem: imagemSegura, 
-                raridade: raridadeNome 
-              }
-            });
-          }
-          totalInserido++;
         }
       }
 
       return { 
         sucesso: true, 
-        message: `🎯 Arsenal expandido! Foram geradas ${totalInserido} skins com sucesso.` 
+        finalizado: false, 
+        proximoOffset: offset + LOTE,
+        message: `Processado até à arma ${offset + LOTE}.` 
       };
 
     } catch (error: any) {
-      console.error("Erro crítico na sincronização:", error);
-      return { 
-        sucesso: false, 
-        message: `ERRO TÉCNICO: ${error.message || 'Desconhecido'}` 
-      };
+      return { sucesso: false, message: error.message };
     }
   }
 

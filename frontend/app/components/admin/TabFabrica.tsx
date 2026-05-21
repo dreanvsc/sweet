@@ -79,7 +79,7 @@ export default function TabFabrica() {
     e.preventDefault();
     if (itensCaixa.length === 0) return toast.error("A caixa precisa de ter armas!"); // 🔥
     if (Math.abs(somaProbabilidades - 100) > 0.1) {
-      if(!window.confirm(`Atenção: As probabilidades somam ${somaProbabilidades.toFixed(2)}%. Gravar na mesma?`)) return;
+      if(!window.confirm(`Atenção: As probabilidades somam ${somaProbabilidades.toFixed(3)}%. Gravar na mesma?`)) return;
     }
     
     const toastId = toast.loading("A guardar caixa..."); // 🔥
@@ -208,7 +208,7 @@ export default function TabFabrica() {
                <span className="text-amber-500">🎯</span> Conteúdo Atual
              </h4>
              <div className={`px-4 py-1.5 rounded-lg font-mono font-black text-xs border ${Math.abs(somaProbabilidades - 100) < 0.1 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-red-500/10 text-red-500 border-red-500/30'}`}>
-                TOTAL: {somaProbabilidades.toFixed(2)}%
+                TOTAL: {somaProbabilidades.toFixed(3)}%
              </div>
            </div>
 

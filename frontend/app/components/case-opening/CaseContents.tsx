@@ -16,7 +16,7 @@ export default function CaseContents({ caixaSelecionada }: any) {
           .map((item: any, idx: number) => (
           <div key={idx} className="bg-[#161619] border border-white/5 rounded-2xl p-4 flex flex-col items-center text-center relative hover:border-emerald-500/30 hover:bg-emerald-500/5 transition-colors group">
             <div className="absolute top-3 right-3 bg-black/60 border border-white/10 px-2 py-1 rounded text-[10px] font-mono text-zinc-400 font-bold group-hover:text-emerald-400 group-hover:border-emerald-500/50 transition-colors">
-              {parseFloat(item.probabilidade || 0).toFixed(2)}%
+              {parseFloat(item.probabilidade || 0).toFixed(3)}%
             </div>
             <img src={item.imagem || item.image || '/skins/glock.png'} className="w-20 h-20 object-contain mb-4 drop-shadow-lg group-hover:scale-110 transition-transform" alt={item.nome} />
             <p className="text-[10px] font-bold text-white truncate w-full mb-1">{item.nome}</p>

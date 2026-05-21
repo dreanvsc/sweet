@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import UpgraderInventory from './UpgraderInventory';
 import UpgraderWheel from './UpgraderWheel';
 import UpgraderStore from './UpgraderStore';
+import { toast } from 'react-hot-toast'; // 🔥 Import do Motor de Notificações Premium adicionado!
 
 export default function Upgrader({ userId, inventario, setSaldo, setInventario, setView, atualizarTudo }: any) {
   const [userSkins, setUserSkins] = useState<any[]>([]); 
@@ -56,7 +57,8 @@ export default function Upgrader({ userId, inventario, setSaldo, setInventario, 
   const chance = Math.min(chanceRaw, 90).toFixed(2); 
 
   const handleUpgrade = async () => {
-    if (userSkins.length === 0 || !targetSkin) return alert("Seleciona as skins!");
+    if (userSkins.length === 0) return toast.error("Seleciona as skins do teu inventário!");
+    if (!targetSkin) return toast.error("Seleciona a skin que queres ganhar na loja!");
     if (spinning) return;
 
     setLoading(true);
@@ -67,9 +69,17 @@ export default function Upgrader({ userId, inventario, setSaldo, setInventario, 
         body: JSON.stringify({ userId, skinIds: userSkins.map(s => s.id), alvoId: targetSkin.id, lado })
       });
       const data = await res.json();
-      if (res.ok) iniciarAnimacao(data);
-      else { alert(data.message); setLoading(false); }
-    } catch (e) { alert("Erro no servidor"); setLoading(false); }
+      
+      if (res.ok) {
+        iniciarAnimacao(data);
+      } else { 
+        toast.error(data.message || "Erro a processar upgrade"); 
+        setLoading(false); 
+      }
+    } catch (e) { 
+      toast.error("Erro ao ligar ao servidor!"); 
+      setLoading(false); 
+    }
   };
 
   const iniciarAnimacao = (data: any) => {
@@ -85,12 +95,13 @@ export default function Upgrader({ userId, inventario, setSaldo, setInventario, 
     setTimeout(() => {
       setSpinning(false);
       setLoading(false);
+      
       if (data.sucesso) {
         const novaSkinGanha = { ...data.skinGanha, id: data.novoItemId, valor: getPreco(data.skinGanha) };
-        alert(`🔥 SUCESSO! Ganhaste a ${novaSkinGanha.nome}!`);
+        toast.success(`🔥 SUCESSO! Ganhaste a ${novaSkinGanha.nome}!`);
         setInventario((prev: any) => [...prev.filter((s: any) => !data.idsDestruidos.includes(s.id)), novaSkinGanha]);
       } else {
-        alert("❌ Falhaste o upgrade... as tuas skins foram destruídas.");
+        toast.error("❌ O upgrade falhou... As tuas skins foram destruídas.");
         setInventario((prev: any) => prev.filter((s: any) => !data.idsDestruidos.includes(s.id)));
       }
       
@@ -99,13 +110,15 @@ export default function Upgrader({ userId, inventario, setSaldo, setInventario, 
       setUserSkins([]); 
       setTargetSkin(null);
       setRotation(0);
-    }, 5000);
+    }, 5000); // O tempo exato que demora a roleta a parar
   };
 
   return (
     <div className="max-w-7xl mx-auto p-6 animate-in fade-in pb-20">
       <div className="text-center mb-10">
-        <h2 className="text-4xl font-black text-white italic tracking-tighter">UPGRADER <span className="text-emerald-500">PRO</span></h2>
+        <h2 className="text-4xl font-black text-white italic tracking-tighter drop-shadow-md">
+          UPGRADER <span className="text-emerald-500">PRO</span>
+        </h2>
         <p className="text-zinc-500 text-xs font-bold uppercase tracking-[0.3em] mt-2">Arrisca o teu lixo por tesouros</p>
       </div>
 

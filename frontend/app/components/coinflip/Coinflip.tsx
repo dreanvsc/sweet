@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
+import { toast } from 'react-hot-toast'; // 🔥 Import adicionado!
 
 const socket = io('https://sweet-7ifa.onrender.com');
 
@@ -182,7 +183,7 @@ export default function Coinflip({ userId, user, saldo, inventario, atualizarTud
     if (jaSelecionada) {
       setSkinsApostadas(prev => prev.filter(s => s.ui_index !== index));
     } else {
-      if (skinsApostadas.length >= 10) return alert('Máximo 10 skins!');
+      if (skinsApostadas.length >= 10) return toast.error('Máximo 10 skins!');
       setSkinsApostadas(prev => [...prev, { ...skin, ui_index: index }]);
     }
   };
@@ -190,8 +191,8 @@ export default function Coinflip({ userId, user, saldo, inventario, atualizarTud
   const valorSkins = skinsApostadas.reduce((acc, s) => acc + parseFloat(s.preco || s.valor), 0);
 
   const criarJogo = () => {
-    if (tipoAposta === 'saldo' && saldo < valorApostaSaldo) return alert('Saldo insuficiente!');
-    if (tipoAposta === 'skins' && skinsApostadas.length === 0) return alert('Seleciona pelo menos 1 skin!');
+    if (tipoAposta === 'saldo' && saldo < valorApostaSaldo) return toast.error('Saldo insuficiente!');
+    if (tipoAposta === 'skins' && skinsApostadas.length === 0) return toast.error('Seleciona pelo menos 1 skin!');
 
     socket.emit('criar_coinflip', {
       userId: user.id,
@@ -203,6 +204,7 @@ export default function Coinflip({ userId, user, saldo, inventario, atualizarTud
     
     setModalCriar(false);
     setSkinsApostadas([]);
+    toast.success('Aposta criada com sucesso!');
 
     setTimeout(() => { if (typeof atualizarTudo === 'function') atualizarTudo(); }, 500);
   };
@@ -211,8 +213,9 @@ export default function Coinflip({ userId, user, saldo, inventario, atualizarTud
 
   const entrarJogo = (jogo: any) => {
     if (jogo.tipo === 'saldo') {
-      if (saldo < jogo.valorTotal) return alert('Saldo insuficiente!');
+      if (saldo < jogo.valorTotal) return toast.error('Saldo insuficiente!');
       socket.emit('entrar_coinflip', { jogoId: jogo.id, userId: user.id });
+      toast.success('Entraste no Coinflip!');
       setTimeout(() => { if (typeof atualizarTudo === 'function') atualizarTudo(); }, 500);
     } else {
       setSkinsParaEntrar([]);
@@ -225,7 +228,7 @@ export default function Coinflip({ userId, user, saldo, inventario, atualizarTud
     if (jaSelecionada) {
       setSkinsParaEntrar(prev => prev.filter(s => s.ui_index !== index));
     } else {
-      if (skinsParaEntrar.length >= 10) return alert('Máximo 10 skins!');
+      if (skinsParaEntrar.length >= 10) return toast.error('Máximo 10 skins!');
       setSkinsParaEntrar(prev => [...prev, { ...skin, ui_index: index }]);
     }
   };
@@ -233,7 +236,7 @@ export default function Coinflip({ userId, user, saldo, inventario, atualizarTud
   const valorSkinsEntrar = skinsParaEntrar.reduce((acc, s) => acc + parseFloat(s.preco || s.valor), 0);
 
   const confirmarEntradaSkins = () => {
-    if (skinsParaEntrar.length === 0) return alert("Seleciona skins primeiro!");
+    if (skinsParaEntrar.length === 0) return toast.error("Seleciona skins primeiro!");
 
     const alvo = modalEntrarSkins.valorTotal;
     const margem = alvo * 0.10; 
@@ -241,7 +244,7 @@ export default function Coinflip({ userId, user, saldo, inventario, atualizarTud
     const max = alvo + margem;
 
     if (valorSkinsEntrar < min || valorSkinsEntrar > max) {
-      return alert(`O valor das tuas skins (${valorSkinsEntrar.toFixed(2)}€) tem de estar entre ${min.toFixed(2)}€ e ${max.toFixed(2)}€ para ser justo!`);
+      return toast.error(`As tuas skins valem ${valorSkinsEntrar.toFixed(2)}€. O valor deve estar entre ${min.toFixed(2)}€ e ${max.toFixed(2)}€!`);
     }
 
     socket.emit('entrar_coinflip', { 
@@ -252,6 +255,7 @@ export default function Coinflip({ userId, user, saldo, inventario, atualizarTud
 
     setModalEntrarSkins(null);
     setSkinsParaEntrar([]);
+    toast.success('Entraste no Coinflip!');
     setTimeout(() => { if (typeof atualizarTudo === 'function') atualizarTudo(); }, 500);
   };
 

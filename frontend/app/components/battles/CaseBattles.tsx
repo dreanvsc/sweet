@@ -26,6 +26,19 @@ export default function CaseBattles({ userId, user, saldo, caixas, setView, atua
     };
   }, []);
 
+  // 🔥 RADAR DE RECONEXÃO AUTOMÁTICA 🔥
+  // Se voltares à página e tiveres uma batalha a decorrer, ele abre-a logo!
+  useEffect(() => {
+    if (!batalhaAtiva && batalhas.length > 0) {
+      const minhaBatalha = batalhas.find(b => 
+        b.estado === 'jogando' && b.jogadores.some((j: any) => String(j.id) === String(user.id))
+      );
+      if (minhaBatalha) {
+        setBatalhaAtiva(minhaBatalha);
+      }
+    }
+  }, [batalhas, user.id, batalhaAtiva]);
+
   const addCaixa = (caixa: any) => {
     if (filaCaixas.length >= 10) return toast.error("Máximo de 10 caixas por batalha!");
     setFilaCaixas([...filaCaixas, caixa]);
@@ -50,7 +63,6 @@ export default function CaseBattles({ userId, user, saldo, caixas, setView, atua
     setModalCriar(false);
     toast.success("Batalha criada com sucesso!");
 
-    // 🔥 ATUALIZA SALDO APÓS GASTAR
     setTimeout(() => { if (typeof atualizarTudo === 'function') atualizarTudo(); }, 500);
   };
 
@@ -59,7 +71,6 @@ export default function CaseBattles({ userId, user, saldo, caixas, setView, atua
     socket.emit('entrar_batalha', { batalhaId: batalha.id, userId: user.id, userNome: user.nome || 'Jogador', userFoto: user.avatar || '/skins/glock.png' });
     toast.success("Entraste na batalha!");
 
-    // 🔥 ATUALIZA SALDO APÓS GASTAR
     setTimeout(() => { if (typeof atualizarTudo === 'function') atualizarTudo(); }, 500);
   };
 
@@ -71,7 +82,6 @@ export default function CaseBattles({ userId, user, saldo, caixas, setView, atua
         onLeave={() => { 
           setBatalhaAtiva(null); 
           socket.emit('pedir_batalhas'); 
-          // 🔥 ATUALIZA O INVENTÁRIO SE GANHOU A BATALHA
           if (typeof atualizarTudo === 'function') atualizarTudo();
         }} 
       />
@@ -81,7 +91,6 @@ export default function CaseBattles({ userId, user, saldo, caixas, setView, atua
   return (
     <div className="w-full max-w-[1400px] mx-auto animate-in fade-in pb-20 pt-4">
       
-      {/* HEADER PANORÂMICO */}
       <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-8 bg-black/20 p-6 rounded-2xl border border-white/5 backdrop-blur-sm shadow-lg">
          <div className="flex items-center gap-4">
             <div className="w-14 h-14 bg-red-500/10 rounded-xl flex items-center justify-center border border-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.2)]">
@@ -105,7 +114,6 @@ export default function CaseBattles({ userId, user, saldo, caixas, setView, atua
 
       <div className="flex flex-col gap-4">
         {batalhas.length === 0 ? (
-          /* EMPTY STATE PANORÂMICO LIGADO */
           <div className="w-full border border-dashed border-white/10 rounded-2xl p-16 flex flex-col items-center justify-center bg-gradient-to-b from-white/[0.02] to-transparent group hover:border-red-500/30 transition-colors">
             <div className="w-24 h-24 bg-red-500/5 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500 relative">
                <div className="absolute inset-0 bg-red-500/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
@@ -119,6 +127,7 @@ export default function CaseBattles({ userId, user, saldo, caixas, setView, atua
         ) : (
           batalhas.map((b) => {
             const estouNaSala = b.jogadores.find((j: any) => String(j.id) === String(user.id));
+            const souOCriador = b.jogadores.length > 0 && String(b.jogadores[0].id) === String(user.id);
             
             return (
             <div key={b.id} className="bg-[#121215]/80 backdrop-blur-sm border border-white/5 rounded-2xl p-4 flex flex-col md:flex-row items-center justify-between hover:border-red-500/30 transition-all duration-300 gap-6 shadow-lg hover:shadow-[0_0_20px_rgba(239,68,68,0.1)] hover:-translate-y-1">
@@ -151,16 +160,29 @@ export default function CaseBattles({ userId, user, saldo, caixas, setView, atua
                 
                 {b.estado === 'espera' ? (
                   estouNaSala ? (
-                    <button onClick={() => socket.emit('chamar_bot', { batalhaId: b.id })} className="bg-gradient-to-r from-amber-500 to-orange-600 text-white px-6 py-3 rounded-xl font-black uppercase tracking-widest text-xs transition-all hover:scale-105 shadow-[0_0_20px_rgba(245,158,11,0.2)] hover:shadow-[0_0_25px_rgba(245,158,11,0.4)]">
-                      🤖 +1 BOT
-                    </button>
+                    souOCriador ? (
+                      <button onClick={() => socket.emit('chamar_bot', { batalhaId: b.id })} className="bg-gradient-to-r from-amber-500 to-orange-600 text-white px-6 py-3 rounded-xl font-black uppercase tracking-widest text-xs transition-all hover:scale-105 shadow-[0_0_20px_rgba(245,158,11,0.2)] hover:shadow-[0_0_25px_rgba(245,158,11,0.4)]">
+                        🤖 +1 BOT
+                      </button>
+                    ) : (
+                      <div className="bg-zinc-800/50 border border-white/5 text-zinc-400 px-6 py-3 rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center gap-2 cursor-default">
+                        <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                        A Aguardar...
+                      </div>
+                    )
                   ) : (
                     <button onClick={() => entrarBatalha(b)} className="bg-white/10 border border-white/20 hover:bg-white text-zinc-300 hover:text-black px-8 py-3 rounded-xl font-black uppercase tracking-widest transition-all duration-300 shadow-lg hover:shadow-[0_0_20px_rgba(255,255,255,0.3)]">
                       ENTRAR
                     </button>
                   )
                 ) : (
-                  <button className="bg-red-500/10 text-red-500 border border-red-500/30 px-8 py-3 rounded-xl font-black uppercase tracking-widest cursor-not-allowed">A DECORRER</button>
+                  // 🔥 NOVO: BOTÃO PARA ASSISTIR OU REENTRAR NA BATALHA A DECORRER
+                  <button 
+                    onClick={() => setBatalhaAtiva(b)} 
+                    className="bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-blue-400 hover:text-blue-300 px-8 py-3 rounded-xl font-black uppercase tracking-widest transition-all duration-300 shadow-[0_0_15px_rgba(59,130,246,0.1)] hover:shadow-[0_0_20px_rgba(59,130,246,0.3)]"
+                  >
+                    {estouNaSala ? 'REENTRAR' : 'ASSISTIR 👀'}
+                  </button>
                 )}
               </div>
             </div>

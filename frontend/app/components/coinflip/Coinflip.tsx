@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
-import { toast } from 'react-hot-toast'; // 🔥 Import adicionado!
+import { toast } from 'react-hot-toast';
 
 const socket = io('https://sweet-7ifa.onrender.com');
 
@@ -86,8 +86,18 @@ function CoinflipRow({ jogo, user, chamarBot, entrarJogo, atualizarTudo }: any) 
       <div className="flex flex-col items-center justify-center w-full md:w-1/3 z-10 min-h-[100px] perspective-1000">
         {fase === 'espera' ? (
           <div className="text-center animate-in zoom-in">
-            <p className="text-amber-500 font-mono font-black text-3xl drop-shadow-md">{jogo.valorTotal.toFixed(2)}€</p>
-            <p className="text-zinc-500 text-[10px] uppercase font-bold tracking-widest mt-1 bg-white/5 px-3 py-1 rounded-full inline-block border border-white/5">{jogo.tipo === 'saldo' ? 'Saldo' : 'Skins'}</p>
+            <p className="text-amber-500 font-mono font-black text-3xl drop-shadow-md" title="Pote Bruto">
+              {jogo.valorTotal.toFixed(2)}€
+            </p>
+            <div className="flex flex-col items-center gap-1 mt-1">
+              <p className="text-zinc-500 text-[10px] uppercase font-bold tracking-widest bg-white/5 px-3 py-1 rounded-full inline-block border border-white/5">
+                {jogo.tipo === 'saldo' ? 'Saldo' : 'Skins'}
+              </p>
+              {/* 🔥 MÁGICA DA TRANSPARÊNCIA: Mostra o prémio real (Total - 5%) */}
+              <p className="text-zinc-600 text-[8px] font-black uppercase tracking-widest mt-1">
+                Prémio Limpo: {(jogo.valorTotal * 0.95).toFixed(2)}€
+              </p>
+            </div>
           </div>
         ) : fase === 'girando' ? (
           <div className="relative w-20 h-20 animate-in zoom-in duration-300">
@@ -146,9 +156,16 @@ function CoinflipRow({ jogo, user, chamarBot, entrarJogo, atualizarTudo }: any) 
             <h2 className="text-4xl sm:text-5xl font-black text-amber-500 uppercase italic drop-shadow-[0_0_30px_rgba(245,158,11,0.6)] tracking-tighter">
               {jogo.resultado.vencedorId === jogo.criador.id ? jogo.criador.nome : jogo.adversario?.nome} GANHOU!
             </h2>
-            <p className="text-emerald-500 font-mono font-black mt-4 text-3xl bg-emerald-500/10 inline-block px-8 py-2 rounded-xl border border-emerald-500/20 shadow-inner">
-              +{(jogo.valorTotal).toFixed(2)}€
-            </p>
+            
+            {/* 🔥 MÁGICA DA TRANSPARÊNCIA: Mostra o prémio com o desconto */}
+            <div className="flex flex-col items-center">
+              <p className="text-emerald-500 font-mono font-black mt-4 text-3xl bg-emerald-500/10 inline-block px-8 py-2 rounded-xl border border-emerald-500/20 shadow-inner">
+                +{(jogo.valorTotal * 0.95).toFixed(2)}€
+              </p>
+              <span className="text-zinc-500 text-[9px] font-black uppercase tracking-widest mt-2">
+                (Prémio com taxa de 5% da casa)
+              </span>
+            </div>
           </div>
         </div>
       )}

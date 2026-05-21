@@ -129,16 +129,15 @@ export class AppController {
   @Post('sincronizar-arsenal')
   async sincronizarArsenal() {
     try {
-      // 1. Link NOVO e Fiável da API ByMykel
-      const respostaApi = await fetch('https://bymykel.github.io/CSGO-API/api/en/skins.json');
+      // 1. LINK BLINDADO - Vai direto à fonte crua (raw) do GitHub para evitar bloqueios 404
+      const respostaApi = await fetch('https://raw.githubusercontent.com/ByMykel/CSGO-API/main/public/api/en/skins.json');
       
-      // Lê como texto primeiro para evitar o erro do "Position 3" caso a API falhe
       const textoResposta = await respostaApi.text(); 
       let skinsCruas;
       try {
         skinsCruas = JSON.parse(textoResposta);
       } catch (e) {
-        return { sucesso: false, message: "A API externa está em baixo ou devolveu um formato inválido." };
+        return { sucesso: false, message: "A API externa bloqueou o acesso ou mudou de endereço." };
       }
 
       if (!Array.isArray(skinsCruas)) {
@@ -155,9 +154,8 @@ export class AppController {
 
       let totalInserido = 0;
 
-      // 🔥 Para não sobrecarregar o teu servidor gratuito (Render) e não dar Timeout,
-      // vamos carregar apenas as 150 armas mais populares (150 * 5 qualidades = 750 skins instantâneas).
-      // Se quiseres TODAS (milhares), apaga o ".slice(0, 150)" abaixo, mas o Render pode ir abaixo.
+      // 🔥 Limitamos às 150 armas principais para o servidor Render gratuito não ir abaixo com Timeout
+      // Isto vai gerar 150 * 5 = 750 skins. (Podes aumentar o 150 se tiveres um servidor pago mais tarde)
       const skinsParaProcessar = skinsCruas.slice(0, 150);
 
       for (const skin of skinsParaProcessar) {
@@ -166,7 +164,7 @@ export class AppController {
         const raridadeNome = skin.rarity?.name || 'Mil-Spec Grade';
         const imagemSegura = skin.image || '/skins/glock.png';
 
-        // 🤖 MOTOR DE PREÇOS INTELIGENTE: Avalia a raridade para dar um preço realista
+        // 🤖 MOTOR DE PREÇOS INTELIGENTE
         let precoBase = 5.0; 
         if (raridadeNome.includes('Covert')) precoBase = 120.0;
         else if (raridadeNome.includes('Classified')) precoBase = 45.0;

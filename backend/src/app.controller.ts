@@ -164,16 +164,27 @@ export class AppController {
           const raridade = skin.rarity || 'Consumer Grade';
 
           // O upsert cria a skin nova ou atualiza o preço se ela já existir!
-          await this.prisma.item.upsert({
-            where: { nome: nomeCompleto },
-            update: { preco: precoCalculado, imagem: imagemSegura, raridade: raridade },
-            create: { 
-              nome: nomeCompleto, 
-              preco: precoCalculado, 
-              imagem: imagemSegura, 
-              raridade: raridade 
-            }
+         const skinExistente = await this.prisma.item.findFirst({
+            where: { nome: nomeCompleto }
           });
+
+          if (skinExistente) {
+            // 2. Se existir, atualizamos o preço e a imagem usando o ID (que é único!)
+            await this.prisma.item.update({
+              where: { id: skinExistente.id },
+              data: { preco: precoCalculado, imagem: imagemSegura, raridade: raridade }
+            });
+          } else {
+            // 3. Se não existir, criamos uma nova do zero
+            await this.prisma.item.create({
+              data: { 
+                nome: nomeCompleto, 
+                preco: precoCalculado, 
+                imagem: imagemSegura, 
+                raridade: raridade 
+              }
+            });
+          }
 
           totalInserido++;
         }

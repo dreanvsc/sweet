@@ -98,28 +98,39 @@ export default function TabSistema() {
     }
   };
 
+  // 🔥 FUNÇÃO BLINDADA COM AUTO-REPETIÇÃO E CAPTURA DE ERRO REAL 🔥
   const handleSincronizar = async (offset = 0) => {
     setSyncLoading(true);
-    const toastId = toast.loading(`A sincronizar lote ${offset}...`);
+    const toastId = toast.loading(`A processar lote (a partir da arma ${offset})...`);
     
     try {
       const res = await fetch('https://sweet-7ifa.onrender.com/sincronizar-arsenal', { 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ offset })
+        body: JSON.stringify({ offset: offset })
       });
+
+      // Capturar erro HTML caso o servidor estoure
+      if (!res.ok) {
+        const erroTexto = await res.text();
+        throw new Error(`Servidor (${res.status}): ${erroTexto.substring(0, 60)}`);
+      }
+
       const data = await res.json();
       
-      if (data.finalizado) {
-        toast.success("✅ Arsenal completo! Todas as skins carregadas.", { id: toastId });
+      if (data.finalizado || (data.sucesso && data.message.includes("Todas as skins"))) {
+        toast.success("✅ Arsenal completo! Todas as skins carregadas.", { id: toastId, duration: 5000 });
         setSyncLoading(false);
-      } else {
-        // 🔥 A MÁGICA: Chama a si mesma com o próximo lote automaticamente
-        toast.dismiss(toastId);
+      } else if (data.sucesso) {
+        toast.success(data.message, { id: toastId });
+        // Chama o próximo lote automaticamente
         handleSincronizar(data.proximoOffset);
+      } else {
+        toast.error("❌ " + data.message, { id: toastId, duration: 8000 });
+        setSyncLoading(false);
       }
-    } catch (e) { 
-      toast.error('❌ Erro na sincronização.', { id: toastId }); 
+    } catch (e: any) { 
+      toast.error('❌ Falha: ' + e.message, { id: toastId, duration: 8000 }); 
       setSyncLoading(false);
     }
   };
@@ -283,7 +294,8 @@ export default function TabSistema() {
       {/* ARSENAL */}
       <div className="bg-[#121215]/80 backdrop-blur-sm border border-white/5 p-8 rounded-3xl relative overflow-hidden shadow-xl">
         <h4 className="font-black text-white mb-4 uppercase tracking-widest text-sm flex items-center gap-2"><span>🌍</span> Arsenal Global</h4>
-        <button onClick={handleSincronizar} disabled={syncLoading} className="w-full py-4 bg-zinc-800 text-white font-black uppercase rounded-xl transition-all border border-white/5">{syncLoading ? 'A SINCRONIZAR...' : '⬇️ Sincronizar Base de Dados de Skins'}</button>
+        {/* 🔥 A CORREÇÃO DO CLIQUE ESTÁ AQUI ABAIXO 🔥 */}
+        <button onClick={() => handleSincronizar(0)} disabled={syncLoading} className="w-full py-4 bg-zinc-800 text-white font-black uppercase rounded-xl transition-all border border-white/5 hover:bg-zinc-700">{syncLoading ? 'A SINCRONIZAR ARSENAL (NÃO FECHES A PÁGINA)...' : '⬇️ Sincronizar Base de Dados de Skins'}</button>
       </div>
 
     </div>

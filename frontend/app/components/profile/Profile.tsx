@@ -57,7 +57,7 @@ export default function Profile({
         ))}
       </div>
 
-      {activeTab === 'INVENTÁRIO' && <ProfileInventory inventario={inventario} setInventario={setInventario} setSaldo={setSaldo} setView={setView} />}
+      {activeTab === 'INVENTÁRIO' && <ProfileInventory inventario={inventario} setInventario={setInventario} setSaldo={setSaldo} setView={setView} userId={userId} />}
       {activeTab === 'CONFIGURAÇÕES' && <ProfileSettings userData={user} userId={userId} />}
       {activeTab === 'HISTÓRICO DA CONTA' && <ProfileHistory userId={userId} />}
       {activeTab === 'SUPORTE' && <ProfileSupport userId={userId} />}

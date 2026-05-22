@@ -185,7 +185,6 @@ export class UsersService {
   }
 
   async solicitarLevantamento(userId: number, inventarioId: number) {
-    // 1. Vai buscar o jogador e a skin
     const user = await (this.prisma as any).user.findUnique({
       where: { id: Number(userId) }, include: { inventario: true } 
     });
@@ -196,12 +195,12 @@ export class UsersService {
     }
 
     const skin = user.inventario.find((s: any) => s.id === Number(inventarioId));
-    if (!skin) throw new Error("Esta arma não te pertence ou já foi vendida/levantada!");
+    if (!skin) throw new Error("Esta arma não te pertence!");
 
-    // 2. Tira a skin do inventário do jogador no site
-    await (this.prisma as any).inventario.delete({ where: { id: Number(inventarioId) } });
+    // 💡 NOTA: DEIXÁMOS DE APAGAR A SKIN DA BASE DE DADOS AQUI!
+    // O Frontend vai ler a tabela "Levantamento" para saber se esta skin está trancada.
 
-    // 3. Cria a "encomenda" pendente para o Admin (Tu) enviar
+    // Criar a encomenda para o Admin enviar
     await (this.prisma as any).levantamento.create({
       data: {
         userId: Number(userId),
@@ -213,11 +212,10 @@ export class UsersService {
       }
     });
 
-    // 4. Regista no Histórico
     await (this.prisma as any).historicoJogo.create({
-      data: { userId: Number(userId), acao: "Levantamento", detalhe: `Pedido de retirada: ${skin.nome}`, valor: skin.valor, tipo: "LEVANTAMENTO" }
+      data: { userId: Number(userId), acao: "Levantamento", detalhe: `Solicitou envio de ${skin.nome}`, valor: skin.valor, tipo: "LEVANTAMENTO" }
     });
 
-    return { sucesso: true, mensagem: "Pedido efetuado! A nossa equipa vai enviar a proposta de troca na Steam em breve." };
+    return { sucesso: true, mensagem: "Pedido efetuado! Fica atento à tua Steam, vamos enviar a troca em breve." };
   }
 }

@@ -5,7 +5,7 @@ import Link from 'next/link';
 
 export default function Footer() {
   return (
-    <footer className="w-full bg-[#0a0a0c] border-t border-white/5 pt-12 pb-8 mt-20 relative overflow-hidden z-10">
+    <footer className="w-full bg-[#0a0a0c] border-t border-white/5 pt-12 pb-8 mt-20 relative overflow-hidden z-10 md:ml-[260px] md:w-[calc(100%-260px)]">
       
       {/* 1. BARRA DE ESTATÍSTICAS (PROVA SOCIAL) */}
       <div className="container mx-auto px-6 mb-12">

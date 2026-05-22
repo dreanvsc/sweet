@@ -150,13 +150,39 @@ export class AppController {
         if (!skin.name) continue;
         const raridadeNome = skin.rarity?.name || 'Mil-Spec Grade';
         const imagemSegura = skin.image || '/skins/glock.png';
-        let precoBase = raridadeNome.includes('Covert') ? 120.0 : raridadeNome.includes('Classified') ? 45.0 : 5.0;
+        
+        // 🔥 MOTOR DE PREÇOS AFINADO E FILTRO VIP 🔥
+        let precoBase = 5.0;
+
+        // 1. Tenta usar o preço da API (se a API o fornecer)
+        if (skin.price && !isNaN(parseFloat(skin.price))) {
+          precoBase = parseFloat(skin.price);
+        } 
+        // 2. Tabela VIP de Lendas (Override de Patrão para skins milionárias)
+        else if (skin.name.includes('Dragon Lore')) precoBase = 6500.0;
+        else if (skin.name.includes('Gungnir')) precoBase = 7000.0;
+        else if (skin.name.includes('Howl')) precoBase = 4500.0;
+        else if (skin.name.includes('Wild Lotus')) precoBase = 3500.0;
+        else if (skin.name.includes('Fire Serpent')) precoBase = 800.0;
+        else if (skin.name.includes('Medusa')) precoBase = 2000.0;
+        else if (skin.name.includes('Prince')) precoBase = 2500.0;
+        else if (skin.name.includes('Fade') && skin.name.includes('Butterfly')) precoBase = 2800.0;
+        else if (skin.name.includes('Doppler') && skin.name.includes('Karambit')) precoBase = 1200.0;
+        else if (skin.name.includes('Vanilla') && skin.name.includes('Butterfly')) precoBase = 1800.0;
+        // 3. Rede de segurança por raridade para as restantes
+        else {
+          if (raridadeNome.includes('Covert')) precoBase = 120.0;
+          else if (raridadeNome.includes('Classified')) precoBase = 45.0;
+          else if (raridadeNome.includes('Restricted')) precoBase = 15.0;
+          else if (raridadeNome.includes('Mil-Spec')) precoBase = 5.0;
+          else precoBase = 2.0;
+        }
 
         for (const q of qualidades) {
           const nomeCompleto = `${skin.name}${q.sufixo}`;
           const precoCalculado = Math.max(0.03, parseFloat((precoBase * q.multiplicador).toFixed(2)));
           
-          // 🔥 CORREÇÃO: Procurar primeiro pelo nome, depois decidir entre Update ou Create
+          // Procurar primeiro pelo nome, depois decidir entre Update ou Create
           const itemExistente = await this.prisma.item.findFirst({
             where: { nome: nomeCompleto }
           });

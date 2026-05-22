@@ -1,7 +1,48 @@
-import React, { useState } from 'react';
+'use client';
 
-export default function ProfileInventory({ inventario, setInventario, setSaldo, setView }: any) {
+import React, { useState } from 'react';
+import { toast } from 'react-hot-toast';
+
+export default function ProfileInventory({ inventario, setInventario, setSaldo, setView, userId }: any) {
   const [search, setSearch] = useState('');
+  const [loadingId, setLoadingId] = useState<number | null>(null);
+
+  const handleLevantar = async (item: any, idx: number) => {
+    const conf = window.confirm(`Queres enviar a ${item?.nome} para a tua conta Steam?`);
+    if (!conf) return;
+
+    if (!userId) return toast.error("Erro: Sessão não encontrada.");
+    
+    setLoadingId(item.id);
+    const toastId = toast.loading("A criar encomenda de envio...");
+
+    try {
+      const res = await fetch('https://sweet-7ifa.onrender.com/levantar-skin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: Number(userId), inventarioId: item.id })
+      });
+      const data = await res.json();
+
+      if (data.sucesso) {
+        toast.success('🚚 ' + data.mensagem, { id: toastId, duration: 6000 });
+        // A SKIN SAI DA MOCHILA PARA NÃO SER VENDIDA 2 VEZES!
+        setInventario((inv: any) => inv.filter((_: any, i: number) => i !== idx));
+      } else {
+        toast.error('❌ ' + data.mensagem, { id: toastId, duration: 5000 });
+      }
+    } catch (error) {
+      toast.error('Erro de comunicação com o servidor.', { id: toastId });
+    }
+    setLoadingId(null);
+  };
+
+  // 🔥 ESCUDO ANTI-CRASH: Garante que skins estragadas não partem o site
+  const inventarioSeguro = Array.isArray(inventario) ? inventario : [];
+  const inventarioFiltrado = inventarioSeguro.filter((item: any) => {
+    const nomeSeguro = item?.nome || 'Skin Misteriosa';
+    return nomeSeguro.toLowerCase().includes(search.toLowerCase());
+  });
 
   return (
     <div className="bg-[#1b1b1e] rounded-xl border border-white/5 p-6 animate-in fade-in">
@@ -23,47 +64,64 @@ export default function ProfileInventory({ inventario, setInventario, setSaldo, 
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-        {inventario?.length > 0 ? (
-          inventario.filter((item: any) => item.nome.toLowerCase().includes(search.toLowerCase())).map((item: any, idx: number) => (
-          <div key={idx} className="bg-[#121215] border border-white/5 rounded-xl p-4 flex flex-col relative group transition-all hover:bg-[#161619]">
-            
-            <div className="flex justify-between items-start mb-2 z-10">
-              <span className="text-[10px] font-black text-zinc-500 tracking-widest">{item.raridade === 'Comum' ? 'FT' : 'MW'}</span>
-              <span className="text-[8px] font-black text-blue-500 bg-blue-500/10 px-2 py-1 rounded uppercase tracking-widest border border-blue-500/20">ATUALIZAR</span>
-            </div>
-            
-            <div className="relative h-28 flex items-center justify-center my-2">
-              <div className="absolute inset-0 bg-gradient-to-t from-blue-500/10 to-transparent blur-xl rounded-full opacity-50"></div>
-              <img src={item.imagem || item.image || '/skins/glock.png'} className="w-24 h-24 object-contain relative z-10 drop-shadow-xl group-hover:scale-110 transition-transform duration-300" alt={item.nome} />
-            </div>
+        {inventarioFiltrado.length > 0 ? (
+          inventarioFiltrado.map((item: any, idx: number) => {
+            const nomeReal = item?.nome || 'Skin Misteriosa';
+            const precoReal = Number(item?.preco || item?.valor || 0);
 
-            <div className="mt-auto pt-3 border-t border-white/5 z-10 text-center">
-              <p className="text-[10px] font-bold text-zinc-500 uppercase truncate w-full">{item.nome.split('|')[0] || 'Item'}</p>
-              <p className="text-[11px] font-black text-white uppercase truncate w-full mb-3">{item.nome.split('|')[1] || item.nome}</p>
-              <div className="text-center text-xs font-black text-amber-500 bg-[#1b1b1e] border border-white/5 py-2 rounded">
-                {(item.preco || item.valor || 0).toFixed(2)}€
+            return (
+              <div key={idx} className="bg-[#121215] border border-white/5 rounded-xl p-4 flex flex-col relative group transition-all hover:bg-[#161619]">
+                
+                <div className="flex justify-between items-start mb-2 z-10">
+                  <span className="text-[10px] font-black text-zinc-500 tracking-widest">{item?.raridade === 'Comum' ? 'FT' : 'MW'}</span>
+                  <span className="text-[8px] font-black text-blue-500 bg-blue-500/10 px-2 py-1 rounded uppercase tracking-widest border border-blue-500/20">ATUALIZAR</span>
+                </div>
+                
+                <div className="relative h-28 flex items-center justify-center my-2">
+                  <div className="absolute inset-0 bg-gradient-to-t from-blue-500/10 to-transparent blur-xl rounded-full opacity-50"></div>
+                  <img src={item?.imagem || item?.image || '/skins/glock.png'} className="w-24 h-24 object-contain relative z-10 drop-shadow-xl group-hover:scale-110 transition-transform duration-300" alt={nomeReal} />
+                </div>
+
+                <div className="mt-auto pt-3 border-t border-white/5 z-10 text-center">
+                  <p className="text-[10px] font-bold text-zinc-500 uppercase truncate w-full">{nomeReal.split('|')[0] || 'Arma'}</p>
+                  <p className="text-[11px] font-black text-white uppercase truncate w-full mb-3">{nomeReal.split('|')[1] || nomeReal}</p>
+                  <div className="text-center text-xs font-black text-amber-500 bg-[#1b1b1e] border border-white/5 py-2 rounded">
+                    {precoReal.toFixed(2)}€
+                  </div>
+                </div>
+
+                <div className="absolute inset-0 bg-[#121215]/95 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex flex-col items-center justify-center gap-2 p-4 z-20">
+                  
+                  {/* 🔥 BOTÃO DE LEVANTAR REFORMULADO */}
+                  <button 
+                    onClick={() => handleLevantar(item, idx)}
+                    disabled={loadingId === item?.id}
+                    className="w-full bg-blue-500 hover:bg-blue-400 disabled:opacity-50 text-white font-black text-[10px] py-2.5 rounded uppercase tracking-widest transition-colors shadow-lg"
+                  >
+                    {loadingId === item?.id ? 'A PROCESSAR...' : '🚚 ENVIAR P/ STEAM'}
+                  </button>
+
+                  <button 
+                    onClick={() => {
+                      const conf = window.confirm(`Vender por ${precoReal.toFixed(2)}€?`);
+                      if(conf) {
+                        setSaldo((s: number) => s + precoReal);
+                        setInventario((inv: any) => inv.filter((_: any, i: number) => i !== idx));
+                      }
+                    }}
+                    className="w-full bg-[#84c13a] hover:bg-[#96d845] text-black font-black text-[10px] py-2.5 rounded uppercase tracking-widest transition-colors"
+                  >
+                    VENDER {precoReal.toFixed(2)}€
+                  </button>
+                  
+                  <button onClick={() => setView('upgrader')} className="w-full bg-zinc-700 hover:bg-zinc-600 text-white font-black text-[10px] py-2.5 rounded uppercase tracking-widest transition-colors">
+                    UPGRADE
+                  </button>
+
+                </div>
               </div>
-            </div>
-
-            <div className="absolute inset-0 bg-[#121215]/95 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex flex-col items-center justify-center gap-2 p-4 z-20">
-              <button 
-                onClick={() => {
-                  const conf = window.confirm(`Vender por ${(item.preco || item.valor).toFixed(2)}€?`);
-                  if(conf) {
-                    setSaldo((s: number) => s + Number(item.preco || item.valor));
-                    setInventario((inv: any) => inv.filter((_: any, i: number) => i !== idx));
-                  }
-                }}
-                className="w-full bg-[#84c13a] hover:bg-[#96d845] text-black font-black text-[10px] py-3 rounded uppercase tracking-widest transition-colors shadow-lg"
-              >
-                VENDER {(item.preco || item.valor || 0).toFixed(2)}€
-              </button>
-              <button onClick={() => setView('upgrader')} className="w-full bg-blue-500 hover:bg-blue-400 text-white font-black text-[10px] py-3 rounded uppercase tracking-widest transition-colors">
-                Fazer Upgrade
-              </button>
-            </div>
-          </div>
-        ))
+            );
+          })
         ) : (
           <div className="col-span-full py-32 flex flex-col items-center justify-center">
             <p className="text-zinc-600 font-black uppercase tracking-[0.2em] text-sm mb-6">O TEU INVENTÁRIO ESTÁ VAZIO</p>

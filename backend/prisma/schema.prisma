@@ -25,6 +25,7 @@ model User {
   tickets         TicketSuporte[] 
   liveChats   LiveChat[]
   submissoes    SubmissaoMissao[]
+  levantamentos Levantamento[]
 }
 
 // O Inventário (Atualizado)
@@ -147,4 +148,17 @@ model Configuracao {
   valor       String   // Guardamos como texto para poder ser "0.15" ou até "true/false"
   descricao   String?  // Só para tu saberes o que isto faz
   updatedAt   DateTime @updatedAt
+}
+
+model Levantamento {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  skinNome    String
+  skinImagem  String
+  valor       Float
+  tradeUrl    String
+  status      String   @default("PENDENTE") // PENDENTE, CONCLUIDO, REJEITADO
+  dataPedido  DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id])
 }

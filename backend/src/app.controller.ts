@@ -630,4 +630,57 @@ export class AppController {
       return { sucesso: false, message: "Erro interno no servidor ao atualizar preço." };
     }
   }
+
+  // ==========================================
+  // DEPARTAMENTO DE LEVANTAMENTOS (WITHDRAWS)
+  // ==========================================
+
+  // Jogador: Pede para levantar uma skin
+  @Post('levantar-skin')
+  async levantarSkin(@Body() body: { userId: number, inventarioId: number }) {
+    try {
+      return await this.usersService.solicitarLevantamento(body.userId, body.inventarioId);
+    } catch (error: any) {
+      return { sucesso: false, mensagem: error.message };
+    }
+  }
+
+  // Admin: Vê todos os pedidos pendentes
+  @Get('admin/levantamentos')
+  async verLevantamentos() {
+    return await this.prisma.levantamento.findMany({
+      where: { status: 'PENDENTE' },
+      include: { user: { select: { nome: true, avatar: true } } },
+      orderBy: { dataPedido: 'asc' }
+    });
+  }
+
+  // Admin: Confirma que enviou a skin na Steam
+  @Post('admin/levantamentos/aprovar/:id')
+  async aprovarLevantamento(@Param('id') id: string) {
+    await this.prisma.levantamento.update({
+      where: { id: Number(id) }, data: { status: 'CONCLUIDO' }
+    });
+    return { sucesso: true, mensagem: "Levantamento marcado como concluído!" };
+  }
+
+  // Admin: Rejeita (o bot da steam falhou, trade bloqueada, etc) e devolve a skin ao site
+  @Post('admin/levantamentos/rejeitar/:id')
+  async rejeitarLevantamento(@Param('id') id: string) {
+    const pedido = await this.prisma.levantamento.findUnique({ where: { id: Number(id) } });
+    if (!pedido) return { sucesso: false, mensagem: "Pedido não encontrado." };
+
+    // Atualiza status
+    await this.prisma.levantamento.update({
+      where: { id: Number(id) }, data: { status: 'REJEITADA' }
+    });
+
+    // Devolve a skin ao inventário do site do jogador
+    await this.prisma.inventario.create({
+      data: { userId: pedido.userId, nome: pedido.skinNome, imagem: pedido.skinImagem, raridade: 'Comum', valor: pedido.valor }
+    });
+
+    return { sucesso: true, mensagem: "Levantamento cancelado. A skin voltou para a conta do jogador no site." };
+  }
+
 }

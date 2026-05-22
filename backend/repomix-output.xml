@@ -1,0 +1,2546 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+.gitignore
+.prettierrc
+eslint.config.mjs
+nest-cli.json
+package.json
+prisma/migrations/20260513213251_1/migration.sql
+prisma/migrations/20260513214656_1/migration.sql
+prisma/migrations/20260513220510_teste/migration.sql
+prisma/migrations/migration_lock.toml
+prisma/schema.prisma
+README.md
+src/admin.service.ts
+src/app.controller.spec.ts
+src/app.controller.ts
+src/app.module.ts
+src/battles.gateway.ts
+src/caixas.service.ts
+src/chat.gateway.ts
+src/coinflip.gateway.ts
+src/feed.gateway.ts
+src/main.ts
+src/prisma.service.ts
+src/steam.strategy.ts
+src/upgrader.service.ts
+src/users.service.ts
+test/app.e2e-spec.ts
+test/jest-e2e.json
+tsconfig.build.json
+tsconfig.json
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path=".gitignore">
+# compiled output
+/dist
+/node_modules
+/build
+
+# Logs
+logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# OS
+.DS_Store
+
+# Tests
+/coverage
+/.nyc_output
+
+# IDEs and editors
+/.idea
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+
+# IDE - VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# dotenv environment variable files
+.env
+.env.development.local
+.env.test.local
+.env.production.local
+.env.local
+
+# temp directory
+.temp
+.tmp
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Diagnostic reports (https://nodejs.org/api/report.html)
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+/generated/prisma
+</file>
+
+<file path=".prettierrc">
+{
+  "singleQuote": true,
+  "trailingComma": "all"
+}
+</file>
+
+<file path="eslint.config.mjs">
+// @ts-check
+import eslint from '@eslint/js';
+import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended';
+import globals from 'globals';
+import tseslint from 'typescript-eslint';
+
+export default tseslint.config(
+  {
+    ignores: ['eslint.config.mjs'],
+  },
+  eslint.configs.recommended,
+  ...tseslint.configs.recommendedTypeChecked,
+  eslintPluginPrettierRecommended,
+  {
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        ...globals.jest,
+      },
+      sourceType: 'commonjs',
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+  },
+  {
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-floating-promises': 'warn',
+      '@typescript-eslint/no-unsafe-argument': 'warn',
+      "prettier/prettier": ["error", { endOfLine: "auto" }],
+    },
+  },
+);
+</file>
+
+<file path="nest-cli.json">
+{
+  "$schema": "https://json.schemastore.org/nest-cli",
+  "collection": "@nestjs/schematics",
+  "sourceRoot": "src",
+  "compilerOptions": {
+    "deleteOutDir": true
+  }
+}
+</file>
+
+<file path="package.json">
+{
+  "name": "backend",
+  "version": "0.0.1",
+  "description": "",
+  "author": "",
+  "private": true,
+  "license": "UNLICENSED",
+  "scripts": {
+    "build": "nest build",
+    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+    "start": "nest start",
+    "start:dev": "nest start --watch",
+    "start:debug": "nest start --debug --watch",
+    "start:prod": "node dist/main",
+    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:cov": "jest --coverage",
+    "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
+    "test:e2e": "jest --config ./test/jest-e2e.json"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.0.1",
+    "@nestjs/core": "^11.0.1",
+    "@nestjs/passport": "^11.0.5",
+    "@nestjs/platform-express": "^11.0.1",
+    "@nestjs/platform-socket.io": "^11.1.21",
+    "@nestjs/websockets": "^11.1.21",
+    "@prisma/client": "^5.22.0",
+    "express-session": "^1.19.0",
+    "passport": "^0.7.0",
+    "passport-steam": "^1.0.18",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.1",
+    "socket.io": "^4.8.3",
+    "stripe": "^22.1.1"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.2.0",
+    "@eslint/js": "^9.18.0",
+    "@nestjs/cli": "^11.0.0",
+    "@nestjs/schematics": "^11.0.0",
+    "@nestjs/testing": "^11.0.1",
+    "@types/express": "^5.0.0",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^24.0.0",
+    "@types/supertest": "^7.0.0",
+    "eslint": "^9.18.0",
+    "eslint-config-prettier": "^10.0.1",
+    "eslint-plugin-prettier": "^5.2.2",
+    "globals": "^17.0.0",
+    "jest": "^30.0.0",
+    "prettier": "^3.4.2",
+    "prisma": "^5.22.0",
+    "source-map-support": "^0.5.21",
+    "supertest": "^7.0.0",
+    "ts-jest": "^29.2.5",
+    "ts-loader": "^9.5.2",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.20.0"
+  },
+  "jest": {
+    "moduleFileExtensions": [
+      "js",
+      "json",
+      "ts"
+    ],
+    "rootDir": "src",
+    "testRegex": ".*\\.spec\\.ts$",
+    "transform": {
+      "^.+\\.(t|j)s$": "ts-jest"
+    },
+    "collectCoverageFrom": [
+      "**/*.(t|j)s"
+    ],
+    "coverageDirectory": "../coverage",
+    "testEnvironment": "node"
+  }
+}
+</file>
+
+<file path="prisma/migrations/20260513213251_1/migration.sql">
+-- CreateTable
+CREATE TABLE "User" (
+    "id" SERIAL NOT NULL,
+    "username" TEXT NOT NULL,
+    "nome" TEXT,
+    "avatar" TEXT,
+    "saldo" DOUBLE PRECISION NOT NULL DEFAULT 200.0,
+    "xp" INTEGER NOT NULL DEFAULT 0,
+    "totalDepositado" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "ultimoBonus" TIMESTAMP(3),
+
+    CONSTRAINT "User_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Inventario" (
+    "id" SERIAL NOT NULL,
+    "nome" TEXT NOT NULL,
+    "imagem" TEXT NOT NULL,
+    "raridade" TEXT NOT NULL,
+    "valor" DOUBLE PRECISION NOT NULL,
+    "dataGanho" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "userId" INTEGER,
+
+    CONSTRAINT "Inventario_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Item" (
+    "id" SERIAL NOT NULL,
+    "nome" TEXT NOT NULL,
+    "imagem" TEXT NOT NULL,
+    "preco" DOUBLE PRECISION NOT NULL,
+    "raridade" TEXT NOT NULL,
+
+    CONSTRAINT "Item_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Caixa" (
+    "id" SERIAL NOT NULL,
+    "nome" TEXT NOT NULL,
+    "preco" DOUBLE PRECISION NOT NULL,
+    "ordem" INTEGER NOT NULL DEFAULT 0,
+    "imagem" TEXT NOT NULL,
+    "itens" TEXT NOT NULL,
+
+    CONSTRAINT "Caixa_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "PromoCode" (
+    "id" SERIAL NOT NULL,
+    "codigo" TEXT NOT NULL,
+    "valor" DOUBLE PRECISION NOT NULL,
+    "usos" INTEGER NOT NULL DEFAULT 0,
+    "limite" INTEGER NOT NULL DEFAULT 100,
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "PromoCode_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "CodigoUsado" (
+    "id" SERIAL NOT NULL,
+    "userId" INTEGER NOT NULL,
+    "codigo" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "CodigoUsado_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Transacao" (
+    "id" SERIAL NOT NULL,
+    "userId" INTEGER NOT NULL,
+    "metodo" TEXT NOT NULL,
+    "valor" DOUBLE PRECISION NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'Pendente',
+    "referencia" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Transacao_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "User_username_key" ON "User"("username");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "PromoCode_codigo_key" ON "PromoCode"("codigo");
+
+-- AddForeignKey
+ALTER TABLE "Inventario" ADD CONSTRAINT "Inventario_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+</file>
+
+<file path="prisma/migrations/20260513214656_1/migration.sql">
+-- AlterTable
+ALTER TABLE "User" ALTER COLUMN "saldo" SET DEFAULT 0.0;
+</file>
+
+<file path="prisma/migrations/20260513220510_teste/migration.sql">
+-- CreateTable
+CREATE TABLE "HistoricoJogo" (
+    "id" SERIAL NOT NULL,
+    "acao" TEXT NOT NULL,
+    "detalhe" TEXT NOT NULL,
+    "valor" DOUBLE PRECISION NOT NULL,
+    "tipo" TEXT NOT NULL,
+    "data" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "userId" INTEGER NOT NULL,
+
+    CONSTRAINT "HistoricoJogo_pkey" PRIMARY KEY ("id")
+);
+
+-- AddForeignKey
+ALTER TABLE "HistoricoJogo" ADD CONSTRAINT "HistoricoJogo_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+</file>
+
+<file path="prisma/migrations/migration_lock.toml">
+# Please do not edit this file manually
+# It should be added in your version-control system (i.e. Git)
+provider = "postgresql"
+</file>
+
+<file path="prisma/schema.prisma">
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              Int             @id @default(autoincrement())
+  username        String          @unique // ID oficial da Steam
+  nome            String?         // O nome (Nickname) da Steam
+  avatar          String?         // O link da Foto de Perfil
+  saldo           Float           @default(0.0)
+  totalDepositado Float           @default(0)
+  role            String          @default("USER")
+  level           Int             @default(1)
+  xp              Int             @default(0)
+  inventario      Inventario[]
+  historicoJogo   HistoricoJogo[]
+  tradeUrl        String?
+  email           String?
+  newsletter      Boolean         @default(false)
+  tickets         TicketSuporte[] 
+  liveChats   LiveChat[]
+  submissoes    SubmissaoMissao[]
+}
+
+// O Inventário (Atualizado)
+model Inventario {
+  id        Int      @id @default(autoincrement())
+  nome      String
+  imagem    String
+  raridade  String
+  valor     Float
+  dataGanho DateTime @default(now())
+  
+  // A "Etiqueta" que diz de quem é esta skin
+  userId    Int?
+  dono      User?    @relation(fields: [userId], references: [id])
+}
+
+// A Tabela Item
+model Item {
+  id       Int     @id @default(autoincrement())
+  nome     String
+  imagem   String
+  preco    Float
+  raridade String
+}
+
+model Caixa {
+  id      Int     @id @default(autoincrement())
+  nome    String
+  preco   Float
+  ordem   Int     @default(0)
+  imagem  String
+  itens   String   // Vai guardar um "pacote" (JSON) com as skins
+}
+
+model PromoCode {
+  id        Int      @id @default(autoincrement())
+  codigo    String   @unique
+  valor     Float
+  usos      Int      @default(0)
+  limite    Int      @default(100)
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model CodigoUsado {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  codigo    String
+  createdAt DateTime @default(now())
+}
+
+model Transacao {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  metodo     String   
+  valor      Float
+  status     String   @default("Pendente")
+  referencia String?  
+  createdAt  DateTime @default(now())
+}
+
+model HistoricoJogo {
+  id        Int      @id @default(autoincrement())
+  acao      String   
+  detalhe   String   
+  valor     Float    
+  tipo      String   
+  data      DateTime @default(now())
+  createdAt DateTime @default(now())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+
+model TicketSuporte {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  assunto   String
+  mensagem  String
+  resposta  String?  
+  status    String   @default("ABERTO") 
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model LiveChat {
+  id        Int               @id @default(autoincrement())
+  userId    Int               
+  status    String            @default("ABERTO")
+  user      User              @relation(fields: [userId], references: [id])
+  mensagens LiveChatMessage[]
+  createdAt DateTime          @default(now())
+}
+
+model LiveChatMessage {
+  id         Int      @id @default(autoincrement())
+  chatId     Int
+  remetente  String   // 'JOGADOR' ou 'ADMIN'
+  texto      String
+  createdAt  DateTime @default(now())
+  chat       LiveChat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+}
+
+model SubmissaoMissao {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  plataforma  String   // 'TikTok', 'Instagram', ou 'YouTube'
+  link        String   @unique // 🔥 UNIQUE garante que NUNCA 2 jogadores usam o mesmo link!
+  recompensa  Float    @default(0.09)
+  status      String   @default("PENDENTE") // Pode ser: PENDENTE, APROVADA, REJEITADA
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id])
+}
+
+model Configuracao {
+  id          Int      @id @default(autoincrement())
+  chave       String   @unique // Ex: "recompensa_social", "recompensa_discord"
+  valor       String   // Guardamos como texto para poder ser "0.15" ou até "true/false"
+  descricao   String?  // Só para tu saberes o que isto faz
+  updatedAt   DateTime @updatedAt
+}
+</file>
+
+<file path="README.md">
+<p align="center">
+  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
+</p>
+
+[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
+[circleci-url]: https://circleci.com/gh/nestjs/nest
+
+  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
+    <p align="center">
+<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
+<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
+<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
+<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
+<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
+<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
+<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
+  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
+    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
+  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
+</p>
+  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
+  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+
+## Description
+
+[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+
+## Project setup
+
+```bash
+$ npm install
+```
+
+## Compile and run the project
+
+```bash
+# development
+$ npm run start
+
+# watch mode
+$ npm run start:dev
+
+# production mode
+$ npm run start:prod
+```
+
+## Run tests
+
+```bash
+# unit tests
+$ npm run test
+
+# e2e tests
+$ npm run test:e2e
+
+# test coverage
+$ npm run test:cov
+```
+
+## Deployment
+
+When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+
+If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+
+```bash
+$ npm install -g @nestjs/mau
+$ mau deploy
+```
+
+With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+
+## Resources
+
+Check out a few resources that may come in handy when working with NestJS:
+
+- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
+- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
+- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
+- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
+- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
+- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
+- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
+- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+
+## Support
+
+Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+
+## Stay in touch
+
+- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
+- Website - [https://nestjs.com](https://nestjs.com/)
+- Twitter - [@nestframework](https://twitter.com/nestframework)
+
+## License
+
+Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+</file>
+
+<file path="src/admin.service.ts">
+import { Injectable, BadRequestException } from '@nestjs/common';
+import { PrismaService } from './prisma.service';
+
+@Injectable()
+export class AdminService {
+  constructor(private prisma: PrismaService) {}
+
+  async sincronizarArsenal() {
+    try {
+      const resSkins = await fetch('https://raw.githubusercontent.com/ByMykel/CSGO-API/main/public/api/en/skins.json');
+      if (!resSkins.ok) throw new Error(`API falhou: ${resSkins.status}`);
+      
+      const textSkins = await resSkins.text();
+      let skins = [];
+      try { skins = JSON.parse(textSkins); } catch (e) { throw new Error("API devolveu HTML."); }
+      const skinsValidas = skins.filter((s: any) => s.image && s.rarity);
+
+      let dictPrecos: any = {};
+      try {
+        const resPrecos = await fetch('https://api.skinport.com/v1/items?app_id=730&currency=EUR&tradable=0', { headers: { 'Accept-Encoding': 'br' } });
+        if (resPrecos.ok) {
+          const dadosSkinport = await resPrecos.json();
+          dadosSkinport.forEach((item: any) => { dictPrecos[item.market_hash_name] = item.suggested_price || item.min_price || item.market_price || null; });
+        }
+      } catch (e) { console.log("Aviso: A API da Skinport falhou."); }
+
+      await (this.prisma as any).item.deleteMany();
+
+      let contador = 0;
+      const tamanhoLote = 100;
+
+      for (let i = 0; i < skinsValidas.length; i += tamanhoLote) {
+        const lote = skinsValidas.slice(i, i + tamanhoLote);
+        const dadosParaGravar = lote.map((skin: any) => {
+          const nomeFieldTested = `${skin.name} (Field-Tested)`;
+          const nomeVanilla = skin.name; 
+          let precoMercado = dictPrecos[nomeFieldTested] || dictPrecos[nomeVanilla] || 5.00;
+
+          let tipoRaridade = 'Comum';
+          if (skin.rarity.name === 'Restricted') { tipoRaridade = 'Comum'; if(precoMercado === 5) precoMercado=15; }
+          else if (skin.rarity.name === 'Classified') { tipoRaridade = 'Raro'; if(precoMercado === 5) precoMercado=40; }
+          else if (skin.rarity.name === 'Covert') { tipoRaridade = 'Lendário'; if(precoMercado === 5) precoMercado=120; }
+          if (skin.category?.name === 'Knives' || skin.category?.name === 'Gloves') { tipoRaridade = 'Lendário'; if(precoMercado === 5) precoMercado=450; }
+
+          return { nome: skin.name, imagem: skin.image, raridade: tipoRaridade, preco: parseFloat(Number(precoMercado).toFixed(2)) };
+        });
+
+        await (this.prisma as any).item.createMany({ data: dadosParaGravar });
+        contador += dadosParaGravar.length;
+      }
+      return { message: `🔥 SUCESSO! ${contador} skins injetadas!` };
+    } catch (error) { throw new Error('Falha ao sincronizar arsenal.'); }
+  }
+
+  async obterEstatisticas() {
+    const totalUsers = await (this.prisma as any).user.count();
+    const users = await (this.prisma as any).user.findMany({ select: { saldo: true } });
+    const saldoEmCirculacao = users.reduce((total: number, user: any) => total + user.saldo, 0);
+    const armasEmCirculacao = await (this.prisma as any).inventario.count();
+    const totalCaixasCriadas = await (this.prisma as any).caixa.count();
+
+    return { totalUsers, saldoEmCirculacao: parseFloat(saldoEmCirculacao.toFixed(2)), armasEmCirculacao, totalCaixasCriadas };
+  }
+
+  async listarUtilizadoresAdmin() {
+    return await (this.prisma as any).user.findMany({
+      include: { inventario: true, historicoJogo: { orderBy: { data: 'desc' }, take: 20 } }, orderBy: { id: 'asc' }
+    });
+  }
+
+  async atualizarSaldoAdmin(userId: number, novoSaldo: number) {
+    const user = await (this.prisma as any).user.findUnique({ where: { id: Number(userId) } });
+    let valorDepositado = 0;
+    if (novoSaldo > user.saldo) valorDepositado = novoSaldo - user.saldo;
+
+    return await (this.prisma as any).user.update({
+      where: { id: Number(userId) },
+      data: { saldo: parseFloat(novoSaldo.toFixed(2)), totalDepositado: (user.totalDepositado || 0) + valorDepositado }
+    });
+  }
+
+  async criarPromoCode(dados: { codigo: string, valor: number, limite: number }) {
+    const codigoLimpo = dados.codigo.trim().toUpperCase();
+    const existe = await (this.prisma as any).promoCode.findUnique({ where: { codigo: codigoLimpo } });
+    if (existe) throw new Error("Esse código já existe!");
+
+    await (this.prisma as any).promoCode.create({
+      data: { codigo: codigoLimpo, valor: parseFloat(Number(dados.valor).toFixed(2)), limite: Number(dados.limite) || 100 }
+    });
+    return { sucesso: true, msg: `Código ${codigoLimpo} criado!` };
+  }
+
+  async usarPromoCode(userId: number, codigo: string) {
+    const codigoLimpo = codigo.trim().toUpperCase();
+    const promo = await (this.prisma as any).promoCode.findUnique({ where: { codigo: codigoLimpo } });
+    
+    if (!promo) throw new BadRequestException("Código inválido.");
+    if (!promo.ativo) throw new BadRequestException("Código inativo.");
+    if (promo.usos >= promo.limite) throw new BadRequestException("Limite de usos atingido.");
+
+    const jaUsou = await (this.prisma as any).codigoUsado.findFirst({ where: { userId: Number(userId), codigo: codigoLimpo } });
+    if (jaUsou) throw new BadRequestException("Já resgataste este código!");
+
+    const user = await (this.prisma as any).user.findUnique({ where: { id: Number(userId) } });
+    const novoSaldo = user.saldo + promo.valor;
+
+    await (this.prisma as any).user.update({ where: { id: Number(userId) }, data: { saldo: parseFloat(novoSaldo.toFixed(2)) } });
+    await (this.prisma as any).promoCode.update({ where: { id: promo.id }, data: { usos: promo.usos + 1 } });
+    await (this.prisma as any).codigoUsado.create({ data: { userId: Number(userId), codigo: codigoLimpo } });
+
+    return { sucesso: true, novoSaldo: parseFloat(novoSaldo.toFixed(2)), valorGanho: promo.valor };
+  }
+}
+</file>
+
+<file path="src/app.controller.spec.ts">
+import { Test, TestingModule } from '@nestjs/testing';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
+
+describe('AppController', () => {
+  let appController: AppController;
+
+  beforeEach(async () => {
+    const app: TestingModule = await Test.createTestingModule({
+      controllers: [AppController],
+      providers: [AppService],
+    }).compile();
+
+    appController = app.get<AppController>(AppController);
+  });
+
+  describe('root', () => {
+    it('should return "Hello World!"', () => {
+      expect(appController.getHello()).toBe('Hello World!');
+    });
+  });
+});
+</file>
+
+<file path="src/app.controller.ts">
+import { Controller, Get, Post, Body, UseGuards, Req, Res, Param, Put, Delete } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
+
+// 🔥 Importamos os 4 novos Departamentos e a Base de Dados
+import { UsersService } from './users.service';
+import { CaixasService } from './caixas.service';
+import { UpgraderService } from './upgrader.service';
+import { AdminService } from './admin.service';
+import { PrismaService } from './prisma.service';
+
+@Controller()
+export class AppController {
+  // A "Telefonista" agora conhece os 4 gerentes do casino E tem a chave do Prisma!
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly caixasService: CaixasService,
+    private readonly upgraderService: UpgraderService,
+    private readonly adminService: AdminService,
+    private prisma: PrismaService // 🔥 A CHAVE ADICIONADA AQUI (Resolve os erros!)
+  ) {}
+
+  // ==========================================
+  // DEPARTAMENTO DAS CAIXAS E ITENS
+  // ==========================================
+  @Post('abrir-caixa')
+  async abrirCaixa(@Body() body: { userId: string, caixaSelecionada: any, quantidade?: number }) {
+    return await this.caixasService.abrirCaixa(body);
+  }
+
+  @Get('itens')
+  async listarItens() {
+    return await this.caixasService.listarTodosItens();
+  }
+
+  @Get('caixas')
+  async listarCaixas() {
+    return await this.caixasService.listarCaixas();
+  }
+
+  @Put('admin/caixa/:id')
+  async atualizarCaixa(@Param('id') id: string, @Body() body: any) {
+    return this.caixasService.atualizarCaixa(Number(id), body);
+  }
+
+  @Delete('admin/caixa/:id')
+  async apagarCaixa(@Param('id') id: string) {
+    return this.caixasService.apagarCaixa(Number(id));
+  }
+
+  @Post('admin/caixa')
+  async criarCaixa(@Body() body: any) {
+    return await this.caixasService.criarCaixa(body);
+  }
+
+
+  // ==========================================
+  // DEPARTAMENTO DOS UTILIZADORES E SALDO
+  // ==========================================
+  @Get('utilizador/:id')
+  async getUtilizador(@Param('id') id: string) {
+    return await this.usersService.getUtilizador(Number(id));
+  }
+
+  @Post('gastar-saldo')
+  async gastarSaldo(@Body() body: { userId: string, valor: number }) {
+    return await this.usersService.gastarSaldo(body.userId, body.valor);
+  }
+
+  @Post('depositar')
+  async fazerDeposito(@Body() body: { userId: number, metodo: string, valor: number, telemovel?: string }) {
+    return await this.usersService.iniciarDeposito(body);
+  }
+
+  @Get('confirmar-deposito/:txId')
+  async confirmarDeposito(@Param('txId') txId: string) {
+    return await this.usersService.confirmarDeposito(Number(txId));
+  }
+
+  @Post('vender-item')
+  async venderItem(@Body() body: { userId: number, inventarioId: number }) {
+    return await this.usersService.venderItem(body.userId, body.inventarioId);
+  }
+
+
+  // 🔥 NOTA: Atualizei esta rota para ser mais segura e só mostrar o inventário DESTE jogador
+  @Get('meu-inventario/:userId')
+  async verInventario(@Param('userId') userId: string) {
+    return await this.usersService.verInventario(Number(userId));
+  }
+
+
+  // ==========================================
+  // DEPARTAMENTO DO UPGRADER
+  // ==========================================
+  @Post('upgrade')
+  async upgrade(@Body() body: { userId: number, skinIds: number[], alvoId: number }) {
+    return await this.upgraderService.realizarUpgrade(body);
+  }
+
+
+  // ==========================================
+  // DEPARTAMENTO DO ADMIN E SISTEMA
+  // ==========================================
+  @Get('admin/estatisticas')
+  async obterEstatisticas() {
+    return await this.adminService.obterEstatisticas();
+  }
+
+  @Get('admin/utilizadores')
+  async listarUtilizadoresAdmin() {
+    return await this.adminService.listarUtilizadoresAdmin();
+  }
+
+  @Post('admin/utilizador/saldo')
+  async atualizarSaldoAdmin(@Body() body: { userId: number, novoSaldo: number }) {
+    return await this.adminService.atualizarSaldoAdmin(body.userId, body.novoSaldo);
+  }
+
+  @Post('admin/criar-promo')
+  async criarPromo(@Body() body: { codigo: string, valor: number, limite: number }) {
+    return await this.adminService.criarPromoCode(body);
+  }
+
+  @Post('resgatar-promo')
+  async usarPromo(@Body() body: { userId: number, codigo: string }) {
+    return await this.adminService.usarPromoCode(body.userId, body.codigo);
+  }
+
+  @Post('sincronizar-arsenal')
+  async sincronizarArsenal(@Body() body: { offset: number }) {
+    const offset = body.offset || 0; 
+    const LOTE = 200; 
+
+    try {
+      const respostaApi = await fetch('https://raw.githubusercontent.com/ByMykel/CSGO-API/main/public/api/en/skins.json');
+      const skinsCruas = await respostaApi.json();
+
+      const loteSkins = skinsCruas.slice(offset, offset + LOTE);
+      if (loteSkins.length === 0) return { sucesso: true, finalizado: true, message: "Todas as skins carregadas!" };
+
+      const qualidades = [
+        { sufixo: ' (Factory New)', multiplicador: 1.45 },
+        { sufixo: ' (Minimal Wear)', multiplicador: 1.15 },
+        { sufixo: ' (Field-Tested)', multiplicador: 1.00 },
+        { sufixo: ' (Well-Worn)', multiplicador: 0.85 },
+        { sufixo: ' (Battle-Scarred)', multiplicador: 0.55 }
+      ];
+
+      for (const skin of loteSkins) {
+        if (!skin.name) continue;
+        const raridadeNome = skin.rarity?.name || 'Mil-Spec Grade';
+        const imagemSegura = skin.image || '/skins/glock.png';
+        
+        // 🔥 MOTOR DE PREÇOS AFINADO E FILTRO VIP 🔥
+        let precoBase = 5.0;
+
+        // 1. Tenta usar o preço da API (se a API o fornecer)
+        if (skin.price && !isNaN(parseFloat(skin.price))) {
+          precoBase = parseFloat(skin.price);
+        } 
+        // 2. Tabela VIP de Lendas (Override de Patrão para skins milionárias)
+        else if (skin.name.includes('Dragon Lore')) precoBase = 6500.0;
+        else if (skin.name.includes('Gungnir')) precoBase = 7000.0;
+        else if (skin.name.includes('Howl')) precoBase = 4500.0;
+        else if (skin.name.includes('Wild Lotus')) precoBase = 3500.0;
+        else if (skin.name.includes('Fire Serpent')) precoBase = 800.0;
+        else if (skin.name.includes('Medusa')) precoBase = 2000.0;
+        else if (skin.name.includes('Prince')) precoBase = 2500.0;
+        else if (skin.name.includes('Fade') && skin.name.includes('Butterfly')) precoBase = 2800.0;
+        else if (skin.name.includes('Doppler') && skin.name.includes('Karambit')) precoBase = 1200.0;
+        else if (skin.name.includes('Vanilla') && skin.name.includes('Butterfly')) precoBase = 1800.0;
+        // 3. Rede de segurança por raridade para as restantes
+        else {
+          if (raridadeNome.includes('Covert')) precoBase = 120.0;
+          else if (raridadeNome.includes('Classified')) precoBase = 45.0;
+          else if (raridadeNome.includes('Restricted')) precoBase = 15.0;
+          else if (raridadeNome.includes('Mil-Spec')) precoBase = 5.0;
+          else precoBase = 2.0;
+        }
+
+        for (const q of qualidades) {
+          const nomeCompleto = `${skin.name}${q.sufixo}`;
+          const precoCalculado = Math.max(0.03, parseFloat((precoBase * q.multiplicador).toFixed(2)));
+          
+          // Procurar primeiro pelo nome, depois decidir entre Update ou Create
+          const itemExistente = await this.prisma.item.findFirst({
+            where: { nome: nomeCompleto }
+          });
+
+          if (itemExistente) {
+            await this.prisma.item.update({
+              where: { id: itemExistente.id },
+              data: { preco: precoCalculado, imagem: imagemSegura, raridade: raridadeNome }
+            });
+          } else {
+            await this.prisma.item.create({
+              data: { 
+                nome: nomeCompleto, 
+                preco: precoCalculado, 
+                imagem: imagemSegura, 
+                raridade: raridadeNome 
+              }
+            });
+          }
+        }
+      }
+
+      return { 
+        sucesso: true, 
+        finalizado: false, 
+        proximoOffset: offset + LOTE,
+        message: `Processado até à arma ${offset + LOTE}.` 
+      };
+
+    } catch (error: any) {
+      console.error("Erro na sincronização:", error);
+      return { sucesso: false, message: error.message };
+    }
+  }
+
+
+  // ==========================================
+  // LOGIN DA STEAM (INTOCÁVEL)
+  // ==========================================
+  @Get('auth/steam')
+  @UseGuards(AuthGuard('steam'))
+  async steamLogin() {}
+
+  @Get('auth/steam/return')
+  @UseGuards(AuthGuard('steam'))
+  async steamLoginReturn(@Req() req, @Res() res) {
+    const user = req.user;
+    return res.redirect(`https://sweetdrop.vercel.app/?userId=${user.id}`);
+  }
+
+  // ==========================================
+  // 🔥 ROTA DE SEGURANÇA: PROMOVER A ADMIN
+  // ==========================================
+  @Post('admin/promover')
+  async promoverAdmin(@Body() body: { adminId: string, alvoId: string }) {
+    // 1. Verifica se quem está a pedir é REALMENTE um Admin ou o Fundador (ID 1)
+    const admin = await this.prisma.user.findUnique({ where: { id: Number(body.adminId) } });
+    
+    if (!admin || (admin.role !== 'ADMIN' && admin.role !== 'admin' && admin.id !== 1)) {
+      return { erro: 'Acesso Negado! Não tens permissão.' };
+    }
+
+    // 2. Verifica se o jogador alvo existe
+    const alvo = await this.prisma.user.findUnique({ where: { id: Number(body.alvoId) } });
+    if (!alvo) {
+      return { erro: 'Jogador não encontrado na Base de Dados.' };
+    }
+
+    // 3. Promove o jogador a Admin!
+    await this.prisma.user.update({
+      where: { id: Number(body.alvoId) },
+      data: { role: 'ADMIN' }
+    });
+
+    return { sucesso: true, mensagem: `${alvo.nome} foi promovido a Admin!` };
+  }
+
+  @Post('admin/despromover')
+  async despromoverAdmin(@Body() body: { adminId: string, alvoId: string }) {
+    // 1. Verifica se quem pede é Admin
+    const admin = await this.prisma.user.findUnique({ where: { id: Number(body.adminId) } });
+    if (!admin || (admin.role !== 'ADMIN' && admin.role !== 'admin' && admin.id !== 1)) {
+      return { erro: 'Acesso Negado! Não tens permissão.' };
+    }
+
+    const alvoIdNum = Number(body.alvoId);
+
+    // 2. Proteções de Segurança Máxima
+    if (alvoIdNum === 1) {
+      return { erro: 'ERRO: Não podes despedir o Fundador!' };
+    }
+    if (alvoIdNum === Number(body.adminId)) {
+      return { erro: 'Não podes despedir-te a ti próprio por aqui.' };
+    }
+
+    // 3. Verifica se o alvo existe
+    const alvo = await this.prisma.user.findUnique({ where: { id: alvoIdNum } });
+    if (!alvo) {
+      return { erro: 'Jogador não encontrado na Base de Dados.' };
+    }
+
+    // 4. Retira os poderes!
+    await this.prisma.user.update({
+      where: { id: alvoIdNum },
+      data: { role: 'USER' } // Volta a ser um jogador normal
+    });
+
+    return { sucesso: true, mensagem: `O utilizador ${alvo.nome} foi removido da equipa!` };
+  }
+
+  // =======================================================
+  // 🔥 ROTA DE CÓDIGOS PROMOCIONAIS (Para o Perfil)
+  // =======================================================
+  @Post('codigos/resgatar')
+  async resgatarCodigo(@Body() body: { userId: string, codigo: string }) {
+    const idNum = Number(body.userId);
+    const user = await (this.prisma as any).user.findUnique({ where: { id: idNum } });
+    
+    if (!user) return { erro: 'Jogador não encontrado.' };
+
+    // 1. Procura o código na tabela correta (promoCode)
+    const promo = await (this.prisma as any).promoCode.findUnique({ 
+      where: { codigo: body.codigo } 
+    });
+
+    if (!promo || !promo.ativo) return { erro: 'CÓDIGO INEXISTENTE OU DESATIVADO.' };
+    
+    // 🔥 Correção: Agora lê 'promo.limite' em vez de 'maxUsos'
+    if (promo.usos >= promo.limite) return { erro: 'ESTE CÓDIGO JÁ ATINGIU O LIMITE DE USOS.' };
+
+    // 2. Verifica se o jogador já usou na tabela correta (codigoUsado)
+    const jaUsou = await (this.prisma as any).codigoUsado.findFirst({
+      where: { 
+        userId: idNum, 
+        codigo: promo.codigo 
+      }
+    });
+
+    if (jaUsou) return { erro: 'JÁ RESGATASTE ESTE CÓDIGO ANTERIORMENTE.' };
+
+    // 3. Adiciona o saldo ao jogador
+    await (this.prisma as any).user.update({
+      where: { id: idNum },
+      data: { saldo: user.saldo + promo.valor }
+    });
+
+    // 4. Aumenta o contador de usos do código
+    await (this.prisma as any).promoCode.update({
+      where: { id: promo.id },
+      data: { usos: promo.usos + 1 }
+    });
+
+    // 5. Regista que este jogador já usou este código
+    await (this.prisma as any).codigoUsado.create({
+      data: { 
+        userId: idNum, 
+        codigo: promo.codigo 
+      }
+    });
+
+    return { sucesso: true, valor: promo.valor };
+  }
+
+  @Post('utilizador/configuracoes')
+  async atualizarConfiguracoes(@Body() body: { userId: number, tradeUrl?: string, email?: string, newsletter?: boolean }) {
+    const updateData: any = {};
+    if (body.tradeUrl !== undefined) updateData.tradeUrl = body.tradeUrl;
+    if (body.email !== undefined) updateData.email = body.email;
+    if (body.newsletter !== undefined) updateData.newsletter = body.newsletter;
+
+    await (this.prisma as any).user.update({
+      where: { id: Number(body.userId) },
+      data: updateData
+    });
+
+    return { sucesso: true, msg: "Configurações guardadas com sucesso!" };
+  }
+
+  @Get('utilizador/historico/:userId')
+  async obterHistorico(@Param('userId') userId: string) {
+    return await (this.prisma as any).historicoJogo.findMany({
+      where: { userId: Number(userId) },
+      orderBy: { createdAt: 'desc' }, 
+      take: 50
+    });
+  }
+
+  @Get('suporte/tickets/:userId')
+  async obterTicketsUtilizador(@Param('userId') userId: string) {
+    return await (this.prisma as any).ticketSuporte.findMany({
+      where: { userId: Number(userId) },
+      orderBy: { id: 'desc' }
+    });
+  }
+
+  // 2. Rota para criar um novo ticket
+  @Post('suporte/ticket')
+  async criarTicket(@Body() body: { userId: number, assunto: string, message: string }) {
+    await (this.prisma as any).ticketSuporte.create({
+      data: {
+        userId: Number(body.userId),
+        assunto: body.assunto.toUpperCase(),
+        mensagem: body.message
+      }
+    });
+    return { Guide: true, sucesso: true };
+  }
+
+  @Get('admin/tickets')
+  async adminObterTodosTickets() {
+    return await (this.prisma as any).ticketSuporte.findMany({
+      include: { user: true }, // Inclui os dados do jogador (nome, avatar) para saberes com quem falas!
+      orderBy: { id: 'desc' }
+    });
+  }
+
+  // 🔥 ADMIN: Responder a um ticket
+  @Post('admin/ticket/responder')
+  async adminResponderTicket(@Body() body: { ticketId: number, resposta: string, status: string }) {
+    await (this.prisma as any).ticketSuporte.update({
+      where: { id: Number(body.ticketId) },
+      data: {
+        resposta: body.resposta,
+        status: body.status // Vai passar a 'RESPONDIDO' ou 'FECHADO'
+      }
+    });
+    return { sucesso: true, msg: "Resposta enviada ao jogador!" };
+  }
+
+  @Get('suporte/livechat/:userId')
+  async obterHistoricoLiveChat(@Param('userId') userId: string) {
+    const chat = await (this.prisma as any).liveChat.findFirst({
+      where: { 
+        userId: Number(userId), 
+        status: 'ABERTO' 
+      },
+      orderBy: { createdAt: 'desc' }, // 🔥 Ignora as antigas e vai buscar a última!
+      include: { mensagens: { orderBy: { createdAt: 'asc' } } }
+    });
+    
+    return chat || { mensagens: [] };
+  }
+
+  @Get('admin/livechats')
+  async adminObterLiveChats() {
+    return await (this.prisma as any).liveChat.findMany({
+      where: { status: 'ABERTO' }, 
+      include: { 
+        user: true, 
+        mensagens: { orderBy: { createdAt: 'asc' } } 
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+  }
+
+  // ====================================================================
+  // 🔥 SISTEMA DE MISSÕES: SUBMISSÃO DE LINKS (DINÂMICO)
+  // ====================================================================
+  @Post('missoes/submeter-link')
+  async submeterLinkMissao(@Body() dados: { userId: number, link: string }) {
+    try {
+      const { userId, link } = dados;
+
+      // 🔥 A VACINA: Corta o link no "?" e fica só com o link puro do vídeo!
+      const linkLimpo = link.split('?')[0];
+
+      // 1. Descobrir a plataforma pelo link LIMPO
+      let plataforma = '';
+      if (linkLimpo.includes('tiktok.com')) plataforma = 'TikTok';
+      else if (linkLimpo.includes('instagram.com')) plataforma = 'Instagram';
+      else if (linkLimpo.includes('youtube.com')) plataforma = 'YouTube';
+      else throw new Error('Link inválido. Usa TikTok, Instagram ou YouTube.');
+
+      // 2. ANTI-SPAM: Verificar se o jogador já tem um vídeo pendente NESTA plataforma
+      const submissaoPendente = await (this.prisma as any).submissaoMissao.findFirst({
+        where: { userId: Number(userId), plataforma, status: 'PENDENTE' }
+      });
+      if (submissaoPendente) {
+        throw new Error(`Já tens um vídeo do ${plataforma} em análise! Aguarda a nossa aprovação.`);
+      }
+
+      // 3. ANTI-BATOTA: Verificar se o LINK LIMPO já existe na base de dados
+      const linkRepetido = await (this.prisma as any).submissaoMissao.findUnique({
+        where: { link: linkLimpo }
+      });
+      if (linkRepetido) {
+        throw new Error('Este link já foi utilizado. Tens de gravar um vídeo original!');
+      }
+
+      // 4. 🔥 BUSCAR O VALOR DINÂMICO AO COFRE DE CONFIGURAÇÕES!
+      const configSocial = await (this.prisma as any).configuracao.findUnique({ 
+        where: { chave: 'recompensa_social' }
+      });
+      const recompensaFinal = configSocial ? parseFloat(configSocial.valor) : 0.09;
+
+      // 5. Guardar na Base de Dados com o LINK LIMPO e o valor extraído da DB
+      await (this.prisma as any).submissaoMissao.create({
+        data: {
+          userId: Number(userId),
+          plataforma,
+          link: linkLimpo, 
+          recompensa: recompensaFinal, 
+          status: 'PENDENTE'
+        }
+      });
+
+      return { sucesso: true, mensagem: 'Vídeo enviado com sucesso para análise!' };
+
+    } catch (error: any) {
+      return { sucesso: false, mensagem: error.message };
+    }
+  }
+
+  @Get('missoes/status/:userId')
+  async obterStatusMissoesUser(@Param('userId') userId: string) {
+    try {
+      const submissoes = await (this.prisma as any).submissaoMissao.findMany({
+        where: { userId: Number(userId) }
+      });
+
+      const statusFinal = { tiktok: 'LIVRE', instagram: 'LIVRE', youtube: 'LIVRE' };
+
+      submissoes.forEach((sub: any) => {
+        if (sub.plataforma === 'TikTok') statusFinal.tiktok = sub.status;
+        if (sub.plataforma === 'Instagram') statusFinal.instagram = sub.status;
+        if (sub.plataforma === 'YouTube') statusFinal.youtube = sub.status;
+      });
+
+      return statusFinal;
+    } catch (error) {
+      return { erro: 'Erro ao buscar missões' };
+    }
+  }
+
+  // ====================================================================
+  // 🔥 ADMIN: MODERAÇÃO DE MISSÕES (Aprovar / Rejeitar)
+  // ====================================================================
+
+  @Get('admin/missoes/pendentes')
+  async obterMissoesPendentes() {
+    return await (this.prisma as any).submissaoMissao.findMany({
+      where: { status: 'PENDENTE' },
+      include: {
+        user: { select: { nome: true, avatar: true } }
+      },
+      orderBy: { createdAt: 'asc' }
+    });
+  }
+
+  @Post('admin/missoes/aprovar/:id')
+  async aprovarMissao(@Param('id') id: string) {
+    try {
+      const missaoId = Number(id);
+      const missao = await (this.prisma as any).submissaoMissao.findUnique({ where: { id: missaoId }});
+      
+      if (!missao || missao.status !== 'PENDENTE') throw new Error('Missão inválida ou já processada.');
+
+      await (this.prisma as any).submissaoMissao.update({
+        where: { id: missaoId },
+        data: { status: 'APROVADA' }
+      });
+
+      await (this.prisma as any).user.update({
+        where: { id: missao.userId },
+        data: { saldo: { increment: missao.recompensa } }
+      });
+
+      await (this.prisma as any).historicoJogo.create({
+        data: {
+          userId: missao.userId,
+          acao: 'Missão Social',
+          detalhe: `Vídeo do ${missao.plataforma} Aprovado`,
+          valor: missao.recompensa,
+          tipo: 'GANHO'
+        }
+      });
+
+      return { sucesso: true, mensagem: `Missão aprovada! ${missao.recompensa}€ enviados para o jogador.` };
+    } catch (error: any) {
+      return { sucesso: false, mensagem: error.message };
+    }
+  }
+
+  @Post('admin/missoes/rejeitar/:id')
+  async rejeitarMissao(@Param('id') id: string) {
+    try {
+      await (this.prisma as any).submissaoMissao.update({
+        where: { id: Number(id) },
+        data: { status: 'REJEITADA' }
+      });
+      return { sucesso: true, mensagem: 'Missão rejeitada. O jogador não recebeu saldo.' };
+    } catch (error: any) {
+      return { sucesso: false, mensagem: error.message };
+    }
+  }
+
+  // ====================================================================
+  // 🔥 CONFIGURAÇÕES GLOBAIS DA COFRE
+  // ====================================================================
+  @Get('config')
+  async obterConfiguracoes() {
+    let configs = await (this.prisma as any).configuracao.findMany();
+
+    if (configs.length === 0) {
+      await (this.prisma as any).configuracao.createMany({
+        data: [
+          { chave: 'recompensa_social', valor: '0.09', descricao: 'Recompensa por vídeo (TikTok, Insta, YT)' },
+          { chave: 'recompensa_discord', valor: '0.03', descricao: 'Recompensa por entrar no Discord' },
+          { chave: 'recompensa_email', valor: '0.03', descricao: 'Recompensa por validar E-mail' }
+        ]
+      });
+      configs = await (this.prisma as any).configuracao.findMany();
+    }
+    return configs;
+  }
+
+  @Post('admin/config')
+  async atualizarConfiguracao(@Body() dados: { chave: string, valor: string }) {
+    try {
+      await (this.prisma as any).configuracao.update({
+        where: { chave: dados.chave },
+        data: { valor: String(dados.valor) }
+      });
+      return { sucesso: true, mensagem: 'Valor atualizado com sucesso!' };
+    } catch (error: any) {
+      return { sucesso: false, message: error.message };
+    }
+  }
+
+  @Put('admin/item/preco')
+  async atualizarPrecoItem(@Body() body: { itemId: number, preco: number }) {
+    if (!body.itemId || body.preco === undefined) {
+      return { sucesso: false, message: "Dados incompletos." };
+    }
+
+    try {
+      // Usa o Prisma para atualizar a skin na Base de Dados
+      await this.prisma.item.update({
+        where: { id: Number(body.itemId) },
+        data: { preco: Number(body.preco) }
+      });
+      return { sucesso: true, message: "Preço atualizado com sucesso no arsenal!" };
+    } catch (error) {
+      console.error("Erro ao atualizar preço:", error);
+      return { sucesso: false, message: "Erro interno no servidor ao atualizar preço." };
+    }
+  }
+}
+</file>
+
+<file path="src/app.module.ts">
+import { Module } from '@nestjs/common';
+import { AppController } from './app.controller';
+import { PrismaService } from './prisma.service';
+// 🔥 Importa os teus novos guardiões do sistema
+import { UsersService } from './users.service';
+import { CaixasService } from './caixas.service';
+import { UpgraderService } from './upgrader.service';
+import { AdminService } from './admin.service';
+import { FeedGateway } from './feed.gateway';
+import { SteamStrategy, SessionSerializer } from './steam.strategy';
+import { BattlesGateway } from './battles.gateway';
+import { CoinflipGateway } from './coinflip.gateway';
+import { ChatGateway } from './chat.gateway';
+
+@Module({
+  imports: [],
+  controllers: [AppController],
+  providers: [
+    PrismaService, 
+    UsersService, 
+    CaixasService, 
+    UpgraderService, 
+    AdminService,
+    FeedGateway,
+    SteamStrategy,
+    SessionSerializer,
+    BattlesGateway,
+    CoinflipGateway,
+    ChatGateway
+  ],
+})
+export class AppModule {}
+</file>
+
+<file path="src/battles.gateway.ts">
+import { WebSocketGateway, WebSocketServer, SubscribeMessage, MessageBody, ConnectedSocket } from '@nestjs/websockets';
+import { Server, Socket } from 'socket.io';
+import { PrismaService } from './prisma.service';
+
+@WebSocketGateway({ cors: { origin: '*' } })
+export class BattlesGateway {
+  @WebSocketServer()
+  server: Server;
+
+  private batalhasAtivas = new Map<string, any>();
+  constructor(private prisma: PrismaService) {}
+
+  private sortearItens(skinsArray: any[], quantidade: number) {
+    let pesoTotal = 0;
+    const skinsComPeso = skinsArray.map(s => {
+      const peso = parseFloat(s.probabilidade) || 1;
+      pesoTotal += peso;
+      return { ...s, peso };
+    });
+
+    const ganhos: any[] = [];
+    let valorTotal = 0;
+    for (let i = 0; i < quantidade; i++) {
+      const num = Math.random() * pesoTotal;
+      let sum = 0;
+      let escolhida = skinsComPeso[0];
+      for (const s of skinsComPeso) {
+        sum += s.peso;
+        if (num <= sum) { escolhida = s; break; }
+      }
+      ganhos.push(escolhida);
+      valorTotal += parseFloat(escolhida.preco || escolhida.valor || 0);
+    }
+    return { ganhos, valorTotal };
+  }
+
+  @SubscribeMessage('criar_batalha')
+  async handleCriarBatalha(@MessageBody() dados: any, @ConnectedSocket() client: Socket) {
+    const precoTotal = dados.caixas.reduce((acc: number, c: any) => acc + parseFloat(c.preco), 0);
+
+    const user = await (this.prisma as any).user.findUnique({ where: { id: Number(dados.userId) } });
+    if (!user || user.saldo < precoTotal) return { erro: 'Saldo insuficiente' };
+    
+    await (this.prisma as any).user.update({ where: { id: Number(dados.userId) }, data: { saldo: user.saldo - precoTotal } });
+
+    const batalhaId = `bat_${Date.now()}`;
+    const novaBatalha = {
+      id: batalhaId, 
+      caixas: dados.caixas, 
+      precoTotal, 
+      maxJogadores: dados.maxJogadores || 2,
+      estado: 'espera',
+      jogadores: [{ id: dados.userId, nome: dados.userNome, foto: dados.userFoto, socketId: client.id }],
+      resultado: null
+    };
+
+    this.batalhasAtivas.set(batalhaId, novaBatalha);
+    this.server.emit('batalhas_atualizadas', Array.from(this.batalhasAtivas.values()));
+    return { sucesso: true, batalhaId };
+  }
+
+  @SubscribeMessage('entrar_batalha')
+  async handleEntrarBatalha(@MessageBody() dados: any, @ConnectedSocket() client: Socket) {
+    const batalha = this.batalhasAtivas.get(dados.batalhaId);
+    if (!batalha || batalha.estado !== 'espera') return { erro: 'Batalha indisponível' };
+    if (batalha.jogadores.find((j: any) => j.id === dados.userId)) return { erro: 'Já estás na batalha' };
+
+    const user = await (this.prisma as any).user.findUnique({ where: { id: Number(dados.userId) } });
+    if (!user || user.saldo < batalha.precoTotal) return { erro: 'Saldo insuficiente' };
+    
+    await (this.prisma as any).user.update({ where: { id: Number(dados.userId) }, data: { saldo: user.saldo - batalha.precoTotal } });
+
+    batalha.jogadores.push({ id: dados.userId, nome: dados.userNome, foto: dados.userFoto, socketId: client.id });
+
+    if (batalha.jogadores.length === batalha.maxJogadores) {
+      await this.processarSorteio(batalha);
+    } else {
+      this.batalhasAtivas.set(dados.batalhaId, batalha);
+      this.server.emit('batalhas_atualizadas', Array.from(this.batalhasAtivas.values()));
+    }
+
+    return { sucesso: true };
+  }
+
+  @SubscribeMessage('chamar_bot')
+  async handleChamarBot(@MessageBody() dados: { batalhaId: string }) {
+    const batalha = this.batalhasAtivas.get(dados.batalhaId);
+    if (!batalha || batalha.estado !== 'espera') return { erro: 'Batalha indisponível' };
+
+    const nomesBots = ['Bot Gaben', 'Bot KennyS', 'Bot Fallen', 'Bot Zywoo', 'Bot S1mple', 'Bot Olof', 'Bot GeT_RiGhT'];
+    const botAleatorio = nomesBots[Math.floor(Math.random() * nomesBots.length)];
+
+    const botFalso = {
+      id: -Math.floor(Math.random() * 10000) - 1,
+      nome: botAleatorio,
+      foto: `https://api.dicebear.com/7.x/bottts/svg?seed=${botAleatorio}`,
+      socketId: `bot_${Date.now()}`
+    };
+
+    batalha.jogadores.push(botFalso);
+
+    if (batalha.jogadores.length === batalha.maxJogadores) {
+      await this.processarSorteio(batalha);
+    } else {
+      this.batalhasAtivas.set(dados.batalhaId, batalha);
+      this.server.emit('batalhas_atualizadas', Array.from(this.batalhasAtivas.values()));
+    }
+
+    return { sucesso: true };
+  }
+
+  // =========================================================
+  // 🔥 MOTOR DE SORTEIO COM DESEMPATE AUTOMÁTICO (RNG COINFLIP)
+  // =========================================================
+  private async processarSorteio(batalha: any) {
+    batalha.estado = 'jogando';
+    batalha.resultado = { ganhosPorJogador: {}, vencedorId: null, empateIds: [], teveDesempate: false };
+
+    let maiorValor = -1;
+    let vencedores: any[] = [];
+    let todasAsSkinsDoPote: any[] = [];
+    
+    // 1. SORTEAR AS ARMAS PARA CADA JOGADOR
+    for (const jogador of batalha.jogadores) {
+      let ganhosDesteJogador: any[] = [];
+      let valorDesteJogador = 0;
+
+      for (const caixa of batalha.caixas) {
+        let skins = typeof caixa.skins === 'string' ? JSON.parse(caixa.skins) : (caixa.skins || caixa.itens);
+        const sorteio = this.sortearItens(skins, 1);
+        ganhosDesteJogador.push(sorteio.ganhos[0]);
+        valorDesteJogador += sorteio.valorTotal;
+      }
+
+      batalha.resultado.ganhosPorJogador[jogador.id] = { ganhos: ganhosDesteJogador, valorTotal: valorDesteJogador };
+      todasAsSkinsDoPote.push(...ganhosDesteJogador);
+
+      // Descobrir quem é o mais rico
+      if (valorDesteJogador > maiorValor) {
+        maiorValor = valorDesteJogador;
+        vencedores = [jogador.id];
+      } else if (valorDesteJogador === maiorValor) {
+        vencedores.push(jogador.id); // Empate!
+      }
+    }
+
+    // 2. DECLARAR O VENCEDOR (COM DESEMPATE DA MORTE 🪙)
+    if (vencedores.length > 1) {
+      // Sorteia um índice aleatório entre os jogadores que empataram
+      const indexVencedorDesempate = Math.floor(Math.random() * vencedores.length);
+      const grandeVencedorId = vencedores[indexVencedorDesempate];
+
+      batalha.resultado.vencedorId = grandeVencedorId;
+      batalha.resultado.teveDesempate = true; // Avisa o frontend que houve um sorteio de desempate
+      batalha.resultado.empateIds = vencedores; // Lista de quem participou no desempate
+    } else {
+      batalha.resultado.vencedorId = vencedores[0];
+    }
+
+    this.batalhasAtivas.set(batalha.id, batalha);
+
+    // 3. PAGAR AO ÚNICO VENCEDOR NA BASE DE DADOS
+    // (Como agora há SEMPRE um único vencedor, não precisamos da velha lógica de divisão)
+    const vencedorFinalId = batalha.resultado.vencedorId;
+    
+    if (vencedorFinalId > 0) { // Se não for bot
+      await (this.prisma as any).inventario.createMany({ 
+        data: todasAsSkinsDoPote.map(s => ({ 
+          nome: s.nome, 
+          imagem: s.imagem || s.image, 
+          raridade: s.raridade || 'Comum', 
+          valor: parseFloat(s.preco || s.valor || 0), 
+          userId: Number(vencedorFinalId) 
+        })) 
+      });
+    }
+    // Se for bot, o casino engole as skins e lucra!
+
+    // 4. AVISAR OS ECRÃS PARA COMEÇAR A ANIMAÇÃO!
+    this.server.emit('batalhas_atualizadas', Array.from(this.batalhasAtivas.values()));
+    for (const jogador of batalha.jogadores) {
+      if (jogador.id > 0) {
+        this.server.to(jogador.socketId).emit('batalha_comecou', batalha);
+      }
+    }
+
+    // Limpa da RAM passado um tempo maior (25 segundos)
+    setTimeout(() => {
+      this.batalhasAtivas.delete(batalha.id);
+      this.server.emit('batalhas_atualizadas', Array.from(this.batalhasAtivas.values()));
+    }, 25000);
+  }
+
+  @SubscribeMessage('pedir_batalhas')
+  handlePedirBatalhas(@ConnectedSocket() client: Socket) {
+    client.emit('batalhas_atualizadas', Array.from(this.batalhasAtivas.values()));
+  }
+}
+</file>
+
+<file path="src/caixas.service.ts">
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from './prisma.service';
+import { FeedGateway } from './feed.gateway';
+import { UsersService } from './users.service';
+
+@Injectable()
+export class CaixasService {
+  constructor(
+    private prisma: PrismaService,
+    private feedGateway: FeedGateway,
+    private readonly usersService: UsersService // 🔥 O gerente de XP está pronto!
+  ) {}
+
+  async criarCaixa(dados: { nome: string, preco: number, imagem: string, itens: any[], ordem?: number }) {
+    return await (this.prisma as any).caixa.create({
+      data: { nome: dados.nome, preco: Number(dados.preco), imagem: dados.imagem || '/skins/glock.png', itens: JSON.stringify(dados.itens), ordem: Number(dados.ordem) || 0 }
+    });
+  }
+
+  async atualizarCaixa(id: number, dados: { nome: string, preco: number, imagem: string, itens: any[], ordem?: number }) {
+    return await (this.prisma as any).caixa.update({
+      where: { id: Number(id) },
+      data: { nome: dados.nome, preco: Number(dados.preco), imagem: dados.imagem || '/skins/glock.png', itens: JSON.stringify(dados.itens), ordem: Number(dados.ordem) || 0 }
+    });
+  }
+
+  async apagarCaixa(id: number) {
+    return await (this.prisma as any).caixa.delete({ where: { id: Number(id) } });
+  }
+
+  async listarCaixas() {
+    return await (this.prisma as any).caixa.findMany({ orderBy: { ordem: 'asc' } });
+  }
+
+  async listarTodosItens() {
+    return await (this.prisma as any).item.findMany();
+  }
+
+  async abrirCaixa(dados: { userId: string, caixaSelecionada: any, quantidade?: number }) {
+    try {
+      const quantidade = dados.quantidade || 1;
+      const user = await (this.prisma as any).user.findUnique({ where: { id: Number(dados.userId) } });
+      if (!user) throw new Error('Utilizador não encontrado');
+
+      const precoDaCaixa = Number(dados.caixaSelecionada.preco);
+      const precoTotal = precoDaCaixa * quantidade;
+
+      if (user.saldo < precoTotal) throw new Error(`Saldo insuficiente. Precisas de ${precoTotal.toFixed(2)}€`);
+
+      let listaSkins = dados.caixaSelecionada.skins || dados.caixaSelecionada.itens || [];
+      if (typeof listaSkins === 'string') {
+        try { listaSkins = JSON.parse(listaSkins); } catch(e) { listaSkins = []; }
+      }
+      if (listaSkins.length === 0) throw new Error('Esta caixa não tem skins!');
+
+      let pesoTotal = 0;
+      const skinsComPeso = listaSkins.map((skin: any) => {
+        const peso = parseFloat(skin.probabilidade) || 0;
+        pesoTotal += peso;
+        return { ...skin, peso: peso };
+      });
+      if (pesoTotal <= 0) skinsComPeso.forEach((s: any) => { s.peso = 1; pesoTotal += 1; });
+
+      const skinsGanhas: any[] = [];
+      let valorTotalGanho = 0;
+
+      for (let i = 0; i < quantidade; i++) {
+        const numeroSorteado = Math.random() * pesoTotal;
+        let pesoAcumulado = 0;
+        let skinSorteada = skinsComPeso[0];
+
+        for (const skin of skinsComPeso) {
+          pesoAcumulado += skin.peso;
+          if (numeroSorteado <= pesoAcumulado) {
+            skinSorteada = skin;
+            break;
+          }
+        }
+        skinsGanhas.push(skinSorteada);
+        valorTotalGanho += parseFloat(skinSorteada.preco || skinSorteada.valor || 0);
+      }
+
+      const novoSaldo = user.saldo - precoTotal;
+
+      // 1. Tira o dinheiro do jogador
+      await (this.prisma as any).user.update({
+        where: { id: Number(dados.userId) }, data: { saldo: parseFloat(novoSaldo.toFixed(2)) }
+      });
+
+      // 2. 🔥 INJETA O XP! (Isto faz o nível subir de verdade!)
+      await this.usersService.adicionarXp(Number(dados.userId), precoTotal);
+
+      // 3. Guarda as skins no inventário
+      const inventarioData = skinsGanhas.map(skin => ({
+        nome: skin.nome, imagem: skin.imagem || skin.image, raridade: skin.raridade || 'Comum', valor: parseFloat(Number(skin.preco || skin.valor || 0).toFixed(2)), userId: Number(dados.userId)
+      }));
+
+      await (this.prisma as any).inventario.createMany({ data: inventarioData });
+
+      await (this.prisma as any).historicoJogo.create({
+        data: { userId: Number(dados.userId), acao: "Abertura de Caixa", detalhe: quantidade > 1 ? `Abriu ${quantidade}x ${dados.caixaSelecionada.nome}` : `Abriu a ${dados.caixaSelecionada.nome}`, valor: parseFloat(Number(valorTotalGanho).toFixed(2)), tipo: "GANHO" }
+      });
+
+      // 🔥 AQUI ENTRA A ANTENA: AVISA O FRONTEND EM TEMPO REAL PARA ROLAR NO LIVE FEED 🔥
+      skinsGanhas.forEach(skin => {
+        this.feedGateway.emitirNovoDrop({
+          nome: skin.nome,
+          imagem: skin.imagem || skin.image,
+          raridade: skin.raridade || 'Comum',
+          valor: parseFloat(Number(skin.preco || skin.valor || 0).toFixed(2)),
+          userNome: user.nome || 'Anónimo',
+          userFoto: user.avatar || '/skins/glock.png'
+        });
+      });
+
+      return {
+        itensSorteados: skinsGanhas.map(s => ({ nome: s.nome, imageUrl: s.imagem || s.image, valor: parseFloat(Number(s.preco || s.valor || 0).toFixed(2)), raridade: s.raridade })),
+        valorTotal: parseFloat(valorTotalGanho.toFixed(2)),
+        novoSaldo: parseFloat(novoSaldo.toFixed(2))
+      };
+    } catch (error) { throw error; }
+  }
+}
+</file>
+
+<file path="src/chat.gateway.ts">
+import { WebSocketGateway, SubscribeMessage, MessageBody, ConnectedSocket, WebSocketServer } from '@nestjs/websockets';
+import { Server, Socket } from 'socket.io';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
+
+// 🔥 Abre a porta com permissão total de acesso
+@WebSocketGateway({ cors: { origin: '*' } })
+export class ChatGateway {
+  @WebSocketServer()
+  server: Server;
+
+  // Quando o jogador ou admin entra, junta-se a uma "sala" com o ID do jogador
+  @SubscribeMessage('entrarChat')
+  handleEntrarChat(@ConnectedSocket() client: Socket, @MessageBody() userId: number) {
+    client.join(`chat_${userId}`);
+    console.log(`🔌 Cliente ligado à sala: chat_${userId}`);
+  }
+
+  // Quando alguém envia uma mensagem
+  @SubscribeMessage('enviarMensagem')
+  async handleEnviarMensagem(
+    @ConnectedSocket() client: Socket, 
+    @MessageBody() payload: { userId: number, remetente: string, texto: string }
+  ) {
+    // 1. Puxa sempre a conversa MAIS RECENTE que estiver aberta
+    let chat = await prisma.liveChat.findFirst({ 
+      where: { userId: Number(payload.userId), status: 'ABERTO' },
+      orderBy: { createdAt: 'desc' }
+    });
+    
+    // 🔥 CORREÇÃO: Garante que cria o novo chat com o status ABERTO
+    if (!chat) {
+      chat = await prisma.liveChat.create({ 
+        data: { userId: Number(payload.userId), status: 'ABERTO' } 
+      });
+    }
+
+    // 2. Guarda a mensagem na Base de Dados
+    const novaMensagem = await prisma.liveChatMessage.create({
+      data: {
+        chatId: chat.id,
+        remetente: payload.remetente,
+        texto: payload.texto
+      }
+    });
+
+    // 3. Dispara a mensagem instantaneamente para o Jogador E para o Admin que estiverem na sala
+    this.server.to(`chat_${payload.userId}`).emit('novaMensagem', novaMensagem);
+    
+    // 4. 🔥 Avisa TODOS os Admins que há movimento novo, para atualizarem a lista na esquerda!
+    this.server.emit('atualizarListaAdmin');
+  }
+
+  // =======================================================================
+  // 🔥 O NOVO SISTEMA DE ENCERRAR O CHAT EM TEMPO REAL E LIMPAR O LIXO
+  // =======================================================================
+  @SubscribeMessage('encerrarChat')
+  async handleEncerrarChat(
+    @ConnectedSocket() client: Socket, 
+    @MessageBody() payload: { chatId: number, userId: number }
+  ) {
+    // 🔥 A MÁQUINA DE LIMPEZA: Fecha TODOS os chats que ficaram esquecidos abertos deste utilizador!
+    await prisma.liveChat.updateMany({
+      where: { userId: Number(payload.userId), status: 'ABERTO' },
+      data: { status: 'FECHADO' }
+    });
+
+    // Avisa o Jogador e o Admin específico que esta conversa acabou e limpa o ecrã
+    this.server.to(`chat_${payload.userId}`).emit('chatEncerrado', payload.chatId);
+    
+    // Avisa todos os Admins para atualizarem/limparem a lista lateral
+    this.server.emit('atualizarListaAdmin');
+  }
+}
+</file>
+
+<file path="src/coinflip.gateway.ts">
+import { WebSocketGateway, WebSocketServer, SubscribeMessage, MessageBody, ConnectedSocket } from '@nestjs/websockets';
+import { Server, Socket } from 'socket.io';
+import { PrismaService } from './prisma.service';
+
+@WebSocketGateway({ cors: { origin: '*' } })
+export class CoinflipGateway {
+  @WebSocketServer()
+  server: Server;
+
+  // Memória RAM para guardar os Coinflips ativos
+  private coinflipsAtivos = new Map<string, any>();
+  
+  // A taxa do teu casino (5%)
+  private MARGEM_CASINO = 0.05;
+
+  constructor(private prisma: PrismaService) {}
+
+  @SubscribeMessage('criar_coinflip')
+  async handleCriarCoinflip(@MessageBody() dados: any, @ConnectedSocket() client: Socket) {
+    const user = await (this.prisma as any).user.findUnique({ where: { id: Number(dados.userId) } });
+    if (!user) return { erro: 'Jogador não encontrado' };
+
+    let valorAposta = 0;
+
+    // Se for aposta em SALDO
+    if (dados.tipo === 'saldo') {
+      valorAposta = parseFloat(dados.valor);
+      if (user.saldo < valorAposta) return { erro: 'Saldo insuficiente' };
+      await (this.prisma as any).user.update({ where: { id: user.id }, data: { saldo: user.saldo - valorAposta } });
+    } 
+    // Se for aposta em SKINS
+    else if (dados.tipo === 'skins') {
+      valorAposta = dados.skins.reduce((acc: number, skin: any) => acc + parseFloat(skin.preco || skin.valor), 0);
+      // Apaga as skins do inventário do criador
+      const idsSkins = dados.skins
+        .map((s: any) => Number(s.id))
+        .filter((id: number) => !isNaN(id) && id > 0);
+
+      // Se a skin for fantasma (sem ID), cancela a aposta
+      if (idsSkins.length === 0) return { erro: 'As skins selecionadas são inválidas. Atualiza a página.' };
+
+      await (this.prisma as any).inventario.deleteMany({ where: { id: { in: idsSkins } } });
+    }
+
+    const jogoId = `cf_${Date.now()}`;
+    const novoJogo = {
+      id: jogoId,
+      tipo: dados.tipo, // 'saldo' ou 'skins'
+      criador: { id: user.id, nome: user.nome, foto: user.avatar || '/skins/glock.png', socketId: client.id, lado: dados.lado, aposta: dados.tipo === 'saldo' ? valorAposta : dados.skins },
+      adversario: null,
+      valorTotal: valorAposta,
+      estado: 'espera',
+      resultado: null
+    };
+
+    this.coinflipsAtivos.set(jogoId, novoJogo);
+    this.server.emit('coinflips_atualizados', Array.from(this.coinflipsAtivos.values()));
+    return { sucesso: true, jogoId };
+  }
+
+  @SubscribeMessage('entrar_coinflip')
+  async handleEntrarCoinflip(@MessageBody() dados: any, @ConnectedSocket() client: Socket) {
+    const jogo = this.coinflipsAtivos.get(dados.jogoId);
+    if (!jogo || jogo.estado !== 'espera') return { erro: 'Jogo indisponível' };
+
+    const user = await (this.prisma as any).user.findUnique({ where: { id: Number(dados.userId) } });
+    if (!user) return { erro: 'Jogador não encontrado' };
+
+    let apostaAdversario: any = null;
+
+    if (jogo.tipo === 'saldo') {
+      if (user.saldo < jogo.valorTotal) return { erro: 'Saldo insuficiente' };
+      await (this.prisma as any).user.update({ where: { id: user.id }, data: { saldo: user.saldo - jogo.valorTotal } });
+      apostaAdversario = jogo.valorTotal;
+      jogo.valorTotal += apostaAdversario;
+    } else {
+      const valorAposta = dados.skins.reduce((acc: number, skin: any) => acc + parseFloat(skin.preco || skin.valor), 0);
+      const margem = jogo.valorTotal * 0.10; // Pode haver diferença de 10% no valor das skins
+      if (valorAposta < jogo.valorTotal - margem || valorAposta > jogo.valorTotal + margem) return { erro: 'Valor das skins tem de ser igual à aposta' };
+      
+      const idsSkins = dados.skins
+        .map((s: any) => Number(s.id))
+        .filter((id: number) => !isNaN(id) && id > 0);
+
+      if (idsSkins.length === 0) return { erro: 'As skins selecionadas são inválidas. Atualiza a página.' };
+
+      await (this.prisma as any).inventario.deleteMany({ where: { id: { in: idsSkins } } });
+      apostaAdversario = dados.skins;
+      jogo.valorTotal += valorAposta;
+    }
+
+    const ladoAdversario = jogo.criador.lado === 'CT' ? 'T' : 'CT';
+    jogo.adversario = { id: user.id, nome: user.nome, foto: user.avatar || '/skins/glock.png', socketId: client.id, lado: ladoAdversario, aposta: apostaAdversario };
+    jogo.estado = 'jogando';
+
+    await this.processarSorteio(jogo);
+    return { sucesso: true };
+  }
+
+  @SubscribeMessage('chamar_bot_coinflip')
+  async handleChamarBot(@MessageBody() dados: { jogoId: string }) {
+    const jogo = this.coinflipsAtivos.get(dados.jogoId);
+    if (!jogo || jogo.estado !== 'espera') return { erro: 'Jogo indisponível' };
+
+    // Perfis do Bot
+    const nomesBots = ['Bot Neymar', 'Bot Ronaldo', 'Bot Messi', 'Bot Ninja'];
+    const botAleatorio = nomesBots[Math.floor(Math.random() * nomesBots.length)];
+    const ladoBot = jogo.criador.lado === 'CT' ? 'T' : 'CT';
+
+    let apostaBot: any = null;
+
+    if (jogo.tipo === 'saldo') {
+      apostaBot = jogo.valorTotal; // Bot cobre o valor exato
+      jogo.valorTotal += apostaBot;
+    } else {
+      // Se for skins, o bot "gera" uma skin fantasma equivalente ao valor do criador para equilibrar a balança
+      const valorCriador = jogo.valorTotal;
+      apostaBot = [{ nome: 'Skin do Bot', preco: valorCriador, imagem: '/skins/ak47.png', raridade: 'Secreto' }];
+      jogo.valorTotal += valorCriador;
+    }
+
+    jogo.adversario = { id: -1, nome: botAleatorio, foto: `https://api.dicebear.com/7.x/bottts/svg?seed=${botAleatorio}`, lado: ladoBot, aposta: apostaBot };
+    jogo.estado = 'jogando';
+
+    await this.processarSorteio(jogo);
+    return { sucesso: true };
+  }
+
+  private async processarSorteio(jogo: any) {
+    // Sorteio justo 50/50
+    const ladoVencedor = Math.random() < 0.5 ? 'CT' : 'T';
+    let vencedor = jogo.criador.lado === ladoVencedor ? jogo.criador : jogo.adversario;
+    let perdedor = jogo.criador.lado === ladoVencedor ? jogo.adversario : jogo.criador;
+
+    jogo.resultado = { ladoVencedor, vencedorId: vencedor.id };
+    this.coinflipsAtivos.set(jogo.id, jogo);
+
+    // O Momento de cobrar a Margem da Casa 🏦
+    if (vencedor.id !== -1) { // Se o bot não ganhou (O casino já lucrou 100% se o bot ganhou)
+      
+      if (jogo.tipo === 'saldo') {
+        const pote = jogo.valorTotal;
+        const taxaCasino = pote * this.MARGEM_CASINO;
+        const premioLiquido = pote - taxaCasino;
+        
+        // Paga ao vencedor
+        const user = await (this.prisma as any).user.findUnique({ where: { id: Number(vencedor.id) } });
+        await (this.prisma as any).user.update({ where: { id: user.id }, data: { saldo: user.saldo + premioLiquido } });
+      } 
+      
+      else if (jogo.tipo === 'skins') {
+        let todasSkins = [...jogo.criador.aposta, ...jogo.adversario.aposta];
+        
+        // Ordena por preço (do mais barato para o mais caro)
+        todasSkins.sort((a, b) => parseFloat(a.preco || a.valor) - parseFloat(b.preco || b.valor));
+        
+        // O Casino confisca a skin mais barata como taxa (se houver mais que 1 skin no pote)
+        if (todasSkins.length > 1) {
+            todasSkins.shift(); // Remove a primeira (mais barata) - Fica para a casa!
+        }
+
+        // Entrega o resto das skins ao vencedor
+        await (this.prisma as any).inventario.createMany({ 
+          data: todasSkins.map(s => ({ nome: s.nome, imagem: s.imagem || s.image, raridade: s.raridade || 'Comum', valor: parseFloat(s.preco || s.valor || 0), userId: Number(vencedor.id) })) 
+        });
+      }
+    }
+
+    // Avisa os ecrãs que a moeda está a girar!
+    this.server.emit('coinflips_atualizados', Array.from(this.coinflipsAtivos.values()));
+    
+    // Limpa a memória 15 segundos depois da animação
+    setTimeout(() => {
+      this.coinflipsAtivos.delete(jogo.id);
+      this.server.emit('coinflips_atualizados', Array.from(this.coinflipsAtivos.values()));
+    }, 15000);
+  }
+
+  @SubscribeMessage('pedir_coinflips')
+  handlePedirCoinflips(@ConnectedSocket() client: Socket) {
+    client.emit('coinflips_atualizados', Array.from(this.coinflipsAtivos.values()));
+  }
+}
+</file>
+
+<file path="src/feed.gateway.ts">
+import { WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
+import { Server } from 'socket.io';
+
+@WebSocketGateway({ cors: { origin: '*' } }) // Permite ligações de qualquer domínio
+export class FeedGateway {
+  @WebSocketServer()
+  server: Server;
+
+  // 🔥 Quando o serviço das caixas chamar isto, a magia acontece!
+  emitirNovoDrop(drop: any) {
+    this.server.emit('novo_drop', drop);
+  }
+}
+</file>
+
+<file path="src/main.ts">
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from './app.module';
+
+// A forma clássica e à prova de bala de importar no Node.js
+const session = require('express-session');
+const passport = require('passport');
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+
+  app.enableCors({
+    // AQUI ESTÁ A TUA LISTA VIP DE SITES AUTORIZADOS
+    origin: [
+      'http://localhost:3000', // A tua oficina local 1
+      'http://localhost:3001', // A tua oficina local 2
+      'https://sweet-sooty.vercel.app', // O teu link atual do Vercel (muda se for outro)
+      'https://sweetdrop.vercel.app' // O link bonito que criaste no Vercel
+    ],
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    credentials: true,
+  });
+
+  // 1. Iniciar as Sessões (A "Memória")
+  app.use(
+    session({
+      secret: 'chave-secreta-do-imperio', 
+      resave: false,
+      saveUninitialized: false,
+    }),
+  );
+
+  // 2. Iniciar o Passaporte
+  app.use(passport.initialize());
+  app.use(passport.session());
+
+  await app.listen(3000);
+}
+bootstrap();
+</file>
+
+<file path="src/prisma.service.ts">
+import { Injectable, OnModuleInit } from '@nestjs/common';
+import { PrismaClient } from '@prisma/client';
+
+@Injectable()
+export class PrismaService extends PrismaClient implements OnModuleInit {
+  constructor() {
+    super();
+  }
+  async onModuleInit() {
+    await this.$connect();
+  }
+}
+</file>
+
+<file path="src/steam.strategy.ts">
+import { Injectable } from '@nestjs/common';
+import { PassportStrategy, PassportSerializer } from '@nestjs/passport';
+import { Strategy } from 'passport-steam';
+import { UsersService } from './users.service';
+
+@Injectable()
+export class SteamStrategy extends PassportStrategy(Strategy, 'steam') {
+  // 🔥 Trocámos o AppService pelo UsersService aqui
+  constructor(private usersService: UsersService) {
+    super({
+      returnURL: 'https://sweet-7ifa.onrender.com/auth/steam/return',
+      realm: 'https://sweet-7ifa.onrender.com/',
+      apiKey: '70414B811C0BEB087375922452721CCA',
+    });
+  }
+
+  async validate(identifier: string, profile: any, done: any) {
+    // 🔥 E trocámos aqui também para ele chamar a função no sítio certo!
+    const user = await this.usersService.loginComSteam(profile);
+    return done(null, user);
+  }
+}
+
+@Injectable()
+export class SessionSerializer extends PassportSerializer {
+  serializeUser(user: any, done: (err: any, user: any) => void): any {
+    done(null, user);
+  }
+  deserializeUser(payload: any, done: (err: any, payload: any) => void): any {
+    done(null, payload);
+  }
+}
+</file>
+
+<file path="src/upgrader.service.ts">
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from './prisma.service';
+import { UsersService } from './users.service'; // 🔥 Importamos o gerente de XP
+
+@Injectable()
+export class UpgraderService {
+  constructor(
+    private prisma: PrismaService,
+    private readonly usersService: UsersService // 🔥 Injetamos o serviço de XP no constructor!
+  ) {}
+
+  // 🔥 Ajustado para aceitar o "lado" que o frontend envia ('under' ou 'over')
+  async realizarUpgrade(dados: { userId: number, skinIds: any[], alvoId?: number, targetSkinId?: number, lado?: 'under' | 'over' }) {
+    try {
+      const idDoAlvo = Number(dados.alvoId || dados.targetSkinId);
+      const ladoEscolhido = dados.lado || 'under'; // Se não vier lado, assume Esquerda por segurança
+
+      // Vai buscar o jogador e a mochila dele
+      const user = await (this.prisma as any).user.findUnique({
+        where: { id: Number(dados.userId) },
+        include: { inventario: true }
+      });
+      if (!user) throw new Error('Jogador não encontrado.');
+
+      // 🔥 CORTAMOS O MAL PELA RAIZ
+      const idsLimpos = dados.skinIds.map((id: any) => {
+        if (typeof id === 'string' && id.includes('-')) {
+          return Number(id.split('-')[0]);
+        }
+        return Number(id);
+      });
+      
+      const idsApostados = [...new Set(idsLimpos)]; // Removemos duplicados acidentais
+
+      // Comparamos Número com Número na perfeição
+      const skinsApostadas = user.inventario.filter((skin: any) => 
+        idsApostados.includes(Number(skin.id))
+      );
+
+      if (skinsApostadas.length !== idsApostados.length) {
+        throw new Error(`Skins inválidas ou não te pertencem.`);
+      }
+
+      const alvo = await (this.prisma as any).item.findUnique({ where: { id: idDoAlvo } });
+      if (!alvo) throw new Error('Skin alvo não existe.');
+
+      const valorApostado = skinsApostadas.reduce((acc: number, skin: any) => acc + parseFloat(skin.valor || skin.preco), 0);
+      const precoAlvo = parseFloat(alvo.preco || alvo.valor);
+
+      if (precoAlvo <= valorApostado) throw new Error('O alvo tem de ser mais caro do que a aposta.');
+
+      const chanceRaw = (valorApostado / precoAlvo) * 100 * 0.90;
+      const chance = Math.min(chanceRaw, 90);
+
+      // =======================================================
+      // 🔥 O RNG (Gerador de Números) E A ESCOLHA DO LADO!
+      // =======================================================
+      const numeroSorteado = Math.random() * 100;
+      let sucesso = false;
+
+      if (ladoEscolhido === 'under') {
+        // ESQUERDA: Ganha se o número sorteado for MENOR ou igual à chance (Ex: chance 20%, ganha do 0 ao 20)
+        sucesso = numeroSorteado <= chance;
+      } else {
+        // DIREITA: Ganha se o número cair na reta final do círculo! (Ex: chance 20%, ganha do 80 ao 100)
+        sucesso = numeroSorteado >= (100 - chance);
+      }
+
+      // 🔥 APAGAMOS OS IDS CORRETOS E NUMÉRICOS
+      await (this.prisma as any).inventario.deleteMany({ where: { id: { in: idsApostados } } });
+
+      // Dá XP equivalente ao valor total das skins sacrificadas!
+      await this.usersService.adicionarXp(Number(dados.userId), valorApostado);
+
+      let novoItemId = null; 
+
+      if (sucesso) {
+        const novoItem = await (this.prisma as any).inventario.create({
+          data: { nome: alvo.nome, imagem: alvo.imagem || alvo.image, raridade: alvo.raridade || 'Comum', valor: precoAlvo, userId: Number(dados.userId) }
+        });
+        novoItemId = novoItem.id; 
+
+        await (this.prisma as any).historicoJogo.create({
+          data: { userId: Number(dados.userId), acao: "Upgrader", detalhe: `Ganhou ${alvo.nome} (${ladoEscolhido})`, valor: precoAlvo, tipo: "GANHO" }
+        });
+      } else {
+        await (this.prisma as any).historicoJogo.create({
+          data: { userId: Number(dados.userId), acao: "Upgrader", detalhe: `Perdeu upgrade para ${alvo.nome} (${ladoEscolhido})`, valor: valorApostado, tipo: "PERDA" }
+        });
+      }
+
+      // 🔥 RETORNAMOS O "roll" PARA O FRONTEND ANIMAR A AGULHA PRO SÍTIO EXATO!
+      return { 
+        sucesso, 
+        chance: chance.toFixed(2), 
+        roll: numeroSorteado, // <--- Sem isto a roda encrava!
+        skinGanha: alvo, 
+        novoItemId: novoItemId, 
+        idsDestruidos: dados.skinIds 
+      };
+      
+    } catch (error) { 
+      console.error("Erro no Upgrader:", error);
+      throw error; 
+    }
+  }
+}
+</file>
+
+<file path="src/users.service.ts">
+import { Injectable, BadRequestException } from '@nestjs/common';
+import { PrismaService } from './prisma.service';
+import Stripe from 'stripe';
+
+@Injectable()
+export class UsersService {
+  // A tua chave de testes do Stripe
+  private stripe = new Stripe('sk_test_51Rpmc74OmjLR4F9r9O1pLeNghohaJ147VrG1p2hUmpBTjUgCNxO6VOYRJiXwNbzUrXuPgaHj0EagEbd05v4i7FJL00TLzbBaFb', {
+    apiVersion: '2026-04-22.dahlia' as any,
+  });
+
+  constructor(private prisma: PrismaService) {}
+
+  async loginComSteam(profile: any) {
+    const steamId = profile.id;
+    const nomeSteam = profile.displayName; 
+    const fotoSteam = profile.photos && profile.photos.length > 0 ? profile.photos[profile.photos.length - 1].value : null;
+
+    let user = await (this.prisma as any).user.findUnique({ where: { username: steamId } });
+
+    if (!user) {
+      user = await (this.prisma as any).user.create({
+        data: { username: steamId, nome: nomeSteam, avatar: fotoSteam, saldo: 0.0 }
+      });
+    } else {
+      user = await (this.prisma as any).user.update({
+        where: { username: steamId },
+        data: { nome: nomeSteam, avatar: fotoSteam }
+      });
+    }
+    return user;
+  }
+
+  async getUtilizador(id: number) {
+    return await (this.prisma as any).user.findUnique({ where: { id: id } });
+  }
+
+  // ==========================================
+  // 🔥 SISTEMA DE PROGRESSÃO (ESTILO KEY-DROP)
+  // ==========================================
+
+  // 1. Calcula o XP necessário para passar de nível (ex: Nível 1 = 100xp, Nível 2 = 200xp...)
+  getXpNecessarioParaNivel(level: number): number {
+    return level * 100; 
+  }
+
+  // 2. Injeta XP e sobe o nível de forma persistente
+  async adicionarXp(userId: number, valorGasto: number) {
+    const user = await (this.prisma as any).user.findUnique({ where: { id: userId } });
+    if (!user) return;
+
+    // 1€ = 10 XP. Math.floor garante que é um número Inteiro sem vírgulas!
+    const xpGanho = Math.floor(valorGasto * 10); 
+    
+    let novoXp = user.xp + xpGanho;
+    let novoNivel = user.level;
+
+    let xpNecessario = this.getXpNecessarioParaNivel(novoNivel);
+    
+    // Loop para subir de nível caso ganhe muito XP de uma vez
+    while (novoXp >= xpNecessario) {
+      novoXp -= xpNecessario;
+      novoNivel += 1;
+      xpNecessario = this.getXpNecessarioParaNivel(novoNivel);
+    }
+
+    return await (this.prisma as any).user.update({
+      where: { id: userId },
+      data: {
+        level: novoNivel,
+        xp: novoXp
+      }
+    });
+  }
+
+  // ==========================================
+  // DEPARTAMENTO FINANCEIRO
+  // ==========================================
+
+  async gastarSaldo(userId: string, valor: number) {
+    const idNumero = Number(userId);
+    const user = await (this.prisma as any).user.findUnique({ where: { id: idNumero } });
+    if (!user) throw new Error('Utilizador não encontrado na Base de Dados');
+
+    // 1. Tira o saldo
+    const userAtualizado = await (this.prisma as any).user.update({
+      where: { id: idNumero },
+      data: { saldo: user.saldo - valor }
+    });
+
+    // 2. 🔥 Dá XP pela aposta/abertura!
+    await this.adicionarXp(idNumero, valor);
+
+    return userAtualizado;
+  }
+
+  async venderItem(userId: number, inventarioId: number) {
+    const user = await (this.prisma as any).user.findUnique({
+      where: { id: Number(userId) }, include: { inventario: true } 
+    });
+    if (!user) throw new Error("Jogador não encontrado.");
+
+    const itemQueQuerVender = user.inventario.find((skin: any) => skin.id === Number(inventarioId));
+    if (!itemQueQuerVender) throw new Error("Esta arma não te pertence!");
+
+    await (this.prisma as any).inventario.delete({ where: { id: Number(inventarioId) } });
+
+    const valorDaArma = itemQueQuerVender.valor || itemQueQuerVender.preco || 0;
+    const valorDeVenda = parseFloat((valorDaArma * 0.90).toFixed(2)); 
+    const novoSaldo = user.saldo + valorDeVenda;
+
+    await (this.prisma as any).user.update({
+      where: { id: Number(userId) }, data: { saldo: parseFloat(novoSaldo.toFixed(2)) }
+    });
+
+    return { sucesso: true, novoSaldo: parseFloat(novoSaldo.toFixed(2)), idVendido: inventarioId, valorRecebido: valorDeVenda };
+  }
+
+  // ==========================================
+  // DEPARTAMENTO DE DEPÓSITOS
+  // ==========================================
+
+  async iniciarDeposito(dados: { userId: number, metodo: string, valor: number, telemovel?: string }) {
+    if (dados.valor < 5) throw new BadRequestException("O depósito mínimo é de 5.00€");
+
+    const transacao = await (this.prisma as any).transacao.create({
+      data: { userId: Number(dados.userId), metodo: dados.metodo, valor: parseFloat(Number(dados.valor).toFixed(2)) }
+    });
+    
+    if (dados.metodo === 'mbway') {
+      if (!dados.telemovel) throw new BadRequestException("Número de telemóvel obrigatório.");
+      return { sucesso: true, metodo: 'mbway', msg: `Pedido enviado para o telemóvel ${dados.telemovel}.`, txId: transacao.id };
+    }
+
+    if (dados.metodo === 'cartao') {
+      try {
+        const session = await this.stripe.checkout.sessions.create({
+          payment_method_types: ['card'],
+          line_items: [{ price_data: { currency: 'eur', product_data: { name: 'Adicionar Saldo - IMPÉRIO' }, unit_amount: Math.round(dados.valor * 100) }, quantity: 1 }],
+          mode: 'payment',
+          success_url: `http://localhost:3001/?deposito=sucesso&tx=${transacao.id}`,
+          cancel_url: `http://localhost:3001/?deposito=cancelado`,
+          client_reference_id: transacao.id.toString(),
+        });
+        return { sucesso: true, metodo: 'cartao', url: session.url, msg: "Redirecionando...", txId: transacao.id };
+      } catch (error) { throw new BadRequestException("Erro ao contactar a Gateway."); }
+    }
+
+    if (dados.metodo === 'crypto') {
+      const valorBTC = (dados.valor / 60000).toFixed(6);
+      return { sucesso: true, metodo: 'crypto', carteira: "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh", moeda: "BTC", valorCripto: valorBTC, msg: "Envia Cripto para a carteira.", txId: transacao.id };
+    }
+
+    throw new BadRequestException("Método desconhecido.");
+  }
+
+  async confirmarDeposito(txId: number) {
+    const tx = await (this.prisma as any).transacao.findUnique({ where: { id: Number(txId) } });
+    if (!tx) throw new BadRequestException("Transação não encontrada.");
+    if (tx.status === "Concluido") return { sucesso: false, msg: "Depósito já processado." };
+
+    await (this.prisma as any).transacao.update({ where: { id: Number(txId) }, data: { status: "Concluido" } });
+
+    const user = await (this.prisma as any).user.findUnique({ where: { id: tx.userId } });
+    const novoSaldo = user.saldo + tx.valor;
+    const novoTotal = (user.totalDepositado || 0) + tx.valor;
+
+    await (this.prisma as any).user.update({
+      where: { id: tx.userId },
+      data: { saldo: parseFloat(novoSaldo.toFixed(2)), totalDepositado: parseFloat(novoTotal.toFixed(2)) }
+    });
+
+    return { sucesso: true, valorDepositado: tx.valor, novoSaldo: parseFloat(novoSaldo.toFixed(2)) };
+  }
+
+  // ==========================================
+  // DEPARTAMENTO DE INVENTÁRIO
+  // ==========================================
+
+  async verInventario(userId: number) {
+    return await (this.prisma as any).inventario.findMany({
+      where: { userId: userId },
+      orderBy: { dataGanho: 'desc' }
+    });
+  }
+}
+</file>
+
+<file path="test/app.e2e-spec.ts">
+import { Test, TestingModule } from '@nestjs/testing';
+import { INestApplication } from '@nestjs/common';
+import request from 'supertest';
+import { App } from 'supertest/types';
+import { AppModule } from './../src/app.module';
+
+describe('AppController (e2e)', () => {
+  let app: INestApplication<App>;
+
+  beforeEach(async () => {
+    const moduleFixture: TestingModule = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
+
+    app = moduleFixture.createNestApplication();
+    await app.init();
+  });
+
+  it('/ (GET)', () => {
+    return request(app.getHttpServer())
+      .get('/')
+      .expect(200)
+      .expect('Hello World!');
+  });
+
+  afterEach(async () => {
+    await app.close();
+  });
+});
+</file>
+
+<file path="test/jest-e2e.json">
+{
+  "moduleFileExtensions": ["js", "json", "ts"],
+  "rootDir": ".",
+  "testEnvironment": "node",
+  "testRegex": ".e2e-spec.ts$",
+  "transform": {
+    "^.+\\.(t|j)s$": "ts-jest"
+  }
+}
+</file>
+
+<file path="tsconfig.build.json">
+{
+  "extends": "./tsconfig.json",
+  "exclude": ["node_modules", "test", "dist", "**/*spec.ts"]
+}
+</file>
+
+<file path="tsconfig.json">
+{
+  "compilerOptions": {
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "resolvePackageJsonExports": true,
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "declaration": true,
+    "removeComments": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "allowSyntheticDefaultImports": true,
+    "target": "ES2023",
+    "sourceMap": true,
+    "outDir": "./dist",
+    "baseUrl": "./",
+    "incremental": true,
+    "skipLibCheck": true,
+    "strictNullChecks": true,
+    "forceConsistentCasingInFileNames": true,
+    "noImplicitAny": false,
+    "strictBindCallApply": false,
+    "noFallthroughCasesInSwitch": false
+  }
+}
+</file>
+
+</files>

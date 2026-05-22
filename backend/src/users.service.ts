@@ -183,4 +183,41 @@ export class UsersService {
       orderBy: { dataGanho: 'desc' }
     });
   }
+
+  async solicitarLevantamento(userId: number, inventarioId: number) {
+    // 1. Vai buscar o jogador e a skin
+    const user = await (this.prisma as any).user.findUnique({
+      where: { id: Number(userId) }, include: { inventario: true } 
+    });
+    if (!user) throw new Error("Jogador não encontrado.");
+
+    if (!user.tradeUrl || user.tradeUrl.length < 15) {
+      throw new Error("Tens de configurar o teu Trade URL da Steam nas Definições primeiro!");
+    }
+
+    const skin = user.inventario.find((s: any) => s.id === Number(inventarioId));
+    if (!skin) throw new Error("Esta arma não te pertence ou já foi vendida/levantada!");
+
+    // 2. Tira a skin do inventário do jogador no site
+    await (this.prisma as any).inventario.delete({ where: { id: Number(inventarioId) } });
+
+    // 3. Cria a "encomenda" pendente para o Admin (Tu) enviar
+    await (this.prisma as any).levantamento.create({
+      data: {
+        userId: Number(userId),
+        skinNome: skin.nome,
+        skinImagem: skin.imagem,
+        valor: skin.valor,
+        tradeUrl: user.tradeUrl,
+        status: "PENDENTE"
+      }
+    });
+
+    // 4. Regista no Histórico
+    await (this.prisma as any).historicoJogo.create({
+      data: { userId: Number(userId), acao: "Levantamento", detalhe: `Pedido de retirada: ${skin.nome}`, valor: skin.valor, tipo: "LEVANTAMENTO" }
+    });
+
+    return { sucesso: true, mensagem: "Pedido efetuado! A nossa equipa vai enviar a proposta de troca na Steam em breve." };
+  }
 }

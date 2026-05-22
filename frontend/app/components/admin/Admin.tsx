@@ -7,11 +7,11 @@ import TabClientes from './TabClientes';
 import TabFabrica from './TabFabrica';
 import AdminTickets from './AdminTickets';
 import AdminLiveChat from './AdminLiveChat';
-import AdminMissoes from './AdminMissoes'; // 🔥 IMPORT DA NOVA ABA DE MODERAÇÃO
+import AdminMissoes from './AdminMissoes'; 
+import AdminLevantamentos from './AdminLevantamentos';
 
 export default function Admin({ userId }: any) {
-  // 🔥 Adicionado 'missoes' ao useState
-  const [activeTab, setActiveTab] = useState<'users' | 'boxes' | 'stats' | 'system' | 'staff' | 'tickets' | 'livechat' | 'missoes'>('boxes');
+  const [activeTab, setActiveTab] = useState<'users' | 'boxes' | 'stats' | 'system' | 'staff' | 'tickets' | 'livechat' | 'missoes'| 'withdraws'>('boxes');
 
   // =========================================================================
   // 🔥 ESTADOS PARA A EQUIPA (PROMOVER E REMOVER)
@@ -114,6 +114,14 @@ export default function Admin({ userId }: any) {
             <span className="text-lg w-6 text-center drop-shadow-md">📦</span> 
             <span className="text-xs font-bold uppercase tracking-widest">Fábrica de Caixas</span>
           </button>
+
+          <button 
+            onClick={() => setActiveTab('withdraws')} 
+            className={`flex items-center gap-3 p-4 rounded-xl text-left transition-all duration-300 ${activeTab === 'withdraws' ? 'bg-gradient-to-r from-amber-500/20 to-transparent border-l-4 border-amber-500 text-white shadow-[0_0_15px_rgba(245,158,11,0.1)] translate-x-2' : 'bg-transparent text-zinc-400 hover:text-white hover:bg-white/5 hover:translate-x-1'}`}
+          >
+            <span className="text-lg w-6 text-center drop-shadow-md">📦</span> 
+            <span className="text-xs font-bold uppercase tracking-widest">Logística (Saques)</span>
+          </button>
           
           <button 
             onClick={() => setActiveTab('system')} 
@@ -178,6 +186,8 @@ export default function Admin({ userId }: any) {
           {activeTab === 'system' && <TabSistema />}
           {activeTab === 'users' && <TabClientes />}
           {activeTab === 'boxes' && <TabFabrica />}
+          {/* 🔥 A LINHA MÁGICA FOI INSERIDA AQUI: */}
+          {activeTab === 'withdraws' && <AdminLevantamentos />}
           {activeTab === 'tickets' && <AdminTickets />}
           {activeTab === 'livechat' && <AdminLiveChat />}
           {activeTab === 'missoes' && <AdminMissoes />}

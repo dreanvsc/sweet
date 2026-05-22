@@ -429,6 +429,7 @@ model User {
   tickets         TicketSuporte[] 
   liveChats   LiveChat[]
   submissoes    SubmissaoMissao[]
+  levantamentos Levantamento[]
 }
 
 // O Inventário (Atualizado)
@@ -551,6 +552,19 @@ model Configuracao {
   valor       String   // Guardamos como texto para poder ser "0.15" ou até "true/false"
   descricao   String?  // Só para tu saberes o que isto faz
   updatedAt   DateTime @updatedAt
+}
+
+model Levantamento {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  skinNome    String
+  skinImagem  String
+  valor       Float
+  tradeUrl    String
+  status      String   @default("PENDENTE") // PENDENTE, CONCLUIDO, REJEITADO
+  dataPedido  DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id])
 }
 </file>
 
@@ -1429,6 +1443,59 @@ export class AppController {
       return { sucesso: false, message: "Erro interno no servidor ao atualizar preço." };
     }
   }
+
+  // ==========================================
+  // DEPARTAMENTO DE LEVANTAMENTOS (WITHDRAWS)
+  // ==========================================
+
+  // Jogador: Pede para levantar uma skin
+  @Post('levantar-skin')
+  async levantarSkin(@Body() body: { userId: number, inventarioId: number }) {
+    try {
+      return await this.usersService.solicitarLevantamento(body.userId, body.inventarioId);
+    } catch (error: any) {
+      return { sucesso: false, mensagem: error.message };
+    }
+  }
+
+  // Admin: Vê todos os pedidos pendentes
+  @Get('admin/levantamentos')
+  async verLevantamentos() {
+    return await this.prisma.levantamento.findMany({
+      where: { status: 'PENDENTE' },
+      include: { user: { select: { nome: true, avatar: true } } },
+      orderBy: { dataPedido: 'asc' }
+    });
+  }
+
+  // Admin: Confirma que enviou a skin na Steam
+  @Post('admin/levantamentos/aprovar/:id')
+  async aprovarLevantamento(@Param('id') id: string) {
+    await this.prisma.levantamento.update({
+      where: { id: Number(id) }, data: { status: 'CONCLUIDO' }
+    });
+    return { sucesso: true, mensagem: "Levantamento marcado como concluído!" };
+  }
+
+  // Admin: Rejeita (o bot da steam falhou, trade bloqueada, etc) e devolve a skin ao site
+  @Post('admin/levantamentos/rejeitar/:id')
+  async rejeitarLevantamento(@Param('id') id: string) {
+    const pedido = await this.prisma.levantamento.findUnique({ where: { id: Number(id) } });
+    if (!pedido) return { sucesso: false, mensagem: "Pedido não encontrado." };
+
+    // Atualiza status
+    await this.prisma.levantamento.update({
+      where: { id: Number(id) }, data: { status: 'REJEITADA' }
+    });
+
+    // Devolve a skin ao inventário do site do jogador
+    await this.prisma.inventario.create({
+      data: { userId: pedido.userId, nome: pedido.skinNome, imagem: pedido.skinImagem, raridade: 'Comum', valor: pedido.valor }
+    });
+
+    return { sucesso: true, mensagem: "Levantamento cancelado. A skin voltou para a conta do jogador no site." };
+  }
+
 }
 </file>
 
@@ -2460,6 +2527,43 @@ export class UsersService {
       where: { userId: userId },
       orderBy: { dataGanho: 'desc' }
     });
+  }
+
+  async solicitarLevantamento(userId: number, inventarioId: number) {
+    // 1. Vai buscar o jogador e a skin
+    const user = await (this.prisma as any).user.findUnique({
+      where: { id: Number(userId) }, include: { inventario: true } 
+    });
+    if (!user) throw new Error("Jogador não encontrado.");
+
+    if (!user.tradeUrl || user.tradeUrl.length < 15) {
+      throw new Error("Tens de configurar o teu Trade URL da Steam nas Definições primeiro!");
+    }
+
+    const skin = user.inventario.find((s: any) => s.id === Number(inventarioId));
+    if (!skin) throw new Error("Esta arma não te pertence ou já foi vendida/levantada!");
+
+    // 2. Tira a skin do inventário do jogador no site
+    await (this.prisma as any).inventario.delete({ where: { id: Number(inventarioId) } });
+
+    // 3. Cria a "encomenda" pendente para o Admin (Tu) enviar
+    await (this.prisma as any).levantamento.create({
+      data: {
+        userId: Number(userId),
+        skinNome: skin.nome,
+        skinImagem: skin.imagem,
+        valor: skin.valor,
+        tradeUrl: user.tradeUrl,
+        status: "PENDENTE"
+      }
+    });
+
+    // 4. Regista no Histórico
+    await (this.prisma as any).historicoJogo.create({
+      data: { userId: Number(userId), acao: "Levantamento", detalhe: `Pedido de retirada: ${skin.nome}`, valor: skin.valor, tipo: "LEVANTAMENTO" }
+    });
+
+    return { sucesso: true, mensagem: "Pedido efetuado! A nossa equipa vai enviar a proposta de troca na Steam em breve." };
   }
 }
 </file>

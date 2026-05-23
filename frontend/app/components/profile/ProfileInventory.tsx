@@ -8,6 +8,10 @@ export default function ProfileInventory({ inventario, setInventario, setSaldo, 
   const [loadingId, setLoadingId] = useState<number | null>(null);
   const [prazosLevantamento, setPrazosLevantamento] = useState<any[]>([]);
 
+  // 🔥 ESTADOS DOS MODAIS PREMIUM
+  const [skinParaLevantar, setSkinParaLevantar] = useState<any>(null);
+  const [skinParaVender, setSkinParaVender] = useState<any>(null);
+
   const carregarEstadosLogistica = async () => {
     if (!userId) return;
     try {
@@ -25,24 +29,19 @@ export default function ProfileInventory({ inventario, setInventario, setSaldo, 
     carregarEstadosLogistica();
   }, [userId, inventario]);
 
-  const handleLevantar = async (item: any) => {
+  // 🔥 1. ABRIR MODAL DE LEVANTAMENTO
+  const iniciarLevantamento = (item: any) => {
     const precoReal = Number(item?.preco || item?.valor || 0);
-
-    // 🔥 VALIDAÇÃO VISUAL ANTES DE IR AO SERVIDOR
     if (precoReal < 2.00) {
       return toast.error("VALOR MÍNIMO REQUERIDO: O império apenas faz envios de skins acima de 2.00€!");
     }
+    setSkinParaLevantar(item);
+  };
 
-    // 🔥 AVISO DE CORRIDA REGULAMENTAR (1 A 24 HORAS)
-    const conf = window.confirm(
-      `⚠️ REGULAMENTO DE LEVANTAMENTO:\n\n` +
-      `• Skin: ${item.nome}\n` +
-      `• Valor: ${precoReal.toFixed(2)}€\n\n` +
-      `PROCESSO MANUAL: O teu pedido entrará na fila de logística. ` +
-      `O envio da proposta de troca na Steam será feito num prazo de 1 a 24 horas.\n\n` +
-      `Desejas confirmar o bloqueio e envio desta skin?`
-    );
-    if (!conf) return;
+  // 🔥 1.1 CONFIRMAR LEVANTAMENTO NO MODAL
+  const confirmarLevantamento = async () => {
+    const item = skinParaLevantar;
+    setSkinParaLevantar(null); // Fecha o modal
 
     if (!userId) return toast.error("Erro: Sessão não encontrada.");
     
@@ -69,6 +68,17 @@ export default function ProfileInventory({ inventario, setInventario, setSaldo, 
     setLoadingId(null);
   };
 
+  // 🔥 2. CONFIRMAR VENDA NO MODAL
+  const confirmarVenda = () => {
+    const { item, idx } = skinParaVender;
+    const precoReal = Number(item?.preco || item?.valor || 0);
+    
+    setSaldo((s: number) => s + precoReal);
+    setInventario((inv: any) => inv.filter((_: any, i: number) => i !== idx));
+    toast.success(`Vendeste a skin por ${precoReal.toFixed(2)}€!`);
+    setSkinParaVender(null);
+  };
+
   const inventarioSeguro = Array.isArray(inventario) ? inventario : [];
   const inventarioFiltrado = inventarioSeguro.filter((item: any) => {
     const nomeSeguro = item?.nome || 'Skin Misteriosa';
@@ -76,7 +86,7 @@ export default function ProfileInventory({ inventario, setInventario, setSaldo, 
   });
 
   return (
-    <div className="bg-[#1b1b1e] rounded-xl border border-white/5 p-6 animate-in fade-in">
+    <div className="bg-[#1b1b1e] rounded-xl border border-white/5 p-6 animate-in fade-in relative">
       <div className="flex flex-wrap gap-4 mb-6 items-center bg-[#121215] p-3 rounded-lg border border-white/5">
         <div className="flex gap-2">
           <div className="bg-[#1b1b1e] border border-white/5 rounded px-4 py-2.5 flex items-center gap-8 cursor-pointer hover:bg-white/5 transition-colors">
@@ -154,7 +164,7 @@ export default function ProfileInventory({ inventario, setInventario, setSaldo, 
                   ) : (
                     <>
                       <button 
-                        onClick={() => handleLevantar(item)}
+                        onClick={() => iniciarLevantamento(item)}
                         disabled={loadingId === item?.id}
                         className={`w-full font-black text-[10px] py-2.5 rounded uppercase tracking-widest transition-colors shadow-lg ${
                           precoReal < 2.00 
@@ -166,13 +176,7 @@ export default function ProfileInventory({ inventario, setInventario, setSaldo, 
                       </button>
 
                       <button 
-                        onClick={() => {
-                          const conf = window.confirm(`Vender por ${precoReal.toFixed(2)}€?`);
-                          if(conf) {
-                            setSaldo((s: number) => s + precoReal);
-                            setInventario((inv: any) => inv.filter((_: any, i: number) => i !== idx));
-                          }
-                        }}
+                        onClick={() => setSkinParaVender({ item, idx })}
                         className="w-full bg-[#84c13a] hover:bg-[#96d845] text-black font-black text-[10px] py-2.5 rounded uppercase tracking-widest transition-colors"
                       >
                         VENDER {precoReal.toFixed(2)}€
@@ -194,6 +198,90 @@ export default function ProfileInventory({ inventario, setInventario, setSaldo, 
           </div>
         )}
       </div>
+
+      {/* ======================================================== */}
+      {/* 🔥 MODAL PREMIUM DE CONFIRMAÇÃO DE LEVANTAMENTO 🔥 */}
+      {/* ======================================================== */}
+      {skinParaLevantar && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in">
+          <div className="bg-[#121215] border border-blue-500/30 rounded-3xl w-full max-w-md shadow-[0_0_50px_rgba(0,0,0,0.8)] relative overflow-hidden flex flex-col animate-in zoom-in-95">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 blur-3xl rounded-full pointer-events-none"></div>
+            
+            <div className="p-6 border-b border-white/5 flex justify-between items-center bg-black/20 relative z-10">
+              <h3 className="text-lg font-black text-white uppercase tracking-widest flex items-center gap-2">
+                <span className="text-blue-500 text-2xl drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]">🚚</span> Logística
+              </h3>
+              <button onClick={() => setSkinParaLevantar(null)} className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 text-zinc-500 hover:text-white hover:bg-red-500/20 transition-all font-black">✕</button>
+            </div>
+
+            <div className="p-6 relative z-10">
+              <div className="flex items-center gap-4 bg-black/40 border border-white/5 p-4 rounded-2xl mb-6 shadow-inner">
+                <img src={skinParaLevantar.imagem || skinParaLevantar.image} className="w-16 h-16 object-contain drop-shadow-lg" alt="skin" />
+                <div>
+                  <p className="text-xs font-black text-white uppercase">{skinParaLevantar.nome}</p>
+                  <p className="text-blue-400 font-mono font-black mt-1 text-sm">{Number(skinParaLevantar.preco || skinParaLevantar.valor || 0).toFixed(2)}€</p>
+                </div>
+              </div>
+
+              <div className="bg-blue-500/10 border border-blue-500/20 p-4 rounded-xl mb-6">
+                <p className="text-xs text-blue-100 font-medium leading-relaxed">
+                  <span className="font-black text-blue-400">PROCESSO MANUAL:</span> O teu pedido entrará na fila de envios. 
+                  A nossa equipa enviará a proposta de troca para o teu Trade URL num prazo de <span className="font-black text-white bg-blue-500/20 px-2 py-0.5 rounded">1 a 24 horas</span>.
+                </p>
+              </div>
+
+              <p className="text-[10px] text-zinc-500 font-black uppercase tracking-widest text-center mb-6">Confirmar o bloqueio e envio desta skin?</p>
+
+              <div className="flex gap-3">
+                <button onClick={() => setSkinParaLevantar(null)} className="flex-1 py-4 bg-zinc-800 hover:bg-zinc-700 text-white font-black text-[10px] uppercase tracking-widest rounded-xl transition-colors">
+                  Cancelar
+                </button>
+                <button onClick={confirmarLevantamento} className="flex-1 py-4 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-black text-[10px] uppercase tracking-widest rounded-xl transition-all shadow-[0_0_15px_rgba(37,99,235,0.4)]">
+                  Sim, Enviar Agora
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* 🔥 MODAL PREMIUM DE CONFIRMAÇÃO DE VENDA 🔥 */}
+      {/* ======================================================== */}
+      {skinParaVender && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in">
+          <div className="bg-[#121215] border border-amber-500/30 rounded-3xl w-full max-w-sm shadow-[0_0_50px_rgba(0,0,0,0.8)] relative overflow-hidden flex flex-col animate-in zoom-in-95">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 blur-3xl rounded-full pointer-events-none"></div>
+            
+            <div className="p-6 border-b border-white/5 flex justify-between items-center bg-black/20 relative z-10">
+              <h3 className="text-lg font-black text-white uppercase tracking-widest flex items-center gap-2">
+                <span className="text-amber-500 text-2xl drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]">💰</span> Vender Item
+              </h3>
+              <button onClick={() => setSkinParaVender(null)} className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 text-zinc-500 hover:text-white hover:bg-red-500/20 transition-all font-black">✕</button>
+            </div>
+
+            <div className="p-6 relative z-10 flex flex-col items-center text-center">
+              <img src={skinParaVender.item.imagem || skinParaVender.item.image} className="w-24 h-24 object-contain drop-shadow-xl mb-4" alt="skin" />
+              <p className="text-sm font-black text-white uppercase tracking-wider mb-2">{skinParaVender.item.nome}</p>
+              
+              <div className="bg-black/40 border border-white/5 px-6 py-3 rounded-xl mb-6">
+                <p className="text-[10px] text-zinc-500 font-black uppercase tracking-widest mb-1">Recebes no teu saldo:</p>
+                <p className="text-amber-500 font-mono font-black text-2xl">{Number(skinParaVender.item.preco || skinParaVender.item.valor || 0).toFixed(2)}€</p>
+              </div>
+
+              <div className="flex gap-3 w-full">
+                <button onClick={() => setSkinParaVender(null)} className="flex-1 py-4 bg-zinc-800 hover:bg-zinc-700 text-white font-black text-[10px] uppercase tracking-widest rounded-xl transition-colors">
+                  Cancelar
+                </button>
+                <button onClick={confirmarVenda} className="flex-1 py-4 bg-[#84c13a] hover:bg-[#96d845] text-black font-black text-[10px] uppercase tracking-widest rounded-xl transition-all shadow-[0_0_15px_rgba(132,193,58,0.4)]">
+                  Confirmar Venda
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

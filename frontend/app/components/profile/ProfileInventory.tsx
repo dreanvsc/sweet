@@ -209,7 +209,7 @@ export default function ProfileInventory({ inventario, setInventario, setSaldo, 
             
             <div className="p-6 border-b border-white/5 flex justify-between items-center bg-black/20 relative z-10">
               <h3 className="text-lg font-black text-white uppercase tracking-widest flex items-center gap-2">
-                <span className="text-blue-500 text-2xl drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]">🚚</span> Logística
+                <span className="text-blue-500 text-2xl drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]">🚚</span> LEVANTAMENTO
               </h3>
               <button onClick={() => setSkinParaLevantar(null)} className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 text-zinc-500 hover:text-white hover:bg-red-500/20 transition-all font-black">✕</button>
             </div>

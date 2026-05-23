@@ -197,8 +197,11 @@ export class UsersService {
     const skin = user.inventario.find((s: any) => s.id === Number(inventarioId));
     if (!skin) throw new Error("Esta arma não te pertence!");
 
-    // 💡 NOTA: DEIXÁMOS DE APAGAR A SKIN DA BASE DE DADOS AQUI!
-    // O Frontend vai ler a tabela "Levantamento" para saber se esta skin está trancada.
+    // 🔥 TRAVA DE SEGURANÇA: LIMITE MÍNIMO DE 2.00€
+    const valorDaSkin = skin.valor || skin.preco || 0;
+    if (valorDaSkin < 2.00) {
+      throw new Error("O império não envia armas abaixo de 2.00€. Vende a skin por saldo ou faz Upgrade!");
+    }
 
     // Criar a encomenda para o Admin enviar
     await (this.prisma as any).levantamento.create({

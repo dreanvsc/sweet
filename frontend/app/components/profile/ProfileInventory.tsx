@@ -6,18 +6,14 @@ import { toast } from 'react-hot-toast';
 export default function ProfileInventory({ inventario, setInventario, setSaldo, setView, userId }: any) {
   const [search, setSearch] = useState('');
   const [loadingId, setLoadingId] = useState<number | null>(null);
-  
-  // 🔥 NOVO ESTADO: Guarda a lista de items que estão trancados em trânsito
   const [prazosLevantamento, setPrazosLevantamento] = useState<any[]>([]);
 
-  // Carrega o histórico de saques para saber o estado real de cada skin
   const carregarEstadosLogistica = async () => {
     if (!userId) return;
     try {
       const res = await fetch('https://sweet-7ifa.onrender.com/admin/levantamentos');
       const data = await res.json();
       if (Array.isArray(data)) {
-        // Guarda apenas os saques deste utilizador específico
         setPrazosLevantamento(data.filter((p: any) => p.userId === Number(userId)));
       }
     } catch (e) {
@@ -30,7 +26,22 @@ export default function ProfileInventory({ inventario, setInventario, setSaldo, 
   }, [userId, inventario]);
 
   const handleLevantar = async (item: any) => {
-    const conf = window.confirm(`Queres solicitar o envio da ${item.nome} para a tua Steam?`);
+    const precoReal = Number(item?.preco || item?.valor || 0);
+
+    // 🔥 VALIDAÇÃO VISUAL ANTES DE IR AO SERVIDOR
+    if (precoReal < 2.00) {
+      return toast.error("VALOR MÍNIMO REQUERIDO: O império apenas faz envios de skins acima de 2.00€!");
+    }
+
+    // 🔥 AVISO DE CORRIDA REGULAMENTAR (1 A 24 HORAS)
+    const conf = window.confirm(
+      `⚠️ REGULAMENTO DE LEVANTAMENTO:\n\n` +
+      `• Skin: ${item.nome}\n` +
+      `• Valor: ${precoReal.toFixed(2)}€\n\n` +
+      `PROCESSO MANUAL: O teu pedido entrará na fila de logística. ` +
+      `O envio da proposta de troca na Steam será feito num prazo de 1 a 24 horas.\n\n` +
+      `Desejas confirmar o bloqueio e envio desta skin?`
+    );
     if (!conf) return;
 
     if (!userId) return toast.error("Erro: Sessão não encontrada.");
@@ -47,8 +58,7 @@ export default function ProfileInventory({ inventario, setInventario, setSaldo, 
       const data = await res.json();
 
       if (data.sucesso) {
-        toast.success('🚚 ' + data.mensagem, { id: toastId, duration: 5000 });
-        // Recarrega os estados para aplicar o cadeado cinzento na hora!
+        toast.success('🚚 ' + data.mensagem, { id: toastId, duration: 6000 });
         carregarEstadosLogistica();
       } else {
         toast.error('❌ ' + data.mensagem, { id: toastId });
@@ -90,10 +100,9 @@ export default function ProfileInventory({ inventario, setInventario, setSaldo, 
             const nomeReal = item?.nome || 'Skin Misteriosa';
             const precoReal = Number(item?.preco || item?.valor || 0);
 
-            // 🔥 ANALISADOR RADAR: Verifica se esta skin específica está pendente ou enviada
             const registoEnvio = prazosLevantamento.find((p: any) => p.skinNome === item.nome && p.valor === item.valor);
             const estaTrancada = !!registoEnvio;
-            const statusEnvio = registoEnvio?.status || "PENDENTE"; // PENDENTE ou CONCLUIDO
+            const statusEnvio = registoEnvio?.status || "PENDENTE";
 
             return (
               <div 
@@ -105,7 +114,6 @@ export default function ProfileInventory({ inventario, setInventario, setSaldo, 
                 }`}
               >
                 
-                {/* ETIQUETA EM TEMPO REAL */}
                 <div className="flex justify-between items-center mb-2 z-10">
                   <span className="text-[10px] font-black text-zinc-500 tracking-widest">{item?.raridade === 'Comum' ? 'FT' : 'MW'}</span>
                   {estaTrancada ? (
@@ -134,7 +142,6 @@ export default function ProfileInventory({ inventario, setInventario, setSaldo, 
                   </div>
                 </div>
 
-                {/* MENU HOVER DO GRUPO (FICA BLOQUEADO SE JÁ TIVER SIDO ATIVADO) */}
                 <div className="absolute inset-0 bg-[#121215]/95 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex flex-col items-center justify-center gap-2 p-4 z-20">
                   {estaTrancada ? (
                     <div className="text-center p-2">
@@ -149,9 +156,13 @@ export default function ProfileInventory({ inventario, setInventario, setSaldo, 
                       <button 
                         onClick={() => handleLevantar(item)}
                         disabled={loadingId === item?.id}
-                        className="w-full bg-blue-500 hover:bg-blue-400 disabled:opacity-50 text-white font-black text-[10px] py-2.5 rounded uppercase tracking-widest transition-colors shadow-lg"
+                        className={`w-full font-black text-[10px] py-2.5 rounded uppercase tracking-widest transition-colors shadow-lg ${
+                          precoReal < 2.00 
+                            ? 'bg-zinc-800 text-zinc-600 cursor-not-allowed' 
+                            : 'bg-blue-500 hover:bg-blue-400 text-white'
+                        }`}
                       >
-                        {loadingId === item?.id ? 'A PROCESSAR...' : '🚀 LEVANTAR P/ STEAM'}
+                        {loadingId === item?.id ? 'A PROCESSAR...' : precoReal < 2.00 ? 'VALOR COMPACTO 🔒' : '🚀 LEVANTAR P/ STEAM'}
                       </button>
 
                       <button 

@@ -78,9 +78,16 @@ export default function ProfileHeader({ nome, avatar, userData, userId, tradeUrl
         <div className="flex-1 text-center lg:text-left mt-2 lg:mt-0">
           <div className="flex items-center justify-center lg:justify-start gap-3 mb-3">
             <h1 className="text-2xl font-black text-white uppercase">{nome || "Carregando..."}</h1>
-            <span className="text-white bg-[#121215] rounded-full px-3 py-1 text-[10px] font-bold border border-white/10 cursor-pointer hover:bg-white/10 transition-colors flex items-center gap-1">
+            
+            {/* 🔥 O BOTÃO DA STEAM AGORA É UM LINK REAL! */}
+            <a 
+              href={`https://steamcommunity.com/profiles/${userData?.username || ''}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-white bg-[#121215] rounded-full px-3 py-1 text-[10px] font-bold border border-white/10 cursor-pointer hover:bg-white/10 hover:text-blue-400 transition-colors flex items-center gap-1"
+            >
               Steam 🔗
-            </span>
+            </a>
           </div>
           
           <div className="bg-transparent lg:bg-[#161619] rounded-lg p-0 lg:p-4 inline-block lg:border border-white/5 min-w-[260px] w-full lg:w-auto">

@@ -430,6 +430,7 @@ model User {
   liveChats   LiveChat[]
   submissoes    SubmissaoMissao[]
   levantamentos Levantamento[]
+  emailVerificado Boolean @default(false)
 }
 
 // O Inventário (Atualizado)
@@ -1496,6 +1497,17 @@ export class AppController {
     return { sucesso: true, mensagem: "Levantamento cancelado. A skin voltou para a conta do jogador no site." };
   }
 
+  @Post('utilizador/verificar-email')
+  async verificarEmail(@Body() body: { userId: number }) {
+    // 🔥 No futuro, isto enviaria um link real por e-mail (SMTP). 
+    // Por agora, o botão ativa a conta diretamente para testares o MVP!
+    await this.prisma.user.update({
+      where: { id: Number(body.userId) },
+      data: { emailVerificado: true }
+    });
+    return { sucesso: true, msg: "E-mail verificado com sucesso!" };
+  }
+
 }
 </file>
 
@@ -2530,7 +2542,6 @@ export class UsersService {
   }
 
   async solicitarLevantamento(userId: number, inventarioId: number) {
-    // 1. Vai buscar o jogador e a skin
     const user = await (this.prisma as any).user.findUnique({
       where: { id: Number(userId) }, include: { inventario: true } 
     });
@@ -2540,13 +2551,20 @@ export class UsersService {
       throw new Error("Tens de configurar o teu Trade URL da Steam nas Definições primeiro!");
     }
 
+    if (!user.emailVerificado) {
+      throw new Error("PROTEÇÃO: Tens de verificar o teu e-mail nas Configurações para poderes enviar skins para a Steam.");
+    }
+
     const skin = user.inventario.find((s: any) => s.id === Number(inventarioId));
-    if (!skin) throw new Error("Esta arma não te pertence ou já foi vendida/levantada!");
+    if (!skin) throw new Error("Esta arma não te pertence!");
 
-    // 2. Tira a skin do inventário do jogador no site
-    await (this.prisma as any).inventario.delete({ where: { id: Number(inventarioId) } });
+    // 🔥 TRAVA DE SEGURANÇA: LIMITE MÍNIMO DE 2.00€
+    const valorDaSkin = skin.valor || skin.preco || 0;
+    if (valorDaSkin < 2.00) {
+      throw new Error("O império não envia armas abaixo de 2.00€. Vende a skin por saldo ou faz Upgrade!");
+    }
 
-    // 3. Cria a "encomenda" pendente para o Admin (Tu) enviar
+    // Criar a encomenda para o Admin enviar
     await (this.prisma as any).levantamento.create({
       data: {
         userId: Number(userId),
@@ -2558,12 +2576,11 @@ export class UsersService {
       }
     });
 
-    // 4. Regista no Histórico
     await (this.prisma as any).historicoJogo.create({
-      data: { userId: Number(userId), acao: "Levantamento", detalhe: `Pedido de retirada: ${skin.nome}`, valor: skin.valor, tipo: "LEVANTAMENTO" }
+      data: { userId: Number(userId), acao: "Levantamento", detalhe: `Solicitou envio de ${skin.nome}`, valor: skin.valor, tipo: "LEVANTAMENTO" }
     });
 
-    return { sucesso: true, mensagem: "Pedido efetuado! A nossa equipa vai enviar a proposta de troca na Steam em breve." };
+    return { sucesso: true, mensagem: "Pedido efetuado! Fica atento à tua Steam, vamos enviar a troca em breve." };
   }
 }
 </file>

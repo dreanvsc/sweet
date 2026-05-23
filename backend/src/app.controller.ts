@@ -683,4 +683,15 @@ export class AppController {
     return { sucesso: true, mensagem: "Levantamento cancelado. A skin voltou para a conta do jogador no site." };
   }
 
+  @Post('utilizador/verificar-email')
+  async verificarEmail(@Body() body: { userId: number }) {
+    // 🔥 No futuro, isto enviaria um link real por e-mail (SMTP). 
+    // Por agora, o botão ativa a conta diretamente para testares o MVP!
+    await this.prisma.user.update({
+      where: { id: Number(body.userId) },
+      data: { emailVerificado: true }
+    });
+    return { sucesso: true, msg: "E-mail verificado com sucesso!" };
+  }
+
 }

@@ -194,6 +194,10 @@ export class UsersService {
       throw new Error("Tens de configurar o teu Trade URL da Steam nas Definições primeiro!");
     }
 
+    if (!user.emailVerificado) {
+      throw new Error("PROTEÇÃO: Tens de verificar o teu e-mail nas Configurações para poderes enviar skins para a Steam.");
+    }
+
     const skin = user.inventario.find((s: any) => s.id === Number(inventarioId));
     if (!skin) throw new Error("Esta arma não te pertence!");
 

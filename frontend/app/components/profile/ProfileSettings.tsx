@@ -9,11 +9,12 @@ export default function ProfileSettings({ userData, userId }: any) {
   const [newsletter, setNewsletter] = useState(userData?.newsletter || false);
   const [emailVerificado, setEmailVerificado] = useState(userData?.emailVerificado || false);
   
-  // 🔥 A animação guarda no LocalStorage para o site se lembrar!
+  // 🔥 ESTADOS DO SISTEMA DE VERIFICAÇÃO DE 2 PASSOS
+  const [stepVerificacao, setStepVerificacao] = useState<0 | 1>(0); // 0 = Pedir Código, 1 = Inserir Código
+  const [codigoInput, setCodigoInput] = useState('');
+  
   const [animacao, setAnimacao] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('animacaoNivel') !== 'false';
-    }
+    if (typeof window !== 'undefined') return localStorage.getItem('animacaoNivel') !== 'false';
     return true;
   });
 
@@ -22,10 +23,7 @@ export default function ProfileSettings({ userData, userId }: any) {
   const [savingNews, setSavingNews] = useState(false);
   const [verificando, setVerificando] = useState(false);
 
-  // Guarda preferência de animação
-  useEffect(() => {
-    localStorage.setItem('animacaoNivel', String(animacao));
-  }, [animacao]);
+  useEffect(() => { localStorage.setItem('animacaoNivel', String(animacao)); }, [animacao]);
 
   const guardarConfiguracao = async (campo: string, valor: any, setLoader: any) => {
     if (!userId) return toast.error("Erro: ID do jogador não encontrado.");
@@ -40,38 +38,61 @@ export default function ProfileSettings({ userData, userId }: any) {
       const data = await res.json();
       if (data.sucesso) {
         toast.success(`✅ Alteração guardada!`);
-        // Se ele mudar o e-mail, perde a verificação por segurança!
-        if (campo === 'email') setEmailVerificado(false);
+        if (campo === 'email') {
+          setEmailVerificado(false);
+          setStepVerificacao(0); // Reinicia o processo se mudar o e-mail
+        }
       } else {
         toast.error('❌ Erro ao guardar.');
       }
-    } catch (error) {
-      toast.error('❌ Erro de conexão ao servidor.');
-    }
+    } catch (error) { toast.error('❌ Erro de conexão ao servidor.'); }
     setLoader(false);
   };
 
-  // 🔥 O BOTÃO DE VERIFICAR E-MAIL
-  const handleVerificarEmail = async () => {
-    if (!email.includes('@')) return toast.error("Guarda um e-mail válido primeiro!");
+  // 🔥 1. PEDIR O CÓDIGO PARA O E-MAIL
+  const handlePedirCodigo = async () => {
+    if (!email.includes('@')) return toast.error("Por favor, guarda um e-mail válido primeiro!");
     setVerificando(true);
-    const toastId = toast.loading("A enviar pedido de verificação...");
+    const toastId = toast.loading("A gerar código de verificação...");
 
     try {
-      const res = await fetch('https://sweet-7ifa.onrender.com/utilizador/verificar-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: Number(userId) })
+      const res = await fetch('https://sweet-7ifa.onrender.com/utilizador/pedir-codigo', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: Number(userId), email })
       });
       const data = await res.json();
       
       if (data.sucesso) {
-        toast.success("📧 E-mail verificado! Já podes levantar skins.", { id: toastId });
-        setEmailVerificado(true);
+        toast.success(data.msg, { id: toastId, duration: 6000 });
+        setStepVerificacao(1); // Avança para o passo de escrever o código
+      } else {
+        toast.error(data.msg, { id: toastId });
       }
-    } catch (error) {
-      toast.error("Erro ao verificar.", { id: toastId });
-    }
+    } catch (error) { toast.error("Erro ao contactar servidor.", { id: toastId }); }
+    setVerificando(false);
+  };
+
+  // 🔥 2. CONFIRMAR OS 6 DÍGITOS
+  const handleConfirmarCodigo = async () => {
+    if (codigoInput.length < 5) return toast.error("Insere o código completo!");
+    setVerificando(true);
+    const toastId = toast.loading("A validar código...");
+
+    try {
+      const res = await fetch('https://sweet-7ifa.onrender.com/utilizador/confirmar-codigo', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: Number(userId), codigo: codigoInput })
+      });
+      const data = await res.json();
+      
+      if (data.sucesso) {
+        toast.success("✅ " + data.msg, { id: toastId });
+        setEmailVerificado(true);
+        setStepVerificacao(0);
+      } else {
+        toast.error("❌ " + data.msg, { id: toastId });
+      }
+    } catch (error) { toast.error("Erro ao validar.", { id: toastId }); }
     setVerificando(false);
   };
 
@@ -105,7 +126,7 @@ export default function ProfileSettings({ userData, userId }: any) {
           </div>
         </div>
 
-        {/* BLOCO 2: EMAIL COM VERIFICAÇÃO 🔥 */}
+        {/* BLOCO 2: EMAIL COM VERIFICAÇÃO 2 PASSOS 🔥 */}
         <div className={`border rounded-xl p-6 shadow-xl transition-colors ${emailVerificado ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-[#1b1b1e] border-white/5'}`}>
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-white font-black uppercase tracking-widest text-sm">Endereço de E-mail</h3>
@@ -137,14 +158,43 @@ export default function ProfileSettings({ userData, userId }: any) {
             </button>
           </div>
           
+          {/* Lógica de Passos para a Verificação */}
           {!emailVerificado && email && (
-            <button 
-              onClick={handleVerificarEmail}
-              disabled={verificando}
-              className="w-full mt-2 bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 text-white font-black text-[10px] py-3 rounded-lg uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(239,68,68,0.3)] flex items-center justify-center gap-2"
-            >
-              {verificando ? 'A VERIFICAR...' : '✉️ REQUISITAR VERIFICAÇÃO PARA LEVANTAR SKINS'}
-            </button>
+            <div className="mt-4 pt-4 border-t border-white/5">
+              {stepVerificacao === 0 ? (
+                <button 
+                  onClick={handlePedirCodigo}
+                  disabled={verificando}
+                  className="w-full bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 text-white font-black text-[10px] py-3 rounded-lg uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(239,68,68,0.3)] flex items-center justify-center gap-2"
+                >
+                  {verificando ? 'A PROCESSAR...' : '✉️ ENVIAR CÓDIGO PARA O MEU E-MAIL'}
+                </button>
+              ) : (
+                <div className="flex flex-col gap-2 animate-in slide-in-from-top-2">
+                  <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest text-center mb-1">
+                    Enviámos um código para {email}
+                  </p>
+                  <div className="flex gap-2">
+                    <input 
+                      type="text" 
+                      placeholder="CÓDIGO DE 6 DÍGITOS"
+                      value={codigoInput}
+                      onChange={(e) => setCodigoInput(e.target.value)}
+                      maxLength={6}
+                      className="flex-1 bg-black/50 border border-emerald-500/30 rounded-lg px-4 py-3 text-center text-lg text-emerald-400 font-mono font-black uppercase outline-none focus:border-emerald-500 transition-colors placeholder:text-zinc-700"
+                    />
+                    <button 
+                      onClick={handleConfirmarCodigo}
+                      disabled={verificando || codigoInput.length < 5}
+                      className="bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-black font-black text-[10px] uppercase tracking-widest px-6 rounded-lg transition-colors shadow-lg"
+                    >
+                      {verificando ? '...' : 'VERIFICAR'}
+                    </button>
+                  </div>
+                  <button onClick={() => setStepVerificacao(0)} className="text-[9px] text-zinc-500 hover:text-white mt-1 underline">Voltar / Reenviar código</button>
+                </div>
+              )}
+            </div>
           )}
         </div>
 

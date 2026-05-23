@@ -683,15 +683,68 @@ export class AppController {
     return { sucesso: true, mensagem: "Levantamento cancelado. A skin voltou para a conta do jogador no site." };
   }
 
-  @Post('utilizador/verificar-email')
-  async verificarEmail(@Body() body: { userId: number }) {
-    // 🔥 No futuro, isto enviaria um link real por e-mail (SMTP). 
-    // Por agora, o botão ativa a conta diretamente para testares o MVP!
+  @Post('utilizador/pedir-codigo')
+  async pedirCodigoVerificacao(@Body() body: { userId: number, email: string }) {
+    const user = await this.prisma.user.findUnique({ where: { id: Number(body.userId) } });
+    if (!user) return { sucesso: false, msg: "Utilizador não encontrado." };
+
+    // 1. Gera um código de 6 dígitos
+    const codigo = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // 2. Guarda o código na Base de Dados
     await this.prisma.user.update({
       where: { id: Number(body.userId) },
-      data: { emailVerificado: true }
+      data: { codigoVerificacao: codigo, email: body.email } // Guarda o email também
     });
-    return { sucesso: true, msg: "E-mail verificado com sucesso!" };
+
+    // 3. Configura o carteiro (Substitui com o teu e-mail real e a App Password)
+    const nodemailer = require('nodemailer');
+    const transporter = nodemailer.createTransport({
+      service: 'gmail', // Podes usar gmail, outlook, etc.
+      auth: {
+        user: 'o-teu-email@gmail.com', // ⚠️ METE O TEU E-MAIL AQUI
+        pass: 'a-tua-password-de-aplicacao' // ⚠️ METE A PASSWORD DE APLICAÇÃO AQUI
+      }
+    });
+
+    // Se ainda não tens Password de Aplicação, o código vai apenas aparecer nos logs (para testares)
+    console.log(`[ALERTA] CÓDIGO GERADO PARA ${body.email}: ${codigo}`);
+
+    try {
+      await transporter.sendMail({
+        from: '"Sweet Drop" <o-teu-email@gmail.com>',
+        to: body.email,
+        subject: 'Código de Verificação - Sweet Drop',
+        html: `
+          <div style="background-color: #121215; color: white; padding: 30px; font-family: sans-serif; text-align: center; border-radius: 10px;">
+            <h2 style="color: #10b981;">Verificação de E-mail</h2>
+            <p>O teu código de verificação para o Império é:</p>
+            <h1 style="background-color: #1b1b1e; padding: 15px; letter-spacing: 5px; border: 1px solid #10b981; display: inline-block;">${codigo}</h1>
+            <p>Se não pediste este código, ignora este e-mail.</p>
+          </div>
+        `
+      });
+    } catch (err) {
+      console.log("Aviso: Falha ao enviar e-mail. Verifica as tuas credenciais do Nodemailer.");
+    }
+
+    return { sucesso: true, msg: "Código enviado! Verifica a tua caixa de entrada." };
+  }
+
+  @Post('utilizador/confirmar-codigo')
+  async confirmarCodigo(@Body() body: { userId: number, codigo: string }) {
+    const user = await this.prisma.user.findUnique({ where: { id: Number(body.userId) } });
+    
+    if (user?.codigoVerificacao === body.codigo.trim()) {
+      // Código correto! Fica verificado e apaga o código da BD.
+      await this.prisma.user.update({
+        where: { id: Number(body.userId) },
+        data: { emailVerificado: true, codigoVerificacao: null }
+      });
+      return { sucesso: true, msg: "E-mail verificado com sucesso!" };
+    }
+    
+    return { sucesso: false, msg: "Código incorreto. Tenta novamente." };
   }
 
 }

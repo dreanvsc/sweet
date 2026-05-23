@@ -27,6 +27,8 @@ model User {
   submissoes    SubmissaoMissao[]
   levantamentos Levantamento[]
   emailVerificado Boolean @default(false)
+  codigoVerificacao       String?
+  codigoExpiracao         DateTime?
 }
 
 // O Inventário (Atualizado)

@@ -5,13 +5,11 @@ import { toast } from 'react-hot-toast';
 
 export default function ProfileSettings({ userData, userId }: any) {
   const [tradeUrl, setTradeUrl] = useState(userData?.tradeUrl || '');
-  const [email, setEmail] = useState(userData?.email || '');
   const [newsletter, setNewsletter] = useState(userData?.newsletter || false);
-  const [emailVerificado, setEmailVerificado] = useState(userData?.emailVerificado || false);
   
-  // 🔥 ESTADOS DO SISTEMA DE VERIFICAÇÃO DE 2 PASSOS
-  const [stepVerificacao, setStepVerificacao] = useState<0 | 1>(0); // 0 = Pedir Código, 1 = Inserir Código
-  const [codigoInput, setCodigoInput] = useState('');
+  // 🔥 ESTADOS DA VERIFICAÇÃO DE CONTA (SISTEMA CEO)
+  const [contaVerificada, setContaVerificada] = useState(userData?.contaVerificada || false);
+  const [pedidoPendente, setPedidoPendente] = useState(userData?.pedidoVerificacao || false);
   
   const [animacao, setAnimacao] = useState(() => {
     if (typeof window !== 'undefined') return localStorage.getItem('animacaoNivel') !== 'false';
@@ -19,9 +17,8 @@ export default function ProfileSettings({ userData, userId }: any) {
   });
 
   const [savingTrade, setSavingTrade] = useState(false);
-  const [savingEmail, setSavingEmail] = useState(false);
   const [savingNews, setSavingNews] = useState(false);
-  const [verificando, setVerificando] = useState(false);
+  const [loadingVerificacao, setLoadingVerificacao] = useState(false);
 
   useEffect(() => { localStorage.setItem('animacaoNivel', String(animacao)); }, [animacao]);
 
@@ -38,10 +35,6 @@ export default function ProfileSettings({ userData, userId }: any) {
       const data = await res.json();
       if (data.sucesso) {
         toast.success(`✅ Alteração guardada!`);
-        if (campo === 'email') {
-          setEmailVerificado(false);
-          setStepVerificacao(0); // Reinicia o processo se mudar o e-mail
-        }
       } else {
         toast.error('❌ Erro ao guardar.');
       }
@@ -49,51 +42,26 @@ export default function ProfileSettings({ userData, userId }: any) {
     setLoader(false);
   };
 
-  // 🔥 1. PEDIR O CÓDIGO PARA O E-MAIL
-  const handlePedirCodigo = async () => {
-    if (!email.includes('@')) return toast.error("Por favor, guarda um e-mail válido primeiro!");
-    setVerificando(true);
-    const toastId = toast.loading("A gerar código de verificação...");
+  // 🔥 PEDIR APROVAÇÃO AO CEO
+  const handlePedirVerificacao = async () => {
+    setLoadingVerificacao(true);
+    const toastId = toast.loading("A enviar pedido para a Administração...");
 
     try {
-      const res = await fetch('https://sweet-7ifa.onrender.com/utilizador/pedir-codigo', {
+      const res = await fetch('https://sweet-7ifa.onrender.com/utilizador/pedir-verificacao', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: Number(userId), email })
+        body: JSON.stringify({ userId: Number(userId) })
       });
       const data = await res.json();
       
       if (data.sucesso) {
-        toast.success(data.msg, { id: toastId, duration: 6000 });
-        setStepVerificacao(1); // Avança para o passo de escrever o código
+        toast.success(data.msg, { id: toastId });
+        setPedidoPendente(true);
       } else {
         toast.error(data.msg, { id: toastId });
       }
-    } catch (error) { toast.error("Erro ao contactar servidor.", { id: toastId }); }
-    setVerificando(false);
-  };
-
-  // 🔥 2. CONFIRMAR OS 6 DÍGITOS
-  const handleConfirmarCodigo = async () => {
-    if (codigoInput.length < 5) return toast.error("Insere o código completo!");
-    setVerificando(true);
-    const toastId = toast.loading("A validar código...");
-
-    try {
-      const res = await fetch('https://sweet-7ifa.onrender.com/utilizador/confirmar-codigo', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: Number(userId), codigo: codigoInput })
-      });
-      const data = await res.json();
-      
-      if (data.sucesso) {
-        toast.success("✅ " + data.msg, { id: toastId });
-        setEmailVerificado(true);
-        setStepVerificacao(0);
-      } else {
-        toast.error("❌ " + data.msg, { id: toastId });
-      }
-    } catch (error) { toast.error("Erro ao validar.", { id: toastId }); }
-    setVerificando(false);
+    } catch (error) { toast.error("Erro de ligação.", { id: toastId }); }
+    setLoadingVerificacao(false);
   };
 
   return (
@@ -126,74 +94,45 @@ export default function ProfileSettings({ userData, userId }: any) {
           </div>
         </div>
 
-        {/* BLOCO 2: EMAIL COM VERIFICAÇÃO 2 PASSOS 🔥 */}
-        <div className={`border rounded-xl p-6 shadow-xl transition-colors ${emailVerificado ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-[#1b1b1e] border-white/5'}`}>
+        {/* BLOCO 2: VERIFICAÇÃO DE IDENTIDADE DO CEO 🔥 */}
+        <div className={`border rounded-xl p-6 shadow-xl transition-colors ${
+          contaVerificada ? 'bg-emerald-500/5 border-emerald-500/20' : 
+          pedidoPendente ? 'bg-amber-500/5 border-amber-500/20' : 'bg-[#1b1b1e] border-white/5'
+        }`}>
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-white font-black uppercase tracking-widest text-sm">Endereço de E-mail</h3>
-            {emailVerificado ? (
+            <h3 className="text-white font-black uppercase tracking-widest text-sm">Estatuto da Conta</h3>
+            {contaVerificada ? (
               <span className="text-emerald-500 text-[10px] font-black uppercase tracking-widest bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20">
-                VERIFICADO ✅
+                VERIFICADA ✅
+              </span>
+            ) : pedidoPendente ? (
+              <span className="text-amber-500 text-[10px] font-black uppercase tracking-widest bg-amber-500/10 px-2 py-1 rounded border border-amber-500/20 animate-pulse">
+                EM ANÁLISE ⏳
               </span>
             ) : (
               <span className="text-red-500 text-[10px] font-black uppercase tracking-widest bg-red-500/10 px-2 py-1 rounded border border-red-500/20">
-                NÃO VERIFICADO ❌
+                NÃO VERIFICADA ❌
               </span>
             )}
           </div>
-
-          <div className="flex gap-2 w-full mb-3">
-            <input 
-              type="email" 
-              placeholder="DIGITE SEU E-MAIL..."
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="flex-1 bg-[#121215] border border-white/5 rounded-lg px-4 py-3 text-[10px] text-white font-black uppercase outline-none focus:border-amber-500/50 transition-colors placeholder:text-zinc-600"
-            />
-            <button 
-              onClick={() => guardarConfiguracao('email', email, setSavingEmail)}
-              disabled={savingEmail}
-              className="bg-[#121215] hover:bg-amber-500/20 hover:text-amber-500 border border-white/5 rounded-lg px-6 text-[10px] text-white font-black uppercase tracking-widest transition-colors flex items-center gap-2 disabled:opacity-50 shrink-0"
-            >
-              {savingEmail ? '⏳...' : '✎ Editar'}
-            </button>
-          </div>
           
-          {/* Lógica de Passos para a Verificação */}
-          {!emailVerificado && email && (
-            <div className="mt-4 pt-4 border-t border-white/5">
-              {stepVerificacao === 0 ? (
-                <button 
-                  onClick={handlePedirCodigo}
-                  disabled={verificando}
-                  className="w-full bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 text-white font-black text-[10px] py-3 rounded-lg uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(239,68,68,0.3)] flex items-center justify-center gap-2"
-                >
-                  {verificando ? 'A PROCESSAR...' : '✉️ ENVIAR CÓDIGO PARA O MEU E-MAIL'}
-                </button>
-              ) : (
-                <div className="flex flex-col gap-2 animate-in slide-in-from-top-2">
-                  <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest text-center mb-1">
-                    Enviámos um código para {email}
-                  </p>
-                  <div className="flex gap-2">
-                    <input 
-                      type="text" 
-                      placeholder="CÓDIGO DE 6 DÍGITOS"
-                      value={codigoInput}
-                      onChange={(e) => setCodigoInput(e.target.value)}
-                      maxLength={6}
-                      className="flex-1 bg-black/50 border border-emerald-500/30 rounded-lg px-4 py-3 text-center text-lg text-emerald-400 font-mono font-black uppercase outline-none focus:border-emerald-500 transition-colors placeholder:text-zinc-700"
-                    />
-                    <button 
-                      onClick={handleConfirmarCodigo}
-                      disabled={verificando || codigoInput.length < 5}
-                      className="bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-black font-black text-[10px] uppercase tracking-widest px-6 rounded-lg transition-colors shadow-lg"
-                    >
-                      {verificando ? '...' : 'VERIFICAR'}
-                    </button>
-                  </div>
-                  <button onClick={() => setStepVerificacao(0)} className="text-[9px] text-zinc-500 hover:text-white mt-1 underline">Voltar / Reenviar código</button>
-                </div>
-              )}
+          <p className="text-zinc-400 text-[10px] mb-4 uppercase tracking-widest leading-relaxed">
+            Para garantir a segurança da nossa economia e evitar Bots, todas as contas precisam de ser validadas pela administração antes de desbloquearem os levantamentos.
+          </p>
+
+          {!contaVerificada && !pedidoPendente && (
+            <button 
+              onClick={handlePedirVerificacao}
+              disabled={loadingVerificacao}
+              className="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-black text-[10px] py-3 rounded-lg uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(37,99,235,0.3)] flex items-center justify-center gap-2"
+            >
+              {loadingVerificacao ? 'A ENVIAR...' : '🛡️ PEDIR VERIFICAÇÃO DE CONTA'}
+            </button>
+          )}
+
+          {pedidoPendente && !contaVerificada && (
+            <div className="w-full bg-amber-500/10 border border-amber-500/20 text-amber-500 font-black text-[10px] py-3 rounded-lg uppercase tracking-widest text-center">
+              O teu pedido está na secretária do CEO. Aguarda.
             </div>
           )}
         </div>

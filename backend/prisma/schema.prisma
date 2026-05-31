@@ -29,6 +29,8 @@ model User {
   emailVerificado Boolean @default(false)
   codigoVerificacao       String?
   codigoExpiracao         DateTime?
+  contaVerificada   Boolean @default(false)
+  pedidoVerificacao Boolean @default(false)
 }
 
 // O Inventário (Atualizado)

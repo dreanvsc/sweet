@@ -194,8 +194,8 @@ export class UsersService {
       throw new Error("Tens de configurar o teu Trade URL da Steam nas Definições primeiro!");
     }
 
-    if (!user.emailVerificado) {
-      throw new Error("PROTEÇÃO: Tens de verificar o teu e-mail nas Configurações para poderes enviar skins para a Steam.");
+    if (!user.contaVerificada) {
+      throw new Error("CONTA NÃO VERIFICADA: Pede a verificação da tua conta nas Configurações para poderes levantar skins.");
     }
 
     const skin = user.inventario.find((s: any) => s.id === Number(inventarioId));

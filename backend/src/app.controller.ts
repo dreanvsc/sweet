@@ -747,4 +747,42 @@ export class AppController {
     return { sucesso: false, msg: "Código incorreto. Tenta novamente." };
   }
 
+  @Post('utilizador/pedir-verificacao')
+  async pedirVerificacao(@Body() body: { userId: number }) {
+    await this.prisma.user.update({
+      where: { id: Number(body.userId) },
+      data: { pedidoVerificacao: true }
+    });
+    return { sucesso: true, msg: "Pedido enviado! Aguarda a aprovação da administração." };
+  }
+
+  // 2. O Admin vê quem está à espera
+  @Get('admin/verificacoes-pendentes')
+  async getVerificacoes() {
+    return this.prisma.user.findMany({
+      where: { pedidoVerificacao: true, contaVerificada: false },
+      select: { id: true, username: true, nome: true, avatar: true, createdAt: true, tradeUrl: true }
+    });
+  }
+
+  // 3. O Admin aprova o jogador
+  @Post('admin/aprovar-verificacao/:id')
+  async aprovarVerificacao(@Param('id') id: string) {
+    await this.prisma.user.update({
+      where: { id: Number(id) },
+      data: { contaVerificada: true, pedidoVerificacao: false }
+    });
+    return { sucesso: true };
+  }
+
+  // 4. O Admin rejeita o jogador
+  @Post('admin/rejeitar-verificacao/:id')
+  async rejeitarVerificacao(@Param('id') id: string) {
+    await this.prisma.user.update({
+      where: { id: Number(id) },
+      data: { pedidoVerificacao: false } // Tira o estado de pendente para ele poder pedir de novo
+    });
+    return { sucesso: true };
+  }
+
 }

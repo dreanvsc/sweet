@@ -9,9 +9,11 @@ import AdminTickets from './AdminTickets';
 import AdminLiveChat from './AdminLiveChat';
 import AdminMissoes from './AdminMissoes'; 
 import AdminLevantamentos from './AdminLevantamentos';
+import AdminVerificacoes from './AdminVerificacoes';
 
 export default function Admin({ userId }: any) {
-  const [activeTab, setActiveTab] = useState<'users' | 'boxes' | 'stats' | 'system' | 'staff' | 'tickets' | 'livechat' | 'missoes'| 'withdraws'>('boxes');
+  // 🔥 Adicionado 'verificacoes' ao estado para o TypeScript não reclamar
+  const [activeTab, setActiveTab] = useState<'users' | 'boxes' | 'stats' | 'system' | 'staff' | 'tickets' | 'livechat' | 'missoes' | 'withdraws' | 'verificacoes'>('boxes');
 
   // =========================================================================
   // 🔥 ESTADOS PARA A EQUIPA (PROMOVER E REMOVER)
@@ -161,6 +163,15 @@ export default function Admin({ userId }: any) {
             <span className="text-lg w-6 text-center drop-shadow-md">📹</span> 
             <span className="text-xs font-bold uppercase tracking-widest">Moderação</span>
           </button>
+
+          {/* 🔥 NOVO BOTÃO DAS VERIFICAÇÕES DO CEO */}
+          <button 
+            onClick={() => setActiveTab('verificacoes')} 
+            className={`flex items-center gap-3 p-4 rounded-xl text-left transition-all duration-300 ${activeTab === 'verificacoes' ? 'bg-gradient-to-r from-indigo-500/20 to-transparent border-l-4 border-indigo-500 text-white shadow-[0_0_15px_rgba(99,102,241,0.15)] translate-x-2' : 'bg-transparent text-zinc-400 hover:text-white hover:bg-white/5 hover:translate-x-1'}`}
+          >
+            <span className="text-lg w-6 text-center drop-shadow-md">🛡️</span> 
+            <span className="text-xs font-bold uppercase tracking-widest">Verificações VIP</span>
+          </button>
         </div>
 
         {/* GESTÃO DE EQUIPA (DESTACADO) */}
@@ -168,7 +179,7 @@ export default function Admin({ userId }: any) {
           onClick={() => setActiveTab('staff')} 
           className={`flex items-center gap-3 p-4 rounded-xl text-left transition-all duration-300 mt-auto border ${activeTab === 'staff' ? 'bg-gradient-to-r from-red-500/20 to-red-500/5 border-red-500/50 text-white shadow-[0_0_20px_rgba(239,68,68,0.2)]' : 'bg-[#161619] border-white/5 text-zinc-400 hover:text-white hover:border-red-500/30'}`}
         >
-          <span className="text-lg w-6 text-center drop-shadow-md">🛡️</span> 
+          <span className="text-lg w-6 text-center drop-shadow-md">👑</span> 
           <span className="text-xs font-black uppercase tracking-widest">A Minha Equipa</span>
         </button>
       </div>
@@ -186,11 +197,13 @@ export default function Admin({ userId }: any) {
           {activeTab === 'system' && <TabSistema />}
           {activeTab === 'users' && <TabClientes />}
           {activeTab === 'boxes' && <TabFabrica />}
-          {/* 🔥 A LINHA MÁGICA FOI INSERIDA AQUI: */}
           {activeTab === 'withdraws' && <AdminLevantamentos />}
           {activeTab === 'tickets' && <AdminTickets />}
           {activeTab === 'livechat' && <AdminLiveChat />}
           {activeTab === 'missoes' && <AdminMissoes />}
+          
+          {/* 🔥 LINHA DE RENDERIZAÇÃO DA ABA DAS VERIFICAÇÕES */}
+          {activeTab === 'verificacoes' && <AdminVerificacoes />}
 
           {/* ABA DA EQUIPA (GESTÃO) - VISUAL RENOVADO */}
           {activeTab === 'staff' && (
@@ -199,7 +212,7 @@ export default function Admin({ userId }: any) {
               {/* TÍTULO DA ABA */}
               <div className="flex items-center gap-4 mb-8 pb-6 border-b border-white/5">
                 <div className="w-12 h-12 bg-red-500/10 rounded-xl flex items-center justify-center border border-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.2)]">
-                   <span className="text-2xl">🛡️</span>
+                   <span className="text-2xl">👑</span>
                 </div>
                 <div>
                   <h3 className="text-2xl font-black italic uppercase text-white tracking-tighter">Gestão de Equipa</h3>

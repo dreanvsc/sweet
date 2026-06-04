@@ -1,6 +1,7 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
 import Stripe from 'stripe';
+import axios from 'axios';
 
 @Injectable()
 export class UsersService {
@@ -147,25 +148,23 @@ export class UsersService {
     }
 
     if (dados.metodo === 'crypto') {
-      // 🔥 O NOVO MOTOR DO PLISIO
-      const params = new URLSearchParams({
-        source_currency: 'EUR',
-        source_amount: dados.valor.toString(),
-        currency: 'LTC',
-        order_name: `Deposito Sweet Drop`,
-        order_number: transacao.id.toString(),
-        api_key: process.env.PLISIO_SECRET_KEY || ''
-      });
-
       try {
-        const response = await fetch(`https://api.plisio.net/api/v1/invoices/new?${params.toString()}`);
-        const data = await response.json();
+        const response = await axios.get('https://api.plisio.net/api/v1/invoices/new', {
+          params: {
+            source_currency: 'EUR',
+            source_amount: dados.valor.toString(),
+            currency: 'LTC',
+            order_name: `Deposito Sweet Drop`,
+            order_number: transacao.id.toString(),
+            api_key: process.env.PLISIO_SECRET_KEY || ''
+          }
+        });
 
-        if (data.status === 'success') {
+        if (response.data && response.data.status === 'success') {
           return { 
             sucesso: true, 
             metodo: 'crypto', 
-            url: data.data.invoice_url, 
+            url: response.data.data.invoice_url, 
             msg: "Redirecionando para a Gateway de Cripto...", 
             txId: transacao.id 
           };

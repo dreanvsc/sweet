@@ -27,6 +27,7 @@
     "@nestjs/platform-socket.io": "^11.1.21",
     "@nestjs/websockets": "^11.1.21",
     "@prisma/client": "^5.22.0",
+    "axios": "^1.17.0",
     "express-session": "^1.19.0",
     "nodemailer": "^8.0.7",
     "passport": "^0.7.0",

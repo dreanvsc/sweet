@@ -786,21 +786,20 @@ export class AppController {
   }
 
   @Post('pagamentos/webhook')
-  async plisioWebhook(@Body() body: any) {
-    // O Plisio envia um sinal 'completed' quando a rede cripto confirma o dinheiro
-    if (body.status === 'completed' || body.status === 'mismatch') {
-      const txId = body.order_number; // Este é o ID da transação que enviámos!
+  async cryptoWebhook(@Body() body: any) {
+    // O NOWPayments envia o status 'finished' quando o dinheiro é confirmado na rede
+    if (body.payment_status === 'finished' || body.payment_status === 'completed') {
+      const txId = body.order_id; // O ID da nossa transação
 
       try {
-        // Usamos a tua função genial que já atualiza o saldo e mete "Concluido"
         await this.usersService.confirmarDeposito(Number(txId));
-        console.log(`💰 SUCESSO: Depósito Crypto #${txId} de ${body.source_amount}€ confirmado!`);
+        console.log(`💰 SUCESSO: Depósito Crypto #${txId} confirmado! Dinheiro a caminho da carteira!`);
       } catch (e) {
-        console.log(`Aviso: O Plisio tentou confirmar o depósito #${txId} mas já estava aprovado.`);
+        console.log(`Aviso: Tentativa de re-confirmar o depósito #${txId}.`);
       }
     }
 
-    // O Plisio EXIGE receber um "OK" de volta, senão fica a tentar enviar o sinal durante dias.
+    // Responder com 200 OK para eles saberem que recebemos o aviso
     return "OK";
   }
 

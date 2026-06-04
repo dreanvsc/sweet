@@ -149,35 +149,38 @@ export class UsersService {
 
     if (dados.metodo === 'crypto') {
       try {
-        const response = await axios.get('https://api.plisio.net/api/v1/invoices/new', {
-          params: {
-            source_currency: 'EUR',
-            source_amount: dados.valor.toString(),
-            // 🔥 REMOVIDO: 'currency: LTC'
-            // Sem isto, o Plisio vai mostrar um ecrã muito mais bonito onde o próprio jogador escolhe a moeda que quer usar (BTC, LTC, USDT, etc)!
-            order_name: `Deposito Sweet Drop`,
-            order_number: transacao.id.toString(),
-            // 🔥 ADICIONADO: .trim() para limpar eventuais espaços invisíveis na tua chave secreta
-            api_key: (process.env.PLISIO_SECRET_KEY || '').trim() 
+        const apiKey = (process.env.NOWPAYMENTS_API_KEY || '').trim();
+        
+        // Chamada à API do NOWPayments para criar a fatura
+        const response = await axios.post('https://api.nowpayments.io/v1/invoice', {
+          price_amount: dados.valor,
+          price_currency: 'eur',
+          order_id: transacao.id.toString(),
+          order_description: 'Deposito Sweet Drop',
+          success_url: 'https://sweetdrop.vercel.app/sucesso',
+          cancel_url: 'https://sweetdrop.vercel.app/erro'
+        }, {
+          headers: {
+            'x-api-key': apiKey,
+            'Content-Type': 'application/json'
           }
         });
 
-        if (response.data && response.data.status === 'success') {
+        // Se o NOWPayments devolver o link da fatura com sucesso
+        if (response.data && response.data.invoice_url) {
           return { 
             sucesso: true, 
             metodo: 'crypto', 
-            url: response.data.data.invoice_url, 
+            url: response.data.invoice_url, 
             msg: "Redirecionando para a Gateway de Cripto...", 
             txId: transacao.id 
           };
         } else {
-          // 🔥 A ARMADILHA: Se o Plisio rejeitar, ele vai "cuspir" o motivo exato (em inglês) no teu ecrã preto!
-          console.error("🔥 MOTIVO DA REJEIÇÃO DO PLISIO:", response.data);
-          throw new BadRequestException("Erro na Gateway do Plisio.");
+          console.error("Erro estrutural NOWPayments:", response.data);
+          throw new BadRequestException("Erro na Gateway de Criptomoedas.");
         }
       } catch (error: any) {
-        // Apanha falhas de conexão extremas
-        console.error("Erro Plisio Completo:", error?.response?.data || error);
+        console.error("Erro NOWPayments Completo:", error?.response?.data || error);
         throw new BadRequestException("Falha ao gerar o link de criptomoedas.");
       }
     }

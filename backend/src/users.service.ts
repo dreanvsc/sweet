@@ -147,8 +147,35 @@ export class UsersService {
     }
 
     if (dados.metodo === 'crypto') {
-      const valorBTC = (dados.valor / 60000).toFixed(6);
-      return { sucesso: true, metodo: 'crypto', carteira: "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh", moeda: "BTC", valorCripto: valorBTC, msg: "Envia Cripto para a carteira.", txId: transacao.id };
+      // 🔥 O NOVO MOTOR DO PLISIO
+      const params = new URLSearchParams({
+        source_currency: 'EUR',
+        source_amount: dados.valor.toString(),
+        currency: 'LTC',
+        order_name: `Deposito Sweet Drop`,
+        order_number: transacao.id.toString(),
+        api_key: process.env.PLISIO_SECRET_KEY || ''
+      });
+
+      try {
+        const response = await fetch(`https://api.plisio.net/api/v1/invoices/new?${params.toString()}`);
+        const data = await response.json();
+
+        if (data.status === 'success') {
+          return { 
+            sucesso: true, 
+            metodo: 'crypto', 
+            url: data.data.invoice_url, 
+            msg: "Redirecionando para a Gateway de Cripto...", 
+            txId: transacao.id 
+          };
+        } else {
+          throw new BadRequestException("Erro na Gateway do Plisio.");
+        }
+      } catch (error) {
+        console.error("Erro Plisio:", error);
+        throw new BadRequestException("Falha ao gerar o link de criptomoedas.");
+      }
     }
 
     throw new BadRequestException("Método desconhecido.");

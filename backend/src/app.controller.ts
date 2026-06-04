@@ -761,7 +761,7 @@ export class AppController {
   async getVerificacoes() {
     return this.prisma.user.findMany({
       where: { pedidoVerificacao: true, contaVerificada: false },
-      select: { id: true, username: true, nome: true, avatar: true, createdAt: true, tradeUrl: true }
+      select: { id: true, username: true, nome: true, avatar: true, tradeUrl: true } // <-- Removido o createdAt
     });
   }
 
@@ -783,6 +783,25 @@ export class AppController {
       data: { pedidoVerificacao: false } // Tira o estado de pendente para ele poder pedir de novo
     });
     return { sucesso: true };
+  }
+
+  @Post('pagamentos/webhook')
+  async plisioWebhook(@Body() body: any) {
+    // O Plisio envia um sinal 'completed' quando a rede cripto confirma o dinheiro
+    if (body.status === 'completed' || body.status === 'mismatch') {
+      const txId = body.order_number; // Este é o ID da transação que enviámos!
+
+      try {
+        // Usamos a tua função genial que já atualiza o saldo e mete "Concluido"
+        await this.usersService.confirmarDeposito(Number(txId));
+        console.log(`💰 SUCESSO: Depósito Crypto #${txId} de ${body.source_amount}€ confirmado!`);
+      } catch (e) {
+        console.log(`Aviso: O Plisio tentou confirmar o depósito #${txId} mas já estava aprovado.`);
+      }
+    }
+
+    // O Plisio EXIGE receber um "OK" de volta, senão fica a tentar enviar o sinal durante dias.
+    return "OK";
   }
 
 }

@@ -48,6 +48,7 @@ package.json
 prisma/migrations/20260513213251_1/migration.sql
 prisma/migrations/20260513214656_1/migration.sql
 prisma/migrations/20260513220510_teste/migration.sql
+prisma/migrations/20260523114540_1/migration.sql
 prisma/migrations/migration_lock.toml
 prisma/schema.prisma
 README.md
@@ -222,6 +223,7 @@ export default tseslint.config(
     "@nestjs/websockets": "^11.1.21",
     "@prisma/client": "^5.22.0",
     "express-session": "^1.19.0",
+    "nodemailer": "^8.0.7",
     "passport": "^0.7.0",
     "passport-steam": "^1.0.18",
     "reflect-metadata": "^0.2.2",
@@ -238,6 +240,7 @@ export default tseslint.config(
     "@types/express": "^5.0.0",
     "@types/jest": "^30.0.0",
     "@types/node": "^24.0.0",
+    "@types/nodemailer": "^8.0.0",
     "@types/supertest": "^7.0.0",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",
@@ -395,6 +398,122 @@ CREATE TABLE "HistoricoJogo" (
 ALTER TABLE "HistoricoJogo" ADD CONSTRAINT "HistoricoJogo_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 </file>
 
+<file path="prisma/migrations/20260523114540_1/migration.sql">
+/*
+  Warnings:
+
+  - You are about to drop the column `ultimoBonus` on the `User` table. All the data in the column will be lost.
+
+*/
+-- AlterTable
+ALTER TABLE "HistoricoJogo" ADD COLUMN     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
+
+-- AlterTable
+ALTER TABLE "User" DROP COLUMN "ultimoBonus",
+ADD COLUMN     "codigoExpiracao" TIMESTAMP(3),
+ADD COLUMN     "codigoVerificacao" TEXT,
+ADD COLUMN     "email" TEXT,
+ADD COLUMN     "emailVerificado" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN     "level" INTEGER NOT NULL DEFAULT 1,
+ADD COLUMN     "newsletter" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN     "role" TEXT NOT NULL DEFAULT 'USER',
+ADD COLUMN     "tradeUrl" TEXT;
+
+-- CreateTable
+CREATE TABLE "TicketSuporte" (
+    "id" SERIAL NOT NULL,
+    "userId" INTEGER NOT NULL,
+    "assunto" TEXT NOT NULL,
+    "mensagem" TEXT NOT NULL,
+    "resposta" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'ABERTO',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "TicketSuporte_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "LiveChat" (
+    "id" SERIAL NOT NULL,
+    "userId" INTEGER NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'ABERTO',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "LiveChat_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "LiveChatMessage" (
+    "id" SERIAL NOT NULL,
+    "chatId" INTEGER NOT NULL,
+    "remetente" TEXT NOT NULL,
+    "texto" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "LiveChatMessage_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "SubmissaoMissao" (
+    "id" SERIAL NOT NULL,
+    "userId" INTEGER NOT NULL,
+    "plataforma" TEXT NOT NULL,
+    "link" TEXT NOT NULL,
+    "recompensa" DOUBLE PRECISION NOT NULL DEFAULT 0.09,
+    "status" TEXT NOT NULL DEFAULT 'PENDENTE',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "SubmissaoMissao_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Configuracao" (
+    "id" SERIAL NOT NULL,
+    "chave" TEXT NOT NULL,
+    "valor" TEXT NOT NULL,
+    "descricao" TEXT,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Configuracao_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Levantamento" (
+    "id" SERIAL NOT NULL,
+    "userId" INTEGER NOT NULL,
+    "skinNome" TEXT NOT NULL,
+    "skinImagem" TEXT NOT NULL,
+    "valor" DOUBLE PRECISION NOT NULL,
+    "tradeUrl" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'PENDENTE',
+    "dataPedido" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Levantamento_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "SubmissaoMissao_link_key" ON "SubmissaoMissao"("link");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Configuracao_chave_key" ON "Configuracao"("chave");
+
+-- AddForeignKey
+ALTER TABLE "TicketSuporte" ADD CONSTRAINT "TicketSuporte_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "LiveChat" ADD CONSTRAINT "LiveChat_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "LiveChatMessage" ADD CONSTRAINT "LiveChatMessage_chatId_fkey" FOREIGN KEY ("chatId") REFERENCES "LiveChat"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SubmissaoMissao" ADD CONSTRAINT "SubmissaoMissao_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Levantamento" ADD CONSTRAINT "Levantamento_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+</file>
+
 <file path="prisma/migrations/migration_lock.toml">
 # Please do not edit this file manually
 # It should be added in your version-control system (i.e. Git)
@@ -431,6 +550,10 @@ model User {
   submissoes    SubmissaoMissao[]
   levantamentos Levantamento[]
   emailVerificado Boolean @default(false)
+  codigoVerificacao       String?
+  codigoExpiracao         DateTime?
+  contaVerificada   Boolean @default(false)
+  pedidoVerificacao Boolean @default(false)
 }
 
 // O Inventário (Atualizado)
@@ -1497,15 +1620,106 @@ export class AppController {
     return { sucesso: true, mensagem: "Levantamento cancelado. A skin voltou para a conta do jogador no site." };
   }
 
-  @Post('utilizador/verificar-email')
-  async verificarEmail(@Body() body: { userId: number }) {
-    // 🔥 No futuro, isto enviaria um link real por e-mail (SMTP). 
-    // Por agora, o botão ativa a conta diretamente para testares o MVP!
+  @Post('utilizador/pedir-codigo')
+  async pedirCodigoVerificacao(@Body() body: { userId: number, email: string }) {
+    const user = await this.prisma.user.findUnique({ where: { id: Number(body.userId) } });
+    if (!user) return { sucesso: false, msg: "Utilizador não encontrado." };
+
+    // 1. Gera um código de 6 dígitos
+    const codigo = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // 2. Guarda o código na Base de Dados
     await this.prisma.user.update({
       where: { id: Number(body.userId) },
-      data: { emailVerificado: true }
+      data: { codigoVerificacao: codigo, email: body.email } // Guarda o email também
     });
-    return { sucesso: true, msg: "E-mail verificado com sucesso!" };
+
+    // 3. Configura o carteiro (Substitui com o teu e-mail real e a App Password)
+    const nodemailer = require('nodemailer');
+    const transporter = nodemailer.createTransport({
+      service: 'gmail', // Podes usar gmail, outlook, etc.
+      auth: {
+        user: 'o-teu-email@gmail.com', // ⚠️ METE O TEU E-MAIL AQUI
+        pass: 'a-tua-password-de-aplicacao' // ⚠️ METE A PASSWORD DE APLICAÇÃO AQUI
+      }
+    });
+
+    // Se ainda não tens Password de Aplicação, o código vai apenas aparecer nos logs (para testares)
+    console.log(`[ALERTA] CÓDIGO GERADO PARA ${body.email}: ${codigo}`);
+
+    try {
+      await transporter.sendMail({
+        from: '"Sweet Drop" <o-teu-email@gmail.com>',
+        to: body.email,
+        subject: 'Código de Verificação - Sweet Drop',
+        html: `
+          <div style="background-color: #121215; color: white; padding: 30px; font-family: sans-serif; text-align: center; border-radius: 10px;">
+            <h2 style="color: #10b981;">Verificação de E-mail</h2>
+            <p>O teu código de verificação para o Império é:</p>
+            <h1 style="background-color: #1b1b1e; padding: 15px; letter-spacing: 5px; border: 1px solid #10b981; display: inline-block;">${codigo}</h1>
+            <p>Se não pediste este código, ignora este e-mail.</p>
+          </div>
+        `
+      });
+    } catch (err) {
+      console.log("Aviso: Falha ao enviar e-mail. Verifica as tuas credenciais do Nodemailer.");
+    }
+
+    return { sucesso: true, msg: "Código enviado! Verifica a tua caixa de entrada." };
+  }
+
+  @Post('utilizador/confirmar-codigo')
+  async confirmarCodigo(@Body() body: { userId: number, codigo: string }) {
+    const user = await this.prisma.user.findUnique({ where: { id: Number(body.userId) } });
+    
+    if (user?.codigoVerificacao === body.codigo.trim()) {
+      // Código correto! Fica verificado e apaga o código da BD.
+      await this.prisma.user.update({
+        where: { id: Number(body.userId) },
+        data: { emailVerificado: true, codigoVerificacao: null }
+      });
+      return { sucesso: true, msg: "E-mail verificado com sucesso!" };
+    }
+    
+    return { sucesso: false, msg: "Código incorreto. Tenta novamente." };
+  }
+
+  @Post('utilizador/pedir-verificacao')
+  async pedirVerificacao(@Body() body: { userId: number }) {
+    await this.prisma.user.update({
+      where: { id: Number(body.userId) },
+      data: { pedidoVerificacao: true }
+    });
+    return { sucesso: true, msg: "Pedido enviado! Aguarda a aprovação da administração." };
+  }
+
+  // 2. O Admin vê quem está à espera
+  @Get('admin/verificacoes-pendentes')
+  async getVerificacoes() {
+    return this.prisma.user.findMany({
+      where: { pedidoVerificacao: true, contaVerificada: false },
+      select: { id: true, username: true, nome: true, avatar: true, createdAt: true, tradeUrl: true }
+    });
+  }
+
+  // 3. O Admin aprova o jogador
+  @Post('admin/aprovar-verificacao/:id')
+  async aprovarVerificacao(@Param('id') id: string) {
+    await this.prisma.user.update({
+      where: { id: Number(id) },
+      data: { contaVerificada: true, pedidoVerificacao: false }
+    });
+    return { sucesso: true };
+  }
+
+  // 4. O Admin rejeita o jogador
+  @Post('admin/rejeitar-verificacao/:id')
+  async rejeitarVerificacao(@Param('id') id: string) {
+    await this.prisma.user.update({
+      where: { id: Number(id) },
+      data: { pedidoVerificacao: false } // Tira o estado de pendente para ele poder pedir de novo
+    });
+    return { sucesso: true };
   }
 
 }
@@ -2551,8 +2765,8 @@ export class UsersService {
       throw new Error("Tens de configurar o teu Trade URL da Steam nas Definições primeiro!");
     }
 
-    if (!user.emailVerificado) {
-      throw new Error("PROTEÇÃO: Tens de verificar o teu e-mail nas Configurações para poderes enviar skins para a Steam.");
+    if (!user.contaVerificada) {
+      throw new Error("CONTA NÃO VERIFICADA: Pede a verificação da tua conta nas Configurações para poderes levantar skins.");
     }
 
     const skin = user.inventario.find((s: any) => s.id === Number(inventarioId));

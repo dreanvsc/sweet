@@ -1610,12 +1610,37 @@ export default function TabFabrica() {
   const carregarCaixas = () => fetch('https://sweet-7ifa.onrender.com/caixas').then(res => res.json()).then(setCaixasCriadas);
 
   // 🔥 ESCUDO ANTI-BLOQUEIO DE IMAGENS 🔥
-  const getImagemSegura = (url: string) => {
-    if (!url) return '/skins/glock.png';
+  const getImagemSegura = (url?: string) => {
+    if (!url || url.includes('URL_IMAGEM')) return '/skins/glock.png';
     if (url.includes('steam') && !url.includes('wsrv.nl')) {
       return `https://wsrv.nl/?url=${encodeURIComponent(url)}`;
     }
     return url;
+  };
+
+  // Normaliza nomes para conseguir encontrar skins mesmo com ★, StatTrak™, desgaste, etc.
+  const normalizarNomeSkin = (nome?: string) => {
+    return (nome || '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/★/g, '')
+      .replace(/stattrak™/gi, '')
+      .replace(/souvenir/gi, '')
+      .replace(/™/g, '')
+      .replace(/\((factory new|minimal wear|field-tested|field tested|well-worn|well worn|battle-scarred|battle scarred)\)/gi, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  };
+
+  const encontrarSkinOficial = (nome: string) => {
+    const nomeNormalizado = normalizarNomeSkin(nome);
+
+    return (
+      todosItens.find(dbItem => normalizarNomeSkin(dbItem.nome) === nomeNormalizado) ||
+      todosItens.find(dbItem => normalizarNomeSkin(dbItem.nome).includes(nomeNormalizado)) ||
+      todosItens.find(dbItem => nomeNormalizado.includes(normalizarNomeSkin(dbItem.nome)))
+    );
   };
 
   const adicionarItemACaixa = (item: any) => {
@@ -1639,16 +1664,20 @@ export default function TabFabrica() {
       if (!Array.isArray(dadosParseados)) return toast.error("O JSON tem de ser uma lista [ ... ]");
 
       const itensMapeados = dadosParseados.map((item, index) => {
-        const skinOficial = todosItens.find(dbItem => dbItem.nome.toLowerCase() === item.nome.toLowerCase());
-        let imagemCrua = skinOficial ? skinOficial.imagem : (item.imagem || item.image || '/skins/glock.png');
+        const nomeItem = item.nome || item.name || '';
+        const skinOficial = encontrarSkinOficial(nomeItem);
+
+        // Prioridade: imagem da tua BD/API oficial. Só usa a imagem do JSON se for um URL real.
+        const imagemDoJson = item.imagem || item.image || '';
+        const imagemCrua = skinOficial?.imagem || (imagemDoJson.startsWith('http') ? imagemDoJson : '/skins/glock.png');
 
         return {
-          id: skinOficial ? skinOficial.id : Date.now() + index,
-          nome: item.nome,
+          id: skinOficial?.id || Date.now() + index,
+          nome: skinOficial?.nome || nomeItem,
           imagem: getImagemSegura(imagemCrua),
-          preco: item.preco || (skinOficial ? skinOficial.preco : 0),
-          raridade: skinOficial ? skinOficial.raridade : (item.raridade || 'Comum'),
-          probabilidade: item.probabilidade || 0
+          preco: Number(item.preco ?? item.valor ?? skinOficial?.preco ?? 0),
+          raridade: skinOficial?.raridade || item.raridade || 'Comum',
+          probabilidade: Number(item.probabilidade ?? item.chance ?? 0)
         };
       });
 
@@ -1766,7 +1795,7 @@ export default function TabFabrica() {
              <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
                {itensFiltrados.map(item => (
                  <div key={item.id} onClick={() => adicionarItemACaixa(item)} className="bg-black/60 border border-white/5 rounded-xl p-2 cursor-pointer hover:border-emerald-500 hover:bg-emerald-500/10 flex flex-col items-center group transition-all">
-                   <img src={item.imagem} className="w-10 h-10 object-contain group-hover:scale-110 transition-transform drop-shadow-md" alt="skin" />
+                   <img src={getImagemSegura(item.imagem)} onError={(e) => { e.currentTarget.src = '/skins/glock.png'; }} className="w-10 h-10 object-contain group-hover:scale-110 transition-transform drop-shadow-md" alt="skin" />
                    <span className="text-[8px] font-bold mt-1 text-zinc-400 truncate w-full text-center group-hover:text-white">{item.nome}</span>
                  </div>
                ))}
@@ -1807,7 +1836,7 @@ export default function TabFabrica() {
                  <div key={item.id} className="flex items-center justify-between bg-black/40 border border-white/5 p-3 rounded-xl hover:border-white/10 transition-colors group">
                    <div className="flex items-center gap-3">
                      <div className="bg-black/60 p-2 rounded-lg border border-white/5">
-                        <img src={item.imagem || item.image} className="w-8 h-8 object-contain drop-shadow-md" alt="skin" />
+                        <img src={getImagemSegura(item.imagem || item.image)} onError={(e) => { e.currentTarget.src = '/skins/glock.png'; }} className="w-8 h-8 object-contain drop-shadow-md" alt="skin" />
                      </div>
                      <div>
                        <p className="text-[10px] font-bold text-white truncate w-32 sm:w-40">{item.nome}</p>
@@ -2732,7 +2761,7 @@ export default function CaseOpening({
   }, [caixaSelecionada]);
 
   const abrirCaixa = async () => {
-    // 🔥 Agora usa o toast.error em vez do alert
+    
     if (!userId) return toast.error("Erro: Não tens sessão iniciada.");
     
     const precoTotal = caixaSelecionada.preco * quantidade;
@@ -3654,7 +3683,7 @@ export default function LiveDrops() {
 'use client';
 
 import React, { useState } from 'react';
-import { toast } from 'react-hot-toast'; // 🔥 Import do Motor de Notificações Premium adicionado!
+import { toast } from 'react-hot-toast'; 
 
 export default function ModalDeposito({ onClose, userId }: { onClose: () => void, userId: string }) {
   const [metodo, setMetodo] = useState<'mbway' | 'cartao' | 'crypto'>('mbway');
@@ -3664,7 +3693,6 @@ export default function ModalDeposito({ onClose, userId }: { onClose: () => void
   const [infoPagamento, setInfoPagamento] = useState<any>(null);
 
   const handlePagar = async () => {
-    // 🔥 Toasts em vez de Alerts
     if (!userId) return toast.error("Erro de sessão.");
     if (Number(valor) < 5) return toast.error("Depósito mínimo de 5€.");
     if (metodo === 'mbway' && telemovel.length < 9) return toast.error("Número de telemóvel inválido.");
@@ -3678,13 +3706,23 @@ export default function ModalDeposito({ onClose, userId }: { onClose: () => void
       const data = await res.json();
       
       if (res.ok) {
-        setInfoPagamento(data); // Mostra o resultado (link da stripe, ou morada cripto)
-        toast.success("Pedido de depósito gerado com sucesso!"); // 🔥
+        // 🔥 A MÁGICA ACONTECE AQUI!
+        if (data.metodo === 'crypto' && data.url) {
+          toast.success("Redirecionando para a Gateway...");
+          setTimeout(() => {
+            window.location.href = data.url; // 🚀 Atira o jogador direto pro NOWPayments
+          }, 800);
+          return; // Para a execução aqui para não abrir o ecrã de sucesso falso
+        }
+        
+        // Se for MBWAY ou Cartão, faz o processo normal
+        setInfoPagamento(data); 
+        toast.success("Pedido de depósito gerado com sucesso!");
       } else {
-        toast.error(data.message || "Erro a processar pagamento."); // 🔥
+        toast.error(data.message || "Erro a processar pagamento.");
       }
     } catch(e) { 
-      toast.error("Erro ao ligar ao servidor."); // 🔥
+      toast.error("Erro ao ligar ao servidor."); 
     }
     setLoading(false);
   };
@@ -3747,9 +3785,9 @@ export default function ModalDeposito({ onClose, userId }: { onClose: () => void
               </button>
             </>
           ) : (
-            /* ECRÃ DE SUCESSO (Instruções após clique) */
+            /* ECRÃ DE SUCESSO APENAS PARA MBWAY E CARTÃO */
             <div className="text-center py-8 animate-in fade-in zoom-in-95">
-              <span className="text-6xl block mb-6 animate-bounce drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]">{infoPagamento.metodo === 'mbway' ? '📱' : infoPagamento.metodo === 'cartao' ? '💳' : '₿'}</span>
+              <span className="text-6xl block mb-6 animate-bounce drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]">{infoPagamento.metodo === 'mbway' ? '📱' : '💳'}</span>
               <h2 className="text-2xl font-black text-white mb-2">{infoPagamento.msg}</h2>
               
               {infoPagamento.metodo === 'mbway' && <p className="text-sm text-zinc-400 bg-white/5 p-4 rounded-xl border border-white/5">Abre a tua app do banco e confirma o pagamento.</p>}
@@ -3758,16 +3796,6 @@ export default function ModalDeposito({ onClose, userId }: { onClose: () => void
                 <a href={infoPagamento.url} target="_blank" className="mt-6 inline-block bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white px-8 py-4 rounded-xl font-black uppercase text-sm shadow-[0_0_20px_rgba(168,85,247,0.4)] hover:scale-105 transition-all">
                   Abrir Checkout Stripe
                 </a>
-              )}
-              
-              {infoPagamento.metodo === 'crypto' && (
-                <div className="mt-4 bg-black/60 border border-amber-500/20 p-5 rounded-xl inline-block text-left w-full shadow-inner relative overflow-hidden">
-                  <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/10 blur-xl rounded-full"></div>
-                  <p className="text-[10px] text-zinc-500 font-bold uppercase mb-1 relative z-10">Envia exatamente:</p>
-                  <p className="text-emerald-400 font-mono font-black text-2xl mb-4 drop-shadow-[0_0_8px_rgba(52,211,153,0.3)] relative z-10">{infoPagamento.valorCripto} {infoPagamento.moeda}</p>
-                  <p className="text-[10px] text-zinc-500 font-bold uppercase mb-1 relative z-10">Para o endereço:</p>
-                  <p className="text-amber-400 font-mono text-xs break-all bg-white/5 p-3 rounded-lg border border-white/5 relative z-10 selection:bg-amber-500 selection:text-black">{infoPagamento.carteira}</p>
-                </div>
               )}
 
               <p className="text-[10px] text-zinc-500 uppercase font-bold mt-8 flex items-center justify-center gap-2">
@@ -4266,7 +4294,6 @@ export default function ProfileHistory({ userId }: any) {
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 
-// 🔥 Alterado: Adicionado o parâmetro 'userData' na desestruturação das props do componente
 export default function ProfileInventory({ inventario, setInventario, setSaldo, setView, userId, userData }: any) {
   const [search, setSearch] = useState('');
   const [loadingId, setLoadingId] = useState<number | null>(null);
@@ -4295,10 +4322,9 @@ export default function ProfileInventory({ inventario, setInventario, setSaldo, 
 
   // 🔥 1. ABRIR MODAL DE LEVANTAMENTO
   const iniciarLevantamento = (item: any) => {
-    // 🔥 Alterado: Adicionada a validação inicial de segurança de e-mail verificado
-    if (!userData?.emailVerificado) {
-      return toast.error("SEGURANÇA: Verifica o teu e-mail nas Configurações antes de levantar a skin!");
-    }
+    // if (!userData?.emailVerificado) {
+    //   return toast.error("SEGURANÇA: Verifica o teu e-mail nas Configurações antes de levantar a skin!");
+    // }
 
     const precoReal = Number(item?.preco || item?.valor || 0);
     if (precoReal < 2.00) {
@@ -4337,15 +4363,38 @@ export default function ProfileInventory({ inventario, setInventario, setSaldo, 
     setLoadingId(null);
   };
 
-  // 🔥 2. CONFIRMAR VENDA NO MODAL
-  const confirmarVenda = () => {
+  // 🔥 2. CONFIRMAR VENDA NO MODAL (CORRIGIDO E LIGADO AO BACKEND)
+  const confirmarVenda = async () => {
     const { item, idx } = skinParaVender;
-    const precoReal = Number(item?.preco || item?.valor || 0);
     
-    setSaldo((s: number) => s + precoReal);
-    setInventario((inv: any) => inv.filter((_: any, i: number) => i !== idx));
-    toast.success(`Vendeste a skin por ${precoReal.toFixed(2)}€!`);
+    if (!userId) return toast.error("Erro: Sessão não encontrada.");
+    
     setSkinParaVender(null);
+    const toastId = toast.loading("A processar venda no mercado...");
+
+    try {
+      const res = await fetch('https://sweet-7ifa.onrender.com/vender-item', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          userId: Number(userId), 
+          inventarioId: item.id 
+        })
+      });
+      
+      const data = await res.json();
+
+      if (data.sucesso) {
+        setSaldo(data.novoSaldo); 
+        setInventario((inv: any) => inv.filter((_: any, i: number) => i !== idx)); 
+        toast.success(`Vendeste a skin por ${data.valorRecebido.toFixed(2)}€!`, { id: toastId });
+      } else {
+        toast.error('❌ ' + (data.mensagem || data.message || "Erro ao vender skin."), { id: toastId });
+      }
+
+    } catch (error) {
+      toast.error('Erro de comunicação com o servidor.', { id: toastId });
+    }
   };
 
   const inventarioSeguro = Array.isArray(inventario) ? inventario : [];
@@ -5470,26 +5519,68 @@ import React from 'react';
 
 export default function Store({ CAIXAS, setCaixaSelecionada, setView }: any) {
   return (
-    <div className="max-w-7xl mx-auto animate-in fade-in">
-      <div className="flex items-center gap-4 mb-10">
+    <div className="max-w-7xl mx-auto animate-in fade-in pb-16">
+      
+      {/* TÍTULO */}
+      <div className="flex items-center gap-4 mb-10 px-4 md:px-8">
         <h2 className="text-4xl font-black italic uppercase tracking-tighter">Explorar Caixas</h2>
         <div className="h-px flex-1 bg-white/5"></div>
       </div>
       
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {CAIXAS.map((c: any, i: number) => (
-          <div key={i} onClick={() => { setCaixaSelecionada(c); setView('opening'); }}
-            className="bg-[#121215] p-1 rounded-[40px] border border-white/5 hover:border-emerald-500/50 transition-all cursor-pointer group relative overflow-hidden">
-            <div className="p-10 flex flex-col items-center">
-              <span className="absolute top-6 right-6 bg-white/5 px-3 py-1 rounded-full text-[8px] font-black tracking-widest">{c.tag}</span>
-              <div className={`w-32 h-32 bg-gradient-to-br ${c.cor} opacity-10 blur-[50px] absolute`}></div>
-              <span className="text-7xl mb-6 group-hover:scale-110 transition-transform">📦</span>
-              <h3 className="font-black text-sm uppercase tracking-widest mb-1">{c.nome}</h3>
-              <span className="text-emerald-500 font-mono font-black text-xl">{c.preco.toFixed(2)}€</span>
+      {/* A GRELHA (Estilo Hunt.gg) */}
+      <div className="px-4 md:px-8">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+          
+          {CAIXAS.map((c: any, i: number) => (
+            <div 
+              key={i} 
+              // A TUA LÓGICA DE ABRIR A CAIXA INTATA
+              onClick={() => { setCaixaSelecionada(c); setView('opening'); }}
+              className="relative bg-[#161619] border border-white/5 rounded-2xl p-6 flex flex-col items-center justify-center group hover:-translate-y-1.5 hover:bg-[#1b1b1e] hover:border-white/20 hover:shadow-[0_10px_40px_rgba(0,0,0,0.5)] transition-all duration-300 cursor-pointer"
+            >
+              {/* ETIQUETA (Hot, Nova, etc - Se existir a tag ou for cara) */}
+              {(c.tag || c.preco > 50) && (
+                <div className="absolute top-4 right-4 bg-gradient-to-r from-orange-500 to-red-500 text-white text-[9px] font-black px-2.5 py-1 rounded-sm uppercase tracking-widest shadow-lg z-20">
+                  {c.tag || 'HOT'}
+                </div>
+              )}
+
+              {/* IMAGEM DA CAIXA (Tamanho grande, centrada e com sombra) */}
+              <div className="w-32 h-32 md:w-36 md:h-36 flex items-center justify-center my-4 relative">
+                {/* Brilho de fundo subtil que aparece ao passar o rato */}
+                <div className="absolute inset-0 bg-white/5 blur-2xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                
+                {/* Mostra a imagem real da DB. Se falhar, usa o teu emoji! */}
+                {c.imagem || c.image ? (
+                  <img 
+                    src={c.imagem || c.image} 
+                    alt={c.nome} 
+                    className="max-w-full max-h-full object-contain relative z-10 drop-shadow-[0_15px_15px_rgba(0,0,0,0.5)] group-hover:scale-110 transition-transform duration-300" 
+                  />
+                ) : (
+                  <span className="text-7xl relative z-10 drop-shadow-[0_15px_15px_rgba(0,0,0,0.5)] group-hover:scale-110 transition-transform duration-300">📦</span>
+                )}
+              </div>
+
+              {/* INFORMAÇÃO (Nome em cima, Preço destacado em baixo) */}
+              <div className="text-center mt-auto w-full">
+                <h3 className="text-white font-black uppercase text-[13px] md:text-sm tracking-[0.15em] truncate w-full text-zinc-300 group-hover:text-white transition-colors">
+                  {c.nome}
+                </h3>
+                
+                {/* Preço com o verde estilo casino */}
+                <div className="mt-3 flex items-center justify-center gap-1 text-[#10b981] font-black text-sm md:text-base">
+                  <span className="text-[10px] md:text-xs opacity-70">€</span> 
+                  {Number(c.preco).toFixed(2)}
+                </div>
+              </div>
+              
             </div>
-          </div>
-        ))}
+          ))}
+
+        </div>
       </div>
+      
     </div>
   );
 }

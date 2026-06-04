@@ -139,16 +139,22 @@ export class CaixasService {
           
           await this.usersService.adicionarXp(Number(dados.userId), precoTotal);
 
-          resultado.skinsGanhas.forEach((skin: any) => {
-            this.feedGateway.emitirNovoDrop({
-              nome: skin.nome,
-              imagem: skin.imagem || skin.image,
-              raridade: skin.raridade || 'Comum',
-              valor: parseFloat(Number(skin.preco || skin.valor || 0).toFixed(2)),
-              userNome: resultado.user.nome || 'Anónimo',
-              userFoto: resultado.user.avatar || '/skins/glock.png'
+          // 🔥 O ANTI-SPOILER: Quantos milissegundos demora a tua roleta a girar?
+          // Ajusta este valor! (ex: 6000 = 6 segundos de roleta)
+          const TEMPO_DA_ROLETA = 6000; 
+
+          setTimeout(() => {
+            resultado.skinsGanhas.forEach((skin: any) => {
+              this.feedGateway.emitirNovoDrop({
+                nome: skin.nome,
+                imagem: skin.imagem || skin.image,
+                raridade: skin.raridade || 'Comum',
+                valor: parseFloat(Number(skin.preco || skin.valor || 0).toFixed(2)),
+                userNome: resultado.user.nome || 'Anónimo',
+                userFoto: resultado.user.avatar || '/skins/glock.png'
+              });
             });
-          });
+          }, TEMPO_DA_ROLETA);
 
           return {
             itensSorteados: resultado.skinsGanhas.map((s: any) => ({ nome: s.nome, imageUrl: s.imagem || s.image, valor: parseFloat(Number(s.preco || s.valor || 0).toFixed(2)), raridade: s.raridade })),

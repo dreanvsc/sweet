@@ -222,6 +222,7 @@ export default tseslint.config(
     "@nestjs/platform-socket.io": "^11.1.21",
     "@nestjs/websockets": "^11.1.21",
     "@prisma/client": "^5.22.0",
+    "axios": "^1.17.0",
     "express-session": "^1.19.0",
     "nodemailer": "^8.0.7",
     "passport": "^0.7.0",
@@ -935,10 +936,9 @@ describe('AppController', () => {
 </file>
 
 <file path="src/app.controller.ts">
-import { Controller, Get, Post, Body, UseGuards, Req, Res, Param, Put, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards, Req, Res, Param, Put, Delete, BadRequestException } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 
-// 🔥 Importamos os 4 novos Departamentos e a Base de Dados
 import { UsersService } from './users.service';
 import { CaixasService } from './caixas.service';
 import { UpgraderService } from './upgrader.service';
@@ -947,13 +947,12 @@ import { PrismaService } from './prisma.service';
 
 @Controller()
 export class AppController {
-  // A "Telefonista" agora conhece os 4 gerentes do casino E tem a chave do Prisma!
   constructor(
     private readonly usersService: UsersService,
     private readonly caixasService: CaixasService,
     private readonly upgraderService: UpgraderService,
     private readonly adminService: AdminService,
-    private prisma: PrismaService // 🔥 A CHAVE ADICIONADA AQUI (Resolve os erros!)
+    private prisma: PrismaService 
   ) {}
 
   // ==========================================
@@ -989,7 +988,6 @@ export class AppController {
     return await this.caixasService.criarCaixa(body);
   }
 
-
   // ==========================================
   // DEPARTAMENTO DOS UTILIZADORES E SALDO
   // ==========================================
@@ -1015,16 +1013,14 @@ export class AppController {
 
   @Post('vender-item')
   async venderItem(@Body() body: { userId: number, inventarioId: number }) {
+    // 🔥 O reencaminhamento está perfeito! O bug está dentro desta função no users.service.ts
     return await this.usersService.venderItem(body.userId, body.inventarioId);
   }
 
-
-  // 🔥 NOTA: Atualizei esta rota para ser mais segura e só mostrar o inventário DESTE jogador
   @Get('meu-inventario/:userId')
   async verInventario(@Param('userId') userId: string) {
     return await this.usersService.verInventario(Number(userId));
   }
-
 
   // ==========================================
   // DEPARTAMENTO DO UPGRADER
@@ -1033,7 +1029,6 @@ export class AppController {
   async upgrade(@Body() body: { userId: number, skinIds: number[], alvoId: number }) {
     return await this.upgraderService.realizarUpgrade(body);
   }
-
 
   // ==========================================
   // DEPARTAMENTO DO ADMIN E SISTEMA
@@ -1088,14 +1083,9 @@ export class AppController {
         const raridadeNome = skin.rarity?.name || 'Mil-Spec Grade';
         const imagemSegura = skin.image || '/skins/glock.png';
         
-        // 🔥 MOTOR DE PREÇOS AFINADO E FILTRO VIP 🔥
         let precoBase = 5.0;
 
-        // 1. Tenta usar o preço da API (se a API o fornecer)
-        if (skin.price && !isNaN(parseFloat(skin.price))) {
-          precoBase = parseFloat(skin.price);
-        } 
-        // 2. Tabela VIP de Lendas (Override de Patrão para skins milionárias)
+        if (skin.price && !isNaN(parseFloat(skin.price))) precoBase = parseFloat(skin.price);
         else if (skin.name.includes('Dragon Lore')) precoBase = 6500.0;
         else if (skin.name.includes('Gungnir')) precoBase = 7000.0;
         else if (skin.name.includes('Howl')) precoBase = 4500.0;
@@ -1106,7 +1096,6 @@ export class AppController {
         else if (skin.name.includes('Fade') && skin.name.includes('Butterfly')) precoBase = 2800.0;
         else if (skin.name.includes('Doppler') && skin.name.includes('Karambit')) precoBase = 1200.0;
         else if (skin.name.includes('Vanilla') && skin.name.includes('Butterfly')) precoBase = 1800.0;
-        // 3. Rede de segurança por raridade para as restantes
         else {
           if (raridadeNome.includes('Covert')) precoBase = 120.0;
           else if (raridadeNome.includes('Classified')) precoBase = 45.0;
@@ -1119,10 +1108,7 @@ export class AppController {
           const nomeCompleto = `${skin.name}${q.sufixo}`;
           const precoCalculado = Math.max(0.03, parseFloat((precoBase * q.multiplicador).toFixed(2)));
           
-          // Procurar primeiro pelo nome, depois decidir entre Update ou Create
-          const itemExistente = await this.prisma.item.findFirst({
-            where: { nome: nomeCompleto }
-          });
+          const itemExistente = await this.prisma.item.findFirst({ where: { nome: nomeCompleto } });
 
           if (itemExistente) {
             await this.prisma.item.update({
@@ -1131,33 +1117,20 @@ export class AppController {
             });
           } else {
             await this.prisma.item.create({
-              data: { 
-                nome: nomeCompleto, 
-                preco: precoCalculado, 
-                imagem: imagemSegura, 
-                raridade: raridadeNome 
-              }
+              data: { nome: nomeCompleto, preco: precoCalculado, imagem: imagemSegura, raridade: raridadeNome }
             });
           }
         }
       }
 
-      return { 
-        sucesso: true, 
-        finalizado: false, 
-        proximoOffset: offset + LOTE,
-        message: `Processado até à arma ${offset + LOTE}.` 
-      };
-
+      return { sucesso: true, finalizado: false, proximoOffset: offset + LOTE, message: `Processado até à arma ${offset + LOTE}.` };
     } catch (error: any) {
-      console.error("Erro na sincronização:", error);
       return { sucesso: false, message: error.message };
     }
   }
 
-
   // ==========================================
-  // LOGIN DA STEAM (INTOCÁVEL)
+  // LOGIN DA STEAM
   // ==========================================
   @Get('auth/steam')
   @UseGuards(AuthGuard('steam'))
@@ -1171,24 +1144,18 @@ export class AppController {
   }
 
   // ==========================================
-  // 🔥 ROTA DE SEGURANÇA: PROMOVER A ADMIN
+  // ADMIN E CÓDIGOS PROMOCIONAIS
   // ==========================================
   @Post('admin/promover')
   async promoverAdmin(@Body() body: { adminId: string, alvoId: string }) {
-    // 1. Verifica se quem está a pedir é REALMENTE um Admin ou o Fundador (ID 1)
     const admin = await this.prisma.user.findUnique({ where: { id: Number(body.adminId) } });
-    
     if (!admin || (admin.role !== 'ADMIN' && admin.role !== 'admin' && admin.id !== 1)) {
       return { erro: 'Acesso Negado! Não tens permissão.' };
     }
 
-    // 2. Verifica se o jogador alvo existe
     const alvo = await this.prisma.user.findUnique({ where: { id: Number(body.alvoId) } });
-    if (!alvo) {
-      return { erro: 'Jogador não encontrado na Base de Dados.' };
-    }
+    if (!alvo) return { erro: 'Jogador não encontrado na Base de Dados.' };
 
-    // 3. Promove o jogador a Admin!
     await this.prisma.user.update({
       where: { id: Number(body.alvoId) },
       data: { role: 'ADMIN' }
@@ -1199,90 +1166,54 @@ export class AppController {
 
   @Post('admin/despromover')
   async despromoverAdmin(@Body() body: { adminId: string, alvoId: string }) {
-    // 1. Verifica se quem pede é Admin
     const admin = await this.prisma.user.findUnique({ where: { id: Number(body.adminId) } });
-    if (!admin || (admin.role !== 'ADMIN' && admin.role !== 'admin' && admin.id !== 1)) {
-      return { erro: 'Acesso Negado! Não tens permissão.' };
-    }
+    if (!admin || (admin.role !== 'ADMIN' && admin.role !== 'admin' && admin.id !== 1)) return { erro: 'Acesso Negado!' };
 
     const alvoIdNum = Number(body.alvoId);
+    if (alvoIdNum === 1) return { erro: 'ERRO: Não podes despedir o Fundador!' };
+    if (alvoIdNum === Number(body.adminId)) return { erro: 'Não podes despedir-te a ti próprio por aqui.' };
 
-    // 2. Proteções de Segurança Máxima
-    if (alvoIdNum === 1) {
-      return { erro: 'ERRO: Não podes despedir o Fundador!' };
-    }
-    if (alvoIdNum === Number(body.adminId)) {
-      return { erro: 'Não podes despedir-te a ti próprio por aqui.' };
-    }
-
-    // 3. Verifica se o alvo existe
     const alvo = await this.prisma.user.findUnique({ where: { id: alvoIdNum } });
-    if (!alvo) {
-      return { erro: 'Jogador não encontrado na Base de Dados.' };
-    }
+    if (!alvo) return { erro: 'Jogador não encontrado.' };
 
-    // 4. Retira os poderes!
     await this.prisma.user.update({
       where: { id: alvoIdNum },
-      data: { role: 'USER' } // Volta a ser um jogador normal
+      data: { role: 'USER' } 
     });
 
     return { sucesso: true, mensagem: `O utilizador ${alvo.nome} foi removido da equipa!` };
   }
 
-  // =======================================================
-  // 🔥 ROTA DE CÓDIGOS PROMOCIONAIS (Para o Perfil)
-  // =======================================================
   @Post('codigos/resgatar')
   async resgatarCodigo(@Body() body: { userId: string, codigo: string }) {
-    const idNum = Number(body.userId);
-    const user = await (this.prisma as any).user.findUnique({ where: { id: idNum } });
-    
-    if (!user) return { erro: 'Jogador não encontrado.' };
+    try {
+      // 🔥 CADEADO DE SEGURANÇA: Usamos uma Transação para não haver uso duplo se a net falhar
+      return await this.prisma.$transaction(async (prisma: any) => {
+        const idNum = Number(body.userId);
+        const user = await prisma.user.findUnique({ where: { id: idNum } });
+        if (!user) throw new BadRequestException('Jogador não encontrado.');
 
-    // 1. Procura o código na tabela correta (promoCode)
-    const promo = await (this.prisma as any).promoCode.findUnique({ 
-      where: { codigo: body.codigo } 
-    });
+        const promo = await prisma.promoCode.findUnique({ where: { codigo: body.codigo } });
+        if (!promo || !promo.ativo) throw new BadRequestException('CÓDIGO INEXISTENTE OU DESATIVADO.');
+        if (promo.usos >= promo.limite) throw new BadRequestException('ESTE CÓDIGO JÁ ATINGIU O LIMITE DE USOS.');
 
-    if (!promo || !promo.ativo) return { erro: 'CÓDIGO INEXISTENTE OU DESATIVADO.' };
-    
-    // 🔥 Correção: Agora lê 'promo.limite' em vez de 'maxUsos'
-    if (promo.usos >= promo.limite) return { erro: 'ESTE CÓDIGO JÁ ATINGIU O LIMITE DE USOS.' };
+        const jaUsou = await prisma.codigoUsado.findFirst({ where: { userId: idNum, codigo: promo.codigo } });
+        if (jaUsou) throw new BadRequestException('JÁ RESGATASTE ESTE CÓDIGO ANTERIORMENTE.');
 
-    // 2. Verifica se o jogador já usou na tabela correta (codigoUsado)
-    const jaUsou = await (this.prisma as any).codigoUsado.findFirst({
-      where: { 
-        userId: idNum, 
-        codigo: promo.codigo 
-      }
-    });
+        await prisma.user.update({ where: { id: idNum }, data: { saldo: user.saldo + promo.valor } });
+        await prisma.promoCode.update({ where: { id: promo.id }, data: { usos: promo.usos + 1 } });
+        await prisma.codigoUsado.create({ data: { userId: idNum, codigo: promo.codigo } });
 
-    if (jaUsou) return { erro: 'JÁ RESGATASTE ESTE CÓDIGO ANTERIORMENTE.' };
-
-    // 3. Adiciona o saldo ao jogador
-    await (this.prisma as any).user.update({
-      where: { id: idNum },
-      data: { saldo: user.saldo + promo.valor }
-    });
-
-    // 4. Aumenta o contador de usos do código
-    await (this.prisma as any).promoCode.update({
-      where: { id: promo.id },
-      data: { usos: promo.usos + 1 }
-    });
-
-    // 5. Regista que este jogador já usou este código
-    await (this.prisma as any).codigoUsado.create({
-      data: { 
-        userId: idNum, 
-        codigo: promo.codigo 
-      }
-    });
-
-    return { sucesso: true, valor: promo.valor };
+        return { sucesso: true, valor: promo.valor };
+      });
+    } catch (error: any) {
+      return { erro: error.message || 'Erro ao resgatar código.' };
+    }
   }
 
+  // ==========================================
+  // OUTRAS CONFIGURAÇÕES E SUPORTE
+  // ==========================================
   @Post('utilizador/configuracoes')
   async atualizarConfiguracoes(@Body() body: { userId: number, tradeUrl?: string, email?: string, newsletter?: boolean }) {
     const updateData: any = {};
@@ -1315,15 +1246,10 @@ export class AppController {
     });
   }
 
-  // 2. Rota para criar um novo ticket
   @Post('suporte/ticket')
   async criarTicket(@Body() body: { userId: number, assunto: string, message: string }) {
     await (this.prisma as any).ticketSuporte.create({
-      data: {
-        userId: Number(body.userId),
-        assunto: body.assunto.toUpperCase(),
-        mensagem: body.message
-      }
+      data: { userId: Number(body.userId), assunto: body.assunto.toUpperCase(), mensagem: body.message }
     });
     return { Guide: true, sucesso: true };
   }
@@ -1331,20 +1257,16 @@ export class AppController {
   @Get('admin/tickets')
   async adminObterTodosTickets() {
     return await (this.prisma as any).ticketSuporte.findMany({
-      include: { user: true }, // Inclui os dados do jogador (nome, avatar) para saberes com quem falas!
+      include: { user: true },
       orderBy: { id: 'desc' }
     });
   }
 
-  // 🔥 ADMIN: Responder a um ticket
   @Post('admin/ticket/responder')
   async adminResponderTicket(@Body() body: { ticketId: number, resposta: string, status: string }) {
     await (this.prisma as any).ticketSuporte.update({
       where: { id: Number(body.ticketId) },
-      data: {
-        resposta: body.resposta,
-        status: body.status // Vai passar a 'RESPONDIDO' ou 'FECHADO'
-      }
+      data: { resposta: body.resposta, status: body.status }
     });
     return { sucesso: true, msg: "Resposta enviada ao jogador!" };
   }
@@ -1352,14 +1274,10 @@ export class AppController {
   @Get('suporte/livechat/:userId')
   async obterHistoricoLiveChat(@Param('userId') userId: string) {
     const chat = await (this.prisma as any).liveChat.findFirst({
-      where: { 
-        userId: Number(userId), 
-        status: 'ABERTO' 
-      },
-      orderBy: { createdAt: 'desc' }, // 🔥 Ignora as antigas e vai buscar a última!
+      where: { userId: Number(userId), status: 'ABERTO' },
+      orderBy: { createdAt: 'desc' },
       include: { mensagens: { orderBy: { createdAt: 'asc' } } }
     });
-    
     return chat || { mensagens: [] };
   }
 
@@ -1367,67 +1285,42 @@ export class AppController {
   async adminObterLiveChats() {
     return await (this.prisma as any).liveChat.findMany({
       where: { status: 'ABERTO' }, 
-      include: { 
-        user: true, 
-        mensagens: { orderBy: { createdAt: 'asc' } } 
-      },
+      include: { user: true, mensagens: { orderBy: { createdAt: 'asc' } } },
       orderBy: { createdAt: 'desc' }
     });
   }
 
-  // ====================================================================
-  // 🔥 SISTEMA DE MISSÕES: SUBMISSÃO DE LINKS (DINÂMICO)
-  // ====================================================================
+  // ==========================================
+  // MISSÕES
+  // ==========================================
   @Post('missoes/submeter-link')
   async submeterLinkMissao(@Body() dados: { userId: number, link: string }) {
     try {
       const { userId, link } = dados;
-
-      // 🔥 A VACINA: Corta o link no "?" e fica só com o link puro do vídeo!
       const linkLimpo = link.split('?')[0];
 
-      // 1. Descobrir a plataforma pelo link LIMPO
       let plataforma = '';
       if (linkLimpo.includes('tiktok.com')) plataforma = 'TikTok';
       else if (linkLimpo.includes('instagram.com')) plataforma = 'Instagram';
       else if (linkLimpo.includes('youtube.com')) plataforma = 'YouTube';
       else throw new Error('Link inválido. Usa TikTok, Instagram ou YouTube.');
 
-      // 2. ANTI-SPAM: Verificar se o jogador já tem um vídeo pendente NESTA plataforma
       const submissaoPendente = await (this.prisma as any).submissaoMissao.findFirst({
         where: { userId: Number(userId), plataforma, status: 'PENDENTE' }
       });
-      if (submissaoPendente) {
-        throw new Error(`Já tens um vídeo do ${plataforma} em análise! Aguarda a nossa aprovação.`);
-      }
+      if (submissaoPendente) throw new Error(`Já tens um vídeo do ${plataforma} em análise! Aguarda a nossa aprovação.`);
 
-      // 3. ANTI-BATOTA: Verificar se o LINK LIMPO já existe na base de dados
-      const linkRepetido = await (this.prisma as any).submissaoMissao.findUnique({
-        where: { link: linkLimpo }
-      });
-      if (linkRepetido) {
-        throw new Error('Este link já foi utilizado. Tens de gravar um vídeo original!');
-      }
+      const linkRepetido = await (this.prisma as any).submissaoMissao.findUnique({ where: { link: linkLimpo } });
+      if (linkRepetido) throw new Error('Este link já foi utilizado. Tens de gravar um vídeo original!');
 
-      // 4. 🔥 BUSCAR O VALOR DINÂMICO AO COFRE DE CONFIGURAÇÕES!
-      const configSocial = await (this.prisma as any).configuracao.findUnique({ 
-        where: { chave: 'recompensa_social' }
-      });
+      const configSocial = await (this.prisma as any).configuracao.findUnique({ where: { chave: 'recompensa_social' } });
       const recompensaFinal = configSocial ? parseFloat(configSocial.valor) : 0.09;
 
-      // 5. Guardar na Base de Dados com o LINK LIMPO e o valor extraído da DB
       await (this.prisma as any).submissaoMissao.create({
-        data: {
-          userId: Number(userId),
-          plataforma,
-          link: linkLimpo, 
-          recompensa: recompensaFinal, 
-          status: 'PENDENTE'
-        }
+        data: { userId: Number(userId), plataforma, link: linkLimpo, recompensa: recompensaFinal, status: 'PENDENTE' }
       });
 
       return { sucesso: true, mensagem: 'Vídeo enviado com sucesso para análise!' };
-
     } catch (error: any) {
       return { sucesso: false, mensagem: error.message };
     }
@@ -1441,7 +1334,6 @@ export class AppController {
       });
 
       const statusFinal = { tiktok: 'LIVRE', instagram: 'LIVRE', youtube: 'LIVRE' };
-
       submissoes.forEach((sub: any) => {
         if (sub.plataforma === 'TikTok') statusFinal.tiktok = sub.status;
         if (sub.plataforma === 'Instagram') statusFinal.instagram = sub.status;
@@ -1454,17 +1346,11 @@ export class AppController {
     }
   }
 
-  // ====================================================================
-  // 🔥 ADMIN: MODERAÇÃO DE MISSÕES (Aprovar / Rejeitar)
-  // ====================================================================
-
   @Get('admin/missoes/pendentes')
   async obterMissoesPendentes() {
     return await (this.prisma as any).submissaoMissao.findMany({
       where: { status: 'PENDENTE' },
-      include: {
-        user: { select: { nome: true, avatar: true } }
-      },
+      include: { user: { select: { nome: true, avatar: true } } },
       orderBy: { createdAt: 'asc' }
     });
   }
@@ -1472,32 +1358,20 @@ export class AppController {
   @Post('admin/missoes/aprovar/:id')
   async aprovarMissao(@Param('id') id: string) {
     try {
-      const missaoId = Number(id);
-      const missao = await (this.prisma as any).submissaoMissao.findUnique({ where: { id: missaoId }});
-      
-      if (!missao || missao.status !== 'PENDENTE') throw new Error('Missão inválida ou já processada.');
+      // 🔥 CADEADO DE SEGURANÇA: Transação garante que tudo é salvo junto!
+      await this.prisma.$transaction(async (prisma: any) => {
+        const missaoId = Number(id);
+        const missao = await prisma.submissaoMissao.findUnique({ where: { id: missaoId }});
+        
+        if (!missao || missao.status !== 'PENDENTE') throw new Error('Missão inválida ou já processada.');
 
-      await (this.prisma as any).submissaoMissao.update({
-        where: { id: missaoId },
-        data: { status: 'APROVADA' }
+        await prisma.submissaoMissao.update({ where: { id: missaoId }, data: { status: 'APROVADA' } });
+        await prisma.user.update({ where: { id: missao.userId }, data: { saldo: { increment: missao.recompensa } } });
+        await prisma.historicoJogo.create({
+          data: { userId: missao.userId, acao: 'Missão Social', detalhe: `Vídeo do ${missao.plataforma} Aprovado`, valor: missao.recompensa, tipo: 'GANHO' }
+        });
       });
-
-      await (this.prisma as any).user.update({
-        where: { id: missao.userId },
-        data: { saldo: { increment: missao.recompensa } }
-      });
-
-      await (this.prisma as any).historicoJogo.create({
-        data: {
-          userId: missao.userId,
-          acao: 'Missão Social',
-          detalhe: `Vídeo do ${missao.plataforma} Aprovado`,
-          valor: missao.recompensa,
-          tipo: 'GANHO'
-        }
-      });
-
-      return { sucesso: true, mensagem: `Missão aprovada! ${missao.recompensa}€ enviados para o jogador.` };
+      return { sucesso: true, mensagem: `Missão aprovada com sucesso e saldo entregue!` };
     } catch (error: any) {
       return { sucesso: false, mensagem: error.message };
     }
@@ -1507,8 +1381,7 @@ export class AppController {
   async rejeitarMissao(@Param('id') id: string) {
     try {
       await (this.prisma as any).submissaoMissao.update({
-        where: { id: Number(id) },
-        data: { status: 'REJEITADA' }
+        where: { id: Number(id) }, data: { status: 'REJEITADA' }
       });
       return { sucesso: true, mensagem: 'Missão rejeitada. O jogador não recebeu saldo.' };
     } catch (error: any) {
@@ -1516,13 +1389,12 @@ export class AppController {
     }
   }
 
-  // ====================================================================
-  // 🔥 CONFIGURAÇÕES GLOBAIS DA COFRE
-  // ====================================================================
+  // ==========================================
+  // CONFIGURAÇÕES GLOBAIS
+  // ==========================================
   @Get('config')
   async obterConfiguracoes() {
     let configs = await (this.prisma as any).configuracao.findMany();
-
     if (configs.length === 0) {
       await (this.prisma as any).configuracao.createMany({
         data: [
@@ -1540,8 +1412,7 @@ export class AppController {
   async atualizarConfiguracao(@Body() dados: { chave: string, valor: string }) {
     try {
       await (this.prisma as any).configuracao.update({
-        where: { chave: dados.chave },
-        data: { valor: String(dados.valor) }
+        where: { chave: dados.chave }, data: { valor: String(dados.valor) }
       });
       return { sucesso: true, mensagem: 'Valor atualizado com sucesso!' };
     } catch (error: any) {
@@ -1551,28 +1422,20 @@ export class AppController {
 
   @Put('admin/item/preco')
   async atualizarPrecoItem(@Body() body: { itemId: number, preco: number }) {
-    if (!body.itemId || body.preco === undefined) {
-      return { sucesso: false, message: "Dados incompletos." };
-    }
-
+    if (!body.itemId || body.preco === undefined) return { sucesso: false, message: "Dados incompletos." };
     try {
-      // Usa o Prisma para atualizar a skin na Base de Dados
       await this.prisma.item.update({
-        where: { id: Number(body.itemId) },
-        data: { preco: Number(body.preco) }
+        where: { id: Number(body.itemId) }, data: { preco: Number(body.preco) }
       });
       return { sucesso: true, message: "Preço atualizado com sucesso no arsenal!" };
     } catch (error) {
-      console.error("Erro ao atualizar preço:", error);
       return { sucesso: false, message: "Erro interno no servidor ao atualizar preço." };
     }
   }
 
   // ==========================================
-  // DEPARTAMENTO DE LEVANTAMENTOS (WITHDRAWS)
+  // LEVANTAMENTOS
   // ==========================================
-
-  // Jogador: Pede para levantar uma skin
   @Post('levantar-skin')
   async levantarSkin(@Body() body: { userId: number, inventarioId: number }) {
     try {
@@ -1582,7 +1445,6 @@ export class AppController {
     }
   }
 
-  // Admin: Vê todos os pedidos pendentes
   @Get('admin/levantamentos')
   async verLevantamentos() {
     return await this.prisma.levantamento.findMany({
@@ -1592,7 +1454,6 @@ export class AppController {
     });
   }
 
-  // Admin: Confirma que enviou a skin na Steam
   @Post('admin/levantamentos/aprovar/:id')
   async aprovarLevantamento(@Param('id') id: string) {
     await this.prisma.levantamento.update({
@@ -1601,53 +1462,50 @@ export class AppController {
     return { sucesso: true, mensagem: "Levantamento marcado como concluído!" };
   }
 
-  // Admin: Rejeita (o bot da steam falhou, trade bloqueada, etc) e devolve a skin ao site
   @Post('admin/levantamentos/rejeitar/:id')
   async rejeitarLevantamento(@Param('id') id: string) {
-    const pedido = await this.prisma.levantamento.findUnique({ where: { id: Number(id) } });
-    if (!pedido) return { sucesso: false, mensagem: "Pedido não encontrado." };
+    try {
+      // 🔥 CADEADO DE SEGURANÇA: Rejeitar um levantamento também exige transação para não duplicar armas!
+      await this.prisma.$transaction(async (prisma: any) => {
+        const pedido = await prisma.levantamento.findUnique({ where: { id: Number(id) } });
+        if (!pedido) throw new Error("Pedido não encontrado.");
 
-    // Atualiza status
-    await this.prisma.levantamento.update({
-      where: { id: Number(id) }, data: { status: 'REJEITADA' }
-    });
-
-    // Devolve a skin ao inventário do site do jogador
-    await this.prisma.inventario.create({
-      data: { userId: pedido.userId, nome: pedido.skinNome, imagem: pedido.skinImagem, raridade: 'Comum', valor: pedido.valor }
-    });
-
-    return { sucesso: true, mensagem: "Levantamento cancelado. A skin voltou para a conta do jogador no site." };
+        await prisma.levantamento.update({ where: { id: Number(id) }, data: { status: 'REJEITADA' } });
+        await prisma.inventario.create({
+          data: { userId: pedido.userId, nome: pedido.skinNome, imagem: pedido.skinImagem, raridade: 'Comum', valor: pedido.valor }
+        });
+      });
+      return { sucesso: true, mensagem: "Levantamento cancelado. A skin voltou para a conta do jogador no site." };
+    } catch (error: any) {
+      return { sucesso: false, mensagem: error.message };
+    }
   }
 
+  // ==========================================
+  // VERIFICAÇÕES DE CONTA E EMAIL
+  // ==========================================
   @Post('utilizador/pedir-codigo')
   async pedirCodigoVerificacao(@Body() body: { userId: number, email: string }) {
     const user = await this.prisma.user.findUnique({ where: { id: Number(body.userId) } });
     if (!user) return { sucesso: false, msg: "Utilizador não encontrado." };
 
-    // 1. Gera um código de 6 dígitos
     const codigo = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // 2. Guarda o código na Base de Dados
     await this.prisma.user.update({
       where: { id: Number(body.userId) },
-      data: { codigoVerificacao: codigo, email: body.email } // Guarda o email também
+      data: { codigoVerificacao: codigo, email: body.email } 
     });
-
-    // 3. Configura o carteiro (Substitui com o teu e-mail real e a App Password)
-    const nodemailer = require('nodemailer');
-    const transporter = nodemailer.createTransport({
-      service: 'gmail', // Podes usar gmail, outlook, etc.
-      auth: {
-        user: 'o-teu-email@gmail.com', // ⚠️ METE O TEU E-MAIL AQUI
-        pass: 'a-tua-password-de-aplicacao' // ⚠️ METE A PASSWORD DE APLICAÇÃO AQUI
-      }
-    });
-
-    // Se ainda não tens Password de Aplicação, o código vai apenas aparecer nos logs (para testares)
-    console.log(`[ALERTA] CÓDIGO GERADO PARA ${body.email}: ${codigo}`);
 
     try {
+      // Movido para dentro do try para evitar crash se a lib falhar
+      const nodemailer = require('nodemailer');
+      const transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: { user: 'o-teu-email@gmail.com', pass: 'a-tua-password-de-aplicacao' }
+      });
+
+      console.log(`[ALERTA] CÓDIGO GERADO PARA ${body.email}: ${codigo}`);
+
       await transporter.sendMail({
         from: '"Sweet Drop" <o-teu-email@gmail.com>',
         to: body.email,
@@ -1657,12 +1515,11 @@ export class AppController {
             <h2 style="color: #10b981;">Verificação de E-mail</h2>
             <p>O teu código de verificação para o Império é:</p>
             <h1 style="background-color: #1b1b1e; padding: 15px; letter-spacing: 5px; border: 1px solid #10b981; display: inline-block;">${codigo}</h1>
-            <p>Se não pediste este código, ignora este e-mail.</p>
           </div>
         `
       });
     } catch (err) {
-      console.log("Aviso: Falha ao enviar e-mail. Verifica as tuas credenciais do Nodemailer.");
+      console.log("Aviso: Falha ao enviar e-mail. Verifica as credenciais.");
     }
 
     return { sucesso: true, msg: "Código enviado! Verifica a tua caixa de entrada." };
@@ -1671,57 +1528,61 @@ export class AppController {
   @Post('utilizador/confirmar-codigo')
   async confirmarCodigo(@Body() body: { userId: number, codigo: string }) {
     const user = await this.prisma.user.findUnique({ where: { id: Number(body.userId) } });
-    
     if (user?.codigoVerificacao === body.codigo.trim()) {
-      // Código correto! Fica verificado e apaga o código da BD.
       await this.prisma.user.update({
         where: { id: Number(body.userId) },
         data: { emailVerificado: true, codigoVerificacao: null }
       });
       return { sucesso: true, msg: "E-mail verificado com sucesso!" };
     }
-    
     return { sucesso: false, msg: "Código incorreto. Tenta novamente." };
   }
 
   @Post('utilizador/pedir-verificacao')
   async pedirVerificacao(@Body() body: { userId: number }) {
     await this.prisma.user.update({
-      where: { id: Number(body.userId) },
-      data: { pedidoVerificacao: true }
+      where: { id: Number(body.userId) }, data: { pedidoVerificacao: true }
     });
     return { sucesso: true, msg: "Pedido enviado! Aguarda a aprovação da administração." };
   }
 
-  // 2. O Admin vê quem está à espera
   @Get('admin/verificacoes-pendentes')
   async getVerificacoes() {
     return this.prisma.user.findMany({
       where: { pedidoVerificacao: true, contaVerificada: false },
-      select: { id: true, username: true, nome: true, avatar: true, createdAt: true, tradeUrl: true }
+      select: { id: true, username: true, nome: true, avatar: true, tradeUrl: true } 
     });
   }
 
-  // 3. O Admin aprova o jogador
   @Post('admin/aprovar-verificacao/:id')
   async aprovarVerificacao(@Param('id') id: string) {
     await this.prisma.user.update({
-      where: { id: Number(id) },
-      data: { contaVerificada: true, pedidoVerificacao: false }
+      where: { id: Number(id) }, data: { contaVerificada: true, pedidoVerificacao: false }
     });
     return { sucesso: true };
   }
 
-  // 4. O Admin rejeita o jogador
   @Post('admin/rejeitar-verificacao/:id')
   async rejeitarVerificacao(@Param('id') id: string) {
     await this.prisma.user.update({
-      where: { id: Number(id) },
-      data: { pedidoVerificacao: false } // Tira o estado de pendente para ele poder pedir de novo
+      where: { id: Number(id) }, data: { pedidoVerificacao: false } 
     });
     return { sucesso: true };
   }
 
+  @Post('pagamentos/webhook')
+  async cryptoWebhook(@Body() body: any) {
+    if (body.payment_status === 'finished' || body.payment_status === 'completed') {
+      const txId = body.order_id; 
+      try {
+        await this.usersService.confirmarDeposito(Number(txId));
+        console.log(`💰 SUCESSO: Depósito Crypto #${txId} confirmado! Dinheiro a caminho da carteira!`);
+      } catch (e) {
+        console.log(`Aviso: Tentativa de re-confirmar o depósito #${txId}.`);
+      }
+    }
+    return "OK";
+  }
 }
 </file>
 
@@ -1962,7 +1823,7 @@ export class BattlesGateway {
 </file>
 
 <file path="src/caixas.service.ts">
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
 import { FeedGateway } from './feed.gateway';
 import { UsersService } from './users.service';
@@ -1972,7 +1833,7 @@ export class CaixasService {
   constructor(
     private prisma: PrismaService,
     private feedGateway: FeedGateway,
-    private readonly usersService: UsersService // 🔥 O gerente de XP está pronto!
+    private readonly usersService: UsersService 
   ) {}
 
   async criarCaixa(dados: { nome: string, preco: number, imagem: string, itens: any[], ordem?: number }) {
@@ -2002,87 +1863,128 @@ export class CaixasService {
 
   async abrirCaixa(dados: { userId: string, caixaSelecionada: any, quantidade?: number }) {
     try {
-      const quantidade = dados.quantidade || 1;
-      const user = await (this.prisma as any).user.findUnique({ where: { id: Number(dados.userId) } });
-      if (!user) throw new Error('Utilizador não encontrado');
+      // 🔥 BLOQUEIO DE FRAUDE: Impede hackers de usarem valores negativos, zero, ou frações (ex: 1.5).
+      const quantidade = Math.floor(Number(dados.quantidade || 1));
+      if (quantidade < 1 || quantidade > 50) {
+        throw new BadRequestException('Quantidade inválida (entre 1 e 50).');
+      }
 
       const precoDaCaixa = Number(dados.caixaSelecionada.preco);
       const precoTotal = precoDaCaixa * quantidade;
 
-      if (user.saldo < precoTotal) throw new Error(`Saldo insuficiente. Precisas de ${precoTotal.toFixed(2)}€`);
+      // ======================================================================
+      // 🔥 O CADEADO DE TRANSAÇÃO: Se falhar a meio, ninguém perde nada!
+      // ======================================================================
+      return await (this.prisma as any).$transaction(async (prisma: any) => {
+        
+        const user = await prisma.user.findUnique({ where: { id: Number(dados.userId) } });
+        if (!user) throw new BadRequestException('Utilizador não encontrado');
 
-      let listaSkins = dados.caixaSelecionada.skins || dados.caixaSelecionada.itens || [];
-      if (typeof listaSkins === 'string') {
-        try { listaSkins = JSON.parse(listaSkins); } catch(e) { listaSkins = []; }
-      }
-      if (listaSkins.length === 0) throw new Error('Esta caixa não tem skins!');
-
-      let pesoTotal = 0;
-      const skinsComPeso = listaSkins.map((skin: any) => {
-        const peso = parseFloat(skin.probabilidade) || 0;
-        pesoTotal += peso;
-        return { ...skin, peso: peso };
-      });
-      if (pesoTotal <= 0) skinsComPeso.forEach((s: any) => { s.peso = 1; pesoTotal += 1; });
-
-      const skinsGanhas: any[] = [];
-      let valorTotalGanho = 0;
-
-      for (let i = 0; i < quantidade; i++) {
-        const numeroSorteado = Math.random() * pesoTotal;
-        let pesoAcumulado = 0;
-        let skinSorteada = skinsComPeso[0];
-
-        for (const skin of skinsComPeso) {
-          pesoAcumulado += skin.peso;
-          if (numeroSorteado <= pesoAcumulado) {
-            skinSorteada = skin;
-            break;
-          }
+        if (user.saldo < precoTotal) {
+            throw new BadRequestException(`Saldo insuficiente. Precisas de ${precoTotal.toFixed(2)}€`);
         }
-        skinsGanhas.push(skinSorteada);
-        valorTotalGanho += parseFloat(skinSorteada.preco || skinSorteada.valor || 0);
-      }
 
-      const novoSaldo = user.saldo - precoTotal;
+        let listaSkins = dados.caixaSelecionada.skins || dados.caixaSelecionada.itens || [];
+        if (typeof listaSkins === 'string') {
+          try { listaSkins = JSON.parse(listaSkins); } catch(e) { listaSkins = []; }
+        }
+        if (listaSkins.length === 0) throw new BadRequestException('Esta caixa não tem skins disponíveis!');
 
-      // 1. Tira o dinheiro do jogador
-      await (this.prisma as any).user.update({
-        where: { id: Number(dados.userId) }, data: { saldo: parseFloat(novoSaldo.toFixed(2)) }
-      });
-
-      // 2. 🔥 INJETA O XP! (Isto faz o nível subir de verdade!)
-      await this.usersService.adicionarXp(Number(dados.userId), precoTotal);
-
-      // 3. Guarda as skins no inventário
-      const inventarioData = skinsGanhas.map(skin => ({
-        nome: skin.nome, imagem: skin.imagem || skin.image, raridade: skin.raridade || 'Comum', valor: parseFloat(Number(skin.preco || skin.valor || 0).toFixed(2)), userId: Number(dados.userId)
-      }));
-
-      await (this.prisma as any).inventario.createMany({ data: inventarioData });
-
-      await (this.prisma as any).historicoJogo.create({
-        data: { userId: Number(dados.userId), acao: "Abertura de Caixa", detalhe: quantidade > 1 ? `Abriu ${quantidade}x ${dados.caixaSelecionada.nome}` : `Abriu a ${dados.caixaSelecionada.nome}`, valor: parseFloat(Number(valorTotalGanho).toFixed(2)), tipo: "GANHO" }
-      });
-
-      // 🔥 AQUI ENTRA A ANTENA: AVISA O FRONTEND EM TEMPO REAL PARA ROLAR NO LIVE FEED 🔥
-      skinsGanhas.forEach(skin => {
-        this.feedGateway.emitirNovoDrop({
-          nome: skin.nome,
-          imagem: skin.imagem || skin.image,
-          raridade: skin.raridade || 'Comum',
-          valor: parseFloat(Number(skin.preco || skin.valor || 0).toFixed(2)),
-          userNome: user.nome || 'Anónimo',
-          userFoto: user.avatar || '/skins/glock.png'
+        let pesoTotal = 0;
+        const skinsComPeso = listaSkins.map((skin: any) => {
+          const peso = parseFloat(skin.probabilidade) || 0;
+          pesoTotal += peso;
+          return { ...skin, peso: peso };
         });
+        
+        // Proteção: Se o admin esquecer de meter pesos, todas têm 1 (mesma chance)
+        if (pesoTotal <= 0) skinsComPeso.forEach((s: any) => { s.peso = 1; pesoTotal += 1; });
+
+        const skinsGanhas: any[] = [];
+        let valorTotalGanho = 0;
+
+        // O Motor de RNG (Sorteio)
+        for (let i = 0; i < quantidade; i++) {
+          const numeroSorteado = Math.random() * pesoTotal;
+          let pesoAcumulado = 0;
+          let skinSorteada = skinsComPeso[0];
+
+          for (const skin of skinsComPeso) {
+            pesoAcumulado += skin.peso;
+            if (numeroSorteado <= pesoAcumulado) {
+              skinSorteada = skin;
+              break;
+            }
+          }
+          skinsGanhas.push(skinSorteada);
+          valorTotalGanho += parseFloat(skinSorteada.preco || skinSorteada.valor || 0);
+        }
+
+        const novoSaldo = user.saldo - precoTotal;
+
+        // 1. Tira o dinheiro (Garantido pelo Prisma)
+        await prisma.user.update({
+          where: { id: Number(dados.userId) }, data: { saldo: parseFloat(novoSaldo.toFixed(2)) }
+        });
+
+        // 2. Guarda as skins no inventário
+        const inventarioData = skinsGanhas.map(skin => ({
+          nome: skin.nome, 
+          imagem: skin.imagem || skin.image, 
+          raridade: skin.raridade || 'Comum', 
+          valor: parseFloat(Number(skin.preco || skin.valor || 0).toFixed(2)), 
+          userId: Number(dados.userId)
+        }));
+
+        await prisma.inventario.createMany({ data: inventarioData });
+
+        // 3. Regista no Histórico
+        await prisma.historicoJogo.create({
+          data: { 
+            userId: Number(dados.userId), 
+            acao: "Abertura de Caixa", 
+            detalhe: quantidade > 1 ? `Abriu ${quantidade}x ${dados.caixaSelecionada.nome}` : `Abriu a ${dados.caixaSelecionada.nome}`, 
+            valor: parseFloat(Number(valorTotalGanho).toFixed(2)), 
+            tipo: "GANHO" 
+          }
+        });
+
+        // Retorna o resultado DA TRANSAÇÃO. 
+        // O XP e o Live Feed podem ocorrer de forma assíncrona, fora da transação vital
+        return {
+            skinsGanhas,
+            valorTotalGanho,
+            novoSaldo,
+            user
+        };
+      }).then(async (resultado: any) => {
+          // ======================================================================
+          // PÓS-TRANSAÇÃO (Sucesso garantido! O XP sobe e o Feed grita)
+          // ======================================================================
+          
+          await this.usersService.adicionarXp(Number(dados.userId), precoTotal);
+
+          resultado.skinsGanhas.forEach((skin: any) => {
+            this.feedGateway.emitirNovoDrop({
+              nome: skin.nome,
+              imagem: skin.imagem || skin.image,
+              raridade: skin.raridade || 'Comum',
+              valor: parseFloat(Number(skin.preco || skin.valor || 0).toFixed(2)),
+              userNome: resultado.user.nome || 'Anónimo',
+              userFoto: resultado.user.avatar || '/skins/glock.png'
+            });
+          });
+
+          return {
+            itensSorteados: resultado.skinsGanhas.map((s: any) => ({ nome: s.nome, imageUrl: s.imagem || s.image, valor: parseFloat(Number(s.preco || s.valor || 0).toFixed(2)), raridade: s.raridade })),
+            valorTotal: parseFloat(resultado.valorTotalGanho.toFixed(2)),
+            novoSaldo: parseFloat(resultado.novoSaldo.toFixed(2))
+          };
       });
 
-      return {
-        itensSorteados: skinsGanhas.map(s => ({ nome: s.nome, imageUrl: s.imagem || s.image, valor: parseFloat(Number(s.preco || s.valor || 0).toFixed(2)), raridade: s.raridade })),
-        valorTotal: parseFloat(valorTotalGanho.toFixed(2)),
-        novoSaldo: parseFloat(novoSaldo.toFixed(2))
-      };
-    } catch (error) { throw error; }
+    } catch (error: any) { 
+        throw new BadRequestException(error.message || "Erro ao processar a abertura da caixa."); 
+    }
   }
 }
 </file>
@@ -2459,31 +2361,28 @@ export class SessionSerializer extends PassportSerializer {
 </file>
 
 <file path="src/upgrader.service.ts">
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
-import { UsersService } from './users.service'; // 🔥 Importamos o gerente de XP
+import { UsersService } from './users.service';
 
 @Injectable()
 export class UpgraderService {
   constructor(
     private prisma: PrismaService,
-    private readonly usersService: UsersService // 🔥 Injetamos o serviço de XP no constructor!
+    private readonly usersService: UsersService
   ) {}
 
-  // 🔥 Ajustado para aceitar o "lado" que o frontend envia ('under' ou 'over')
   async realizarUpgrade(dados: { userId: number, skinIds: any[], alvoId?: number, targetSkinId?: number, lado?: 'under' | 'over' }) {
     try {
       const idDoAlvo = Number(dados.alvoId || dados.targetSkinId);
-      const ladoEscolhido = dados.lado || 'under'; // Se não vier lado, assume Esquerda por segurança
+      const ladoEscolhido = dados.lado || 'under'; 
 
-      // Vai buscar o jogador e a mochila dele
       const user = await (this.prisma as any).user.findUnique({
         where: { id: Number(dados.userId) },
         include: { inventario: true }
       });
-      if (!user) throw new Error('Jogador não encontrado.');
+      if (!user) throw new BadRequestException('Jogador não encontrado.');
 
-      // 🔥 CORTAMOS O MAL PELA RAIZ
       const idsLimpos = dados.skinIds.map((id: any) => {
         if (typeof id === 'string' && id.includes('-')) {
           return Number(id.split('-')[0]);
@@ -2491,46 +2390,39 @@ export class UpgraderService {
         return Number(id);
       });
       
-      const idsApostados = [...new Set(idsLimpos)]; // Removemos duplicados acidentais
+      const idsApostados = [...new Set(idsLimpos)]; 
 
-      // Comparamos Número com Número na perfeição
       const skinsApostadas = user.inventario.filter((skin: any) => 
         idsApostados.includes(Number(skin.id))
       );
 
+      // 🔥 BLINDAGEM DE SINCROMISMO: Se a skin já não estiver na BD (ex: foi levantada), o tamanho será diferente e bloqueia imediatamente com erro 400.
       if (skinsApostadas.length !== idsApostados.length) {
-        throw new Error(`Skins inválidas ou não te pertencem.`);
+        throw new BadRequestException('ERRO: Uma ou mais skins selecionadas já não te pertencem ou estão pendentes de levantamento. Atualiza a página.');
       }
 
       const alvo = await (this.prisma as any).item.findUnique({ where: { id: idDoAlvo } });
-      if (!alvo) throw new Error('Skin alvo não existe.');
+      if (!alvo) throw new BadRequestException('Skin alvo não existe.');
 
       const valorApostado = skinsApostadas.reduce((acc: number, skin: any) => acc + parseFloat(skin.valor || skin.preco), 0);
       const precoAlvo = parseFloat(alvo.preco || alvo.valor);
 
-      if (precoAlvo <= valorApostado) throw new Error('O alvo tem de ser mais caro do que a aposta.');
+      if (precoAlvo <= valorApostado) throw new BadRequestException('O alvo tem de ser mais caro do que a aposta.');
 
       const chanceRaw = (valorApostado / precoAlvo) * 100 * 0.90;
       const chance = Math.min(chanceRaw, 90);
 
-      // =======================================================
-      // 🔥 O RNG (Gerador de Números) E A ESCOLHA DO LADO!
-      // =======================================================
       const numeroSorteado = Math.random() * 100;
       let sucesso = false;
 
       if (ladoEscolhido === 'under') {
-        // ESQUERDA: Ganha se o número sorteado for MENOR ou igual à chance (Ex: chance 20%, ganha do 0 ao 20)
         sucesso = numeroSorteado <= chance;
       } else {
-        // DIREITA: Ganha se o número cair na reta final do círculo! (Ex: chance 20%, ganha do 80 ao 100)
         sucesso = numeroSorteado >= (100 - chance);
       }
 
-      // 🔥 APAGAMOS OS IDS CORRETOS E NUMÉRICOS
       await (this.prisma as any).inventario.deleteMany({ where: { id: { in: idsApostados } } });
 
-      // Dá XP equivalente ao valor total das skins sacrificadas!
       await this.usersService.adicionarXp(Number(dados.userId), valorApostado);
 
       let novoItemId = null; 
@@ -2550,11 +2442,10 @@ export class UpgraderService {
         });
       }
 
-      // 🔥 RETORNAMOS O "roll" PARA O FRONTEND ANIMAR A AGULHA PRO SÍTIO EXATO!
       return { 
         sucesso, 
         chance: chance.toFixed(2), 
-        roll: numeroSorteado, // <--- Sem isto a roda encrava!
+        roll: numeroSorteado, 
         skinGanha: alvo, 
         novoItemId: novoItemId, 
         idsDestruidos: dados.skinIds 
@@ -2572,6 +2463,7 @@ export class UpgraderService {
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
 import Stripe from 'stripe';
+import axios from 'axios';
 
 @Injectable()
 export class UsersService {
@@ -2610,17 +2502,14 @@ export class UsersService {
   // 🔥 SISTEMA DE PROGRESSÃO (ESTILO KEY-DROP)
   // ==========================================
 
-  // 1. Calcula o XP necessário para passar de nível (ex: Nível 1 = 100xp, Nível 2 = 200xp...)
   getXpNecessarioParaNivel(level: number): number {
     return level * 100; 
   }
 
-  // 2. Injeta XP e sobe o nível de forma persistente
   async adicionarXp(userId: number, valorGasto: number) {
     const user = await (this.prisma as any).user.findUnique({ where: { id: userId } });
     if (!user) return;
 
-    // 1€ = 10 XP. Math.floor garante que é um número Inteiro sem vírgulas!
     const xpGanho = Math.floor(valorGasto * 10); 
     
     let novoXp = user.xp + xpGanho;
@@ -2628,7 +2517,6 @@ export class UsersService {
 
     let xpNecessario = this.getXpNecessarioParaNivel(novoNivel);
     
-    // Loop para subir de nível caso ganhe muito XP de uma vez
     while (novoXp >= xpNecessario) {
       novoXp -= xpNecessario;
       novoNivel += 1;
@@ -2637,10 +2525,7 @@ export class UsersService {
 
     return await (this.prisma as any).user.update({
       where: { id: userId },
-      data: {
-        level: novoNivel,
-        xp: novoXp
-      }
+      data: { level: novoNivel, xp: novoXp }
     });
   }
 
@@ -2651,40 +2536,66 @@ export class UsersService {
   async gastarSaldo(userId: string, valor: number) {
     const idNumero = Number(userId);
     const user = await (this.prisma as any).user.findUnique({ where: { id: idNumero } });
-    if (!user) throw new Error('Utilizador não encontrado na Base de Dados');
+    if (!user) throw new BadRequestException('Utilizador não encontrado na Base de Dados');
 
-    // 1. Tira o saldo
     const userAtualizado = await (this.prisma as any).user.update({
       where: { id: idNumero },
       data: { saldo: user.saldo - valor }
     });
 
-    // 2. 🔥 Dá XP pela aposta/abertura!
     await this.adicionarXp(idNumero, valor);
 
     return userAtualizado;
   }
 
   async venderItem(userId: number, inventarioId: number) {
-    const user = await (this.prisma as any).user.findUnique({
-      where: { id: Number(userId) }, include: { inventario: true } 
-    });
-    if (!user) throw new Error("Jogador não encontrado.");
+    try {
+      const idUser = Number(userId);
+      const idItem = Number(inventarioId);
 
-    const itemQueQuerVender = user.inventario.find((skin: any) => skin.id === Number(inventarioId));
-    if (!itemQueQuerVender) throw new Error("Esta arma não te pertence!");
+      const user = await (this.prisma as any).user.findUnique({
+        where: { id: idUser }, include: { inventario: true } 
+      });
+      if (!user) throw new BadRequestException("Jogador não encontrado.");
 
-    await (this.prisma as any).inventario.delete({ where: { id: Number(inventarioId) } });
+      const skin = user.inventario.find((s: any) => s.id === idItem);
+      if (!skin) throw new BadRequestException("ERRO: Esta arma já não te pertence.");
 
-    const valorDaArma = itemQueQuerVender.valor || itemQueQuerVender.preco || 0;
-    const valorDeVenda = parseFloat((valorDaArma * 0.90).toFixed(2)); 
-    const novoSaldo = user.saldo + valorDeVenda;
+      const valorDaArma = skin.valor || skin.preco || 0;
+      const valorDeVenda = parseFloat((valorDaArma * 0.90).toFixed(2)); 
 
-    await (this.prisma as any).user.update({
-      where: { id: Number(userId) }, data: { saldo: parseFloat(novoSaldo.toFixed(2)) }
-    });
+      // 🔥 A NOVA ESTRATÉGIA: O "Apagar Atómico"
+      // Tentamos apagar a skin primeiro. Se o jogador der duplo clique, 
+      // a segunda tentativa vai falhar automaticamente aqui e proteger o teu dinheiro!
+      await (this.prisma as any).inventario.delete({ 
+        where: { id: idItem } 
+      });
 
-    return { sucesso: true, novoSaldo: parseFloat(novoSaldo.toFixed(2)), idVendido: inventarioId, valorRecebido: valorDeVenda };
+      // Se a skin foi apagada com sucesso (ninguém a roubou entretanto), damos o dinheiro.
+      const novoSaldo = user.saldo + valorDeVenda;
+
+      await (this.prisma as any).user.update({
+        where: { id: idUser }, data: { saldo: parseFloat(novoSaldo.toFixed(2)) }
+      });
+
+      // Registar a venda no histórico
+      await (this.prisma as any).historicoJogo.create({
+        data: {
+          userId: idUser,
+          acao: "Venda de Skin",
+          detalhe: `Vendeu ${skin.nome}`,
+          valor: valorDeVenda,
+          tipo: "GANHO"
+        }
+      });
+
+      return { sucesso: true, novoSaldo: parseFloat(novoSaldo.toFixed(2)), idVendido: idItem, valorRecebido: valorDeVenda };
+
+    } catch (error: any) {
+      // 🔥 A TUA CÂMARA DE VIGILÂNCIA: Se a venda falhar agora, o Render vai cuspir o motivo exato!
+      console.error("🔥 ERRO FATAL AO VENDER SKIN:", error);
+      throw new BadRequestException("A venda falhou no servidor. Atualiza a página e tenta novamente.");
+    }
   }
 
   // ==========================================
@@ -2718,8 +2629,39 @@ export class UsersService {
     }
 
     if (dados.metodo === 'crypto') {
-      const valorBTC = (dados.valor / 60000).toFixed(6);
-      return { sucesso: true, metodo: 'crypto', carteira: "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh", moeda: "BTC", valorCripto: valorBTC, msg: "Envia Cripto para a carteira.", txId: transacao.id };
+      try {
+        const apiKey = (process.env.NOWPAYMENTS_API_KEY || '').trim();
+        
+        const response = await axios.post('https://api.nowpayments.io/v1/invoice', {
+          price_amount: dados.valor,
+          price_currency: 'eur',
+          order_id: transacao.id.toString(),
+          order_description: 'Deposito Sweet Drop',
+          success_url: 'https://sweetdrop.vercel.app/sucesso',
+          cancel_url: 'https://sweetdrop.vercel.app/erro'
+        }, {
+          headers: {
+            'x-api-key': apiKey,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (response.data && response.data.invoice_url) {
+          return { 
+            sucesso: true, 
+            metodo: 'crypto', 
+            url: response.data.invoice_url, 
+            msg: "Redirecionando para a Gateway de Cripto...", 
+            txId: transacao.id 
+          };
+        } else {
+          console.error("Erro estrutural NOWPayments:", response.data);
+          throw new BadRequestException("Erro na Gateway de Criptomoedas.");
+        }
+      } catch (error: any) {
+        console.error("Erro NOWPayments Completo:", error?.response?.data || error);
+        throw new BadRequestException("Falha ao gerar o link de criptomoedas.");
+      }
     }
 
     throw new BadRequestException("Método desconhecido.");
@@ -2745,7 +2687,7 @@ export class UsersService {
   }
 
   // ==========================================
-  // DEPARTAMENTO DE INVENTÁRIO
+  // DEPARTAMENTO DE INVENTÁRIO & LEVANTAMENTOS
   // ==========================================
 
   async verInventario(userId: number) {
@@ -2759,42 +2701,50 @@ export class UsersService {
     const user = await (this.prisma as any).user.findUnique({
       where: { id: Number(userId) }, include: { inventario: true } 
     });
-    if (!user) throw new Error("Jogador não encontrado.");
+    
+    if (!user) throw new BadRequestException("Jogador não encontrado.");
 
     if (!user.tradeUrl || user.tradeUrl.length < 15) {
-      throw new Error("Tens de configurar o teu Trade URL da Steam nas Definições primeiro!");
+      throw new BadRequestException("Tens de configurar o teu Trade URL da Steam nas Definições primeiro!");
     }
 
     if (!user.contaVerificada) {
-      throw new Error("CONTA NÃO VERIFICADA: Pede a verificação da tua conta nas Configurações para poderes levantar skins.");
+      throw new BadRequestException("CONTA NÃO VERIFICADA: Pede a verificação da tua conta nas Configurações para poderes levantar skins.");
     }
 
     const skin = user.inventario.find((s: any) => s.id === Number(inventarioId));
-    if (!skin) throw new Error("Esta arma não te pertence!");
+    if (!skin) throw new BadRequestException("Esta arma não te pertence ou já foi processada!");
 
-    // 🔥 TRAVA DE SEGURANÇA: LIMITE MÍNIMO DE 2.00€
     const valorDaSkin = skin.valor || skin.preco || 0;
     if (valorDaSkin < 2.00) {
-      throw new Error("O império não envia armas abaixo de 2.00€. Vende a skin por saldo ou faz Upgrade!");
+      throw new BadRequestException("O império não envia armas abaixo de 2.00€. Vende a skin por saldo ou faz Upgrade!");
     }
 
-    // Criar a encomenda para o Admin enviar
-    await (this.prisma as any).levantamento.create({
-      data: {
-        userId: Number(userId),
-        skinNome: skin.nome,
-        skinImagem: skin.imagem,
-        valor: skin.valor,
-        tradeUrl: user.tradeUrl,
-        status: "PENDENTE"
-      }
-    });
+    try {
+      await (this.prisma as any).inventario.delete({
+        where: { id: Number(inventarioId) }
+      });
 
-    await (this.prisma as any).historicoJogo.create({
-      data: { userId: Number(userId), acao: "Levantamento", detalhe: `Solicitou envio de ${skin.nome}`, valor: skin.valor, tipo: "LEVANTAMENTO" }
-    });
+      await (this.prisma as any).levantamento.create({
+        data: {
+          userId: Number(userId),
+          skinNome: skin.nome,
+          skinImagem: skin.imagem,
+          valor: skin.valor,
+          tradeUrl: user.tradeUrl,
+          status: "PENDENTE"
+        }
+      });
 
-    return { sucesso: true, mensagem: "Pedido efetuado! Fica atento à tua Steam, vamos enviar a troca em breve." };
+      await (this.prisma as any).historicoJogo.create({
+        data: { userId: Number(userId), acao: "Levantamento", detalhe: `Solicitou envio de ${skin.nome}`, valor: skin.valor, tipo: "LEVANTAMENTO" }
+      });
+
+      return { sucesso: true, mensagem: "Pedido efetuado! Fica atento à tua Steam, vamos enviar a troca em breve." };
+
+    } catch (error) {
+      throw new BadRequestException("Erro ao processar o levantamento. A skin pode já ter sido movida.");
+    }
   }
 }
 </file>

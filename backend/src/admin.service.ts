@@ -1,5 +1,6 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
+import { Cron, CronExpression } from '@nestjs/schedule';
 
 @Injectable()
 export class AdminService {
@@ -110,4 +111,61 @@ export class AdminService {
 
     return { sucesso: true, novoSaldo: parseFloat(novoSaldo.toFixed(2)), valorGanho: promo.valor };
   }
+
+  // ====================================================================
+  // 🔥 O TRABALHADOR DA NOITE (VERSÃO SKINPORT - SEM API KEY) 🔥
+  // ====================================================================
+  @Cron(CronExpression.EVERY_DAY_AT_4AM)
+  async atualizarPrecosMercadoNoturno() {
+    console.log('🌙 [CRON] A iniciar a atualização de preços pela Skinport...');
+
+    try {
+      // 1. Vai buscar os preços à API Pública da Skinport (GRÁTIS E SEM LOGIN)
+      const respostaApi = await fetch('https://api.skinport.com/v1/items?app_id=730&currency=EUR');
+      const mercadoRaw = await respostaApi.json();
+
+      // 2. Transforma a resposta num dicionário fácil de ler
+      const precosMercado: Record<string, number> = {};
+      
+      for (const skin of mercadoRaw) {
+        const precoReal = skin.suggested_price || skin.min_price;
+        if (precoReal) precosMercado[skin.market_hash_name] = precoReal;
+      }
+
+      // 3. Puxa TODAS as armas da base de dados usando 'item'
+      const minhasSkins = await (this.prisma as any).item.findMany();
+      let atualizadas = 0;
+      let ignoradas = 0;
+
+      // 4. O Sistema de Verificação e Segurança
+      for (const skin of minhasSkins) {
+        const precoNovo = precosMercado[skin.nome];
+
+        if (precoNovo && precoNovo > 0.05) {
+          
+          // 🔥 CINTA DE SEGURANÇA: ANTI PUMP & DUMP 🔥
+          const limiteSeguranca = skin.preco * 1.50; 
+
+          if (precoNovo > limiteSeguranca) {
+            console.log(`🚨 [ALERTA] A skin ${skin.nome} saltou de ${skin.preco}€ para ${precoNovo}€. Atualização Bloqueada!`);
+            ignoradas++;
+            continue;
+          }
+
+          // Se passar na segurança, atualiza o preço na Base de Dados
+          await (this.prisma as any).item.update({
+            where: { id: skin.id },
+            data: { preco: parseFloat(precoNovo.toFixed(2)) }
+          });
+          atualizadas++;
+        }
+      }
+
+      console.log(`✅ [CRON] Concluído! ${atualizadas} preços atualizados. ${ignoradas} manipulações bloqueadas.`);
+
+    } catch (error) {
+      console.error('❌ [CRON] Falha ao comunicar com a API da Skinport:', error);
+    }
+  }
+
 }

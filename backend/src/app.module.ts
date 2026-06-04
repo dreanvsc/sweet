@@ -11,11 +11,16 @@ import { SteamStrategy, SessionSerializer } from './steam.strategy';
 import { BattlesGateway } from './battles.gateway';
 import { CoinflipGateway } from './coinflip.gateway';
 import { ChatGateway } from './chat.gateway';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
-  imports: [],
+  imports: [
+    // 🔥 MÓDULOS: O Relógio do Servidor entra AQUI!
+    ScheduleModule.forRoot(),
+  ],
   controllers: [AppController],
   providers: [
+    // 🔥 SERVIÇOS E GATEWAYS: Ficam AQUI!
     PrismaService, 
     UsersService, 
     CaixasService, 

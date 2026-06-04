@@ -88,45 +88,51 @@ export class UsersService {
 
   async venderItem(userId: number, inventarioId: number) {
     try {
-      // 🔥 O CADEADO: Transação garante que a skin sai e o dinheiro entra NO MESMO MILISSEGUNDO!
-      return await (this.prisma as any).$transaction(async (prisma: any) => {
-        const user = await prisma.user.findUnique({
-          where: { id: Number(userId) }, include: { inventario: true } 
-        });
-        if (!user) throw new BadRequestException("Jogador não encontrado.");
+      const idUser = Number(userId);
+      const idItem = Number(inventarioId);
 
-        const itemQueQuerVender = user.inventario.find((skin: any) => skin.id === Number(inventarioId));
-        if (!itemQueQuerVender) throw new BadRequestException("ERRO: Esta arma já foi vendida, levantada ou não te pertence!");
-
-        // 1. Apaga a skin
-        await prisma.inventario.delete({ where: { id: Number(inventarioId) } });
-
-        // 2. Calcula o valor
-        const valorDaArma = itemQueQuerVender.valor || itemQueQuerVender.preco || 0;
-        const valorDeVenda = parseFloat((valorDaArma * 0.90).toFixed(2)); 
-        const novoSaldo = user.saldo + valorDeVenda;
-
-        // 3. Dá o dinheiro
-        await prisma.user.update({
-          where: { id: Number(userId) }, data: { saldo: parseFloat(novoSaldo.toFixed(2)) }
-        });
-
-        // 4. 🔥 BÓNUS: Regista a venda no histórico para tu teres controlo!
-        await prisma.historicoJogo.create({
-          data: {
-            userId: Number(userId),
-            acao: "Venda de Skin",
-            detalhe: `Vendeu ${itemQueQuerVender.nome}`,
-            valor: valorDeVenda,
-            tipo: "GANHO"
-          }
-        });
-
-        return { sucesso: true, novoSaldo: parseFloat(novoSaldo.toFixed(2)), idVendido: inventarioId, valorRecebido: valorDeVenda };
+      const user = await (this.prisma as any).user.findUnique({
+        where: { id: idUser }, include: { inventario: true } 
       });
+      if (!user) throw new BadRequestException("Jogador não encontrado.");
+
+      const skin = user.inventario.find((s: any) => s.id === idItem);
+      if (!skin) throw new BadRequestException("ERRO: Esta arma já não te pertence.");
+
+      const valorDaArma = skin.valor || skin.preco || 0;
+      const valorDeVenda = parseFloat((valorDaArma * 0.90).toFixed(2)); 
+
+      // 🔥 A NOVA ESTRATÉGIA: O "Apagar Atómico"
+      // Tentamos apagar a skin primeiro. Se o jogador der duplo clique, 
+      // a segunda tentativa vai falhar automaticamente aqui e proteger o teu dinheiro!
+      await (this.prisma as any).inventario.delete({ 
+        where: { id: idItem } 
+      });
+
+      // Se a skin foi apagada com sucesso (ninguém a roubou entretanto), damos o dinheiro.
+      const novoSaldo = user.saldo + valorDeVenda;
+
+      await (this.prisma as any).user.update({
+        where: { id: idUser }, data: { saldo: parseFloat(novoSaldo.toFixed(2)) }
+      });
+
+      // Registar a venda no histórico
+      await (this.prisma as any).historicoJogo.create({
+        data: {
+          userId: idUser,
+          acao: "Venda de Skin",
+          detalhe: `Vendeu ${skin.nome}`,
+          valor: valorDeVenda,
+          tipo: "GANHO"
+        }
+      });
+
+      return { sucesso: true, novoSaldo: parseFloat(novoSaldo.toFixed(2)), idVendido: idItem, valorRecebido: valorDeVenda };
+
     } catch (error: any) {
-      // Se houver qualquer falha ou clique duplo, ele devolve um erro 400 legível para o site parar
-      throw new BadRequestException(error.message || "Falha ao processar a venda da skin.");
+      // 🔥 A TUA CÂMARA DE VIGILÂNCIA: Se a venda falhar agora, o Render vai cuspir o motivo exato!
+      console.error("🔥 ERRO FATAL AO VENDER SKIN:", error);
+      throw new BadRequestException("A venda falhou no servidor. Atualiza a página e tenta novamente.");
     }
   }
 

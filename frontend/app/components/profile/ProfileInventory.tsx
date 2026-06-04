@@ -33,9 +33,9 @@ export default function ProfileInventory({ inventario, setInventario, setSaldo, 
   // 🔥 1. ABRIR MODAL DE LEVANTAMENTO
   const iniciarLevantamento = (item: any) => {
     // 🔥 Alterado: Adicionada a validação inicial de segurança de e-mail verificado
-    if (!userData?.emailVerificado) {
-      return toast.error("SEGURANÇA: Verifica o teu e-mail nas Configurações antes de levantar a skin!");
-    }
+    //if (!userData?.emailVerificado) {
+      //return toast.error("SEGURANÇA: Verifica o teu e-mail nas Configurações antes de levantar a skin!");
+    //}
 
     const precoReal = Number(item?.preco || item?.valor || 0);
     if (precoReal < 2.00) {

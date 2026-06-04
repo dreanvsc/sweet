@@ -222,6 +222,7 @@ export class UsersService {
     const user = await (this.prisma as any).user.findUnique({
       where: { id: Number(userId) }, include: { inventario: true } 
     });
+    
     if (!user) throw new Error("Jogador não encontrado.");
 
     if (!user.tradeUrl || user.tradeUrl.length < 15) {
@@ -233,30 +234,41 @@ export class UsersService {
     }
 
     const skin = user.inventario.find((s: any) => s.id === Number(inventarioId));
-    if (!skin) throw new Error("Esta arma não te pertence!");
+    if (!skin) throw new Error("Esta arma não te pertence ou já foi processada!");
 
-    // 🔥 TRAVA DE SEGURANÇA: LIMITE MÍNIMO DE 2.00€
+    // 🔥 TRAVA DE SEGURANÇA 1: LIMITE MÍNIMO DE 2.00€
     const valorDaSkin = skin.valor || skin.preco || 0;
     if (valorDaSkin < 2.00) {
       throw new Error("O império não envia armas abaixo de 2.00€. Vende a skin por saldo ou faz Upgrade!");
     }
 
-    // Criar a encomenda para o Admin enviar
-    await (this.prisma as any).levantamento.create({
-      data: {
-        userId: Number(userId),
-        skinNome: skin.nome,
-        skinImagem: skin.imagem,
-        valor: skin.valor,
-        tradeUrl: user.tradeUrl,
-        status: "PENDENTE"
-      }
-    });
+    try {
+      // 🔥 TRAVA DE SEGURANÇA CRÍTICA 2: APAGAR A SKIN DO INVENTÁRIO LOGO!
+      // Se não apagarmos, ele clica 10 vezes e gera 10 pedidos para a mesma skin.
+      await (this.prisma as any).inventario.delete({
+        where: { id: Number(inventarioId) }
+      });
 
-    await (this.prisma as any).historicoJogo.create({
-      data: { userId: Number(userId), acao: "Levantamento", detalhe: `Solicitou envio de ${skin.nome}`, valor: skin.valor, tipo: "LEVANTAMENTO" }
-    });
+      // Criar a encomenda para o Admin enviar
+      await (this.prisma as any).levantamento.create({
+        data: {
+          userId: Number(userId),
+          skinNome: skin.nome,
+          skinImagem: skin.imagem,
+          valor: skin.valor,
+          tradeUrl: user.tradeUrl,
+          status: "PENDENTE"
+        }
+      });
 
-    return { sucesso: true, mensagem: "Pedido efetuado! Fica atento à tua Steam, vamos enviar a troca em breve." };
+      await (this.prisma as any).historicoJogo.create({
+        data: { userId: Number(userId), acao: "Levantamento", detalhe: `Solicitou envio de ${skin.nome}`, valor: skin.valor, tipo: "LEVANTAMENTO" }
+      });
+
+      return { sucesso: true, mensagem: "Pedido efetuado! Fica atento à tua Steam, vamos enviar a troca em breve." };
+
+    } catch (error) {
+      throw new Error("Erro ao processar o levantamento. A skin pode já ter sido movida.");
+    }
   }
 }

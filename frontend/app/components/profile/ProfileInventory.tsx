@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 
-// 🔥 Alterado: Adicionado o parâmetro 'userData' na desestruturação das props do componente
 export default function ProfileInventory({ inventario, setInventario, setSaldo, setView, userId, userData }: any) {
   const [search, setSearch] = useState('');
   const [loadingId, setLoadingId] = useState<number | null>(null);
@@ -32,10 +31,9 @@ export default function ProfileInventory({ inventario, setInventario, setSaldo, 
 
   // 🔥 1. ABRIR MODAL DE LEVANTAMENTO
   const iniciarLevantamento = (item: any) => {
-    // 🔥 Alterado: Adicionada a validação inicial de segurança de e-mail verificado
-    //if (!userData?.emailVerificado) {
-      //return toast.error("SEGURANÇA: Verifica o teu e-mail nas Configurações antes de levantar a skin!");
-    //}
+    // if (!userData?.emailVerificado) {
+    //   return toast.error("SEGURANÇA: Verifica o teu e-mail nas Configurações antes de levantar a skin!");
+    // }
 
     const precoReal = Number(item?.preco || item?.valor || 0);
     if (precoReal < 2.00) {
@@ -74,15 +72,38 @@ export default function ProfileInventory({ inventario, setInventario, setSaldo, 
     setLoadingId(null);
   };
 
-  // 🔥 2. CONFIRMAR VENDA NO MODAL
-  const confirmarVenda = () => {
+  // 🔥 2. CONFIRMAR VENDA NO MODAL (CORRIGIDO E LIGADO AO BACKEND)
+  const confirmarVenda = async () => {
     const { item, idx } = skinParaVender;
-    const precoReal = Number(item?.preco || item?.valor || 0);
     
-    setSaldo((s: number) => s + precoReal);
-    setInventario((inv: any) => inv.filter((_: any, i: number) => i !== idx));
-    toast.success(`Vendeste a skin por ${precoReal.toFixed(2)}€!`);
+    if (!userId) return toast.error("Erro: Sessão não encontrada.");
+    
     setSkinParaVender(null);
+    const toastId = toast.loading("A processar venda no mercado...");
+
+    try {
+      const res = await fetch('https://sweet-7ifa.onrender.com/vender-item', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          userId: Number(userId), 
+          inventarioId: item.id 
+        })
+      });
+      
+      const data = await res.json();
+
+      if (data.sucesso) {
+        setSaldo(data.novoSaldo); 
+        setInventario((inv: any) => inv.filter((_: any, i: number) => i !== idx)); 
+        toast.success(`Vendeste a skin por ${data.valorRecebido.toFixed(2)}€!`, { id: toastId });
+      } else {
+        toast.error('❌ ' + (data.mensagem || data.message || "Erro ao vender skin."), { id: toastId });
+      }
+
+    } catch (error) {
+      toast.error('Erro de comunicação com o servidor.', { id: toastId });
+    }
   };
 
   const inventarioSeguro = Array.isArray(inventario) ? inventario : [];

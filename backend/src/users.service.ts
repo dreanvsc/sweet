@@ -153,10 +153,12 @@ export class UsersService {
           params: {
             source_currency: 'EUR',
             source_amount: dados.valor.toString(),
-            currency: 'LTC',
+            // 🔥 REMOVIDO: 'currency: LTC'
+            // Sem isto, o Plisio vai mostrar um ecrã muito mais bonito onde o próprio jogador escolhe a moeda que quer usar (BTC, LTC, USDT, etc)!
             order_name: `Deposito Sweet Drop`,
             order_number: transacao.id.toString(),
-            api_key: process.env.PLISIO_SECRET_KEY || ''
+            // 🔥 ADICIONADO: .trim() para limpar eventuais espaços invisíveis na tua chave secreta
+            api_key: (process.env.PLISIO_SECRET_KEY || '').trim() 
           }
         });
 
@@ -169,10 +171,13 @@ export class UsersService {
             txId: transacao.id 
           };
         } else {
+          // 🔥 A ARMADILHA: Se o Plisio rejeitar, ele vai "cuspir" o motivo exato (em inglês) no teu ecrã preto!
+          console.error("🔥 MOTIVO DA REJEIÇÃO DO PLISIO:", response.data);
           throw new BadRequestException("Erro na Gateway do Plisio.");
         }
-      } catch (error) {
-        console.error("Erro Plisio:", error);
+      } catch (error: any) {
+        // Apanha falhas de conexão extremas
+        console.error("Erro Plisio Completo:", error?.response?.data || error);
         throw new BadRequestException("Falha ao gerar o link de criptomoedas.");
       }
     }

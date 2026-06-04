@@ -10,9 +10,9 @@ export default function Store({ CAIXAS, setCaixaSelecionada, setView }: any) {
         <div className="h-px flex-1 bg-white/5"></div>
       </div>
       
-      {/* A GRELHA (Estilo Hunt.gg) */}
+      {/* A GRELHA (Agora com xl:grid-cols-6 para teres as 6 caixas por fila!) */}
       <div className="px-4 md:px-8">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
           
           {CAIXAS.map((c: any, i: number) => (
             <div 

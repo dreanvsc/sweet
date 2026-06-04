@@ -34,7 +34,7 @@ export default function CaseOpening({
   }, [caixaSelecionada]);
 
   const abrirCaixa = async () => {
-    // 🔥 Agora usa o toast.error em vez do alert
+    
     if (!userId) return toast.error("Erro: Não tens sessão iniciada.");
     
     const precoTotal = caixaSelecionada.preco * quantidade;

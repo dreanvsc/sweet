@@ -40,17 +40,14 @@ export class UsersService {
   // 🔥 SISTEMA DE PROGRESSÃO (ESTILO KEY-DROP)
   // ==========================================
 
-  // 1. Calcula o XP necessário para passar de nível (ex: Nível 1 = 100xp, Nível 2 = 200xp...)
   getXpNecessarioParaNivel(level: number): number {
     return level * 100; 
   }
 
-  // 2. Injeta XP e sobe o nível de forma persistente
   async adicionarXp(userId: number, valorGasto: number) {
     const user = await (this.prisma as any).user.findUnique({ where: { id: userId } });
     if (!user) return;
 
-    // 1€ = 10 XP. Math.floor garante que é um número Inteiro sem vírgulas!
     const xpGanho = Math.floor(valorGasto * 10); 
     
     let novoXp = user.xp + xpGanho;
@@ -58,7 +55,6 @@ export class UsersService {
 
     let xpNecessario = this.getXpNecessarioParaNivel(novoNivel);
     
-    // Loop para subir de nível caso ganhe muito XP de uma vez
     while (novoXp >= xpNecessario) {
       novoXp -= xpNecessario;
       novoNivel += 1;
@@ -67,10 +63,7 @@ export class UsersService {
 
     return await (this.prisma as any).user.update({
       where: { id: userId },
-      data: {
-        level: novoNivel,
-        xp: novoXp
-      }
+      data: { level: novoNivel, xp: novoXp }
     });
   }
 
@@ -81,40 +74,60 @@ export class UsersService {
   async gastarSaldo(userId: string, valor: number) {
     const idNumero = Number(userId);
     const user = await (this.prisma as any).user.findUnique({ where: { id: idNumero } });
-    if (!user) throw new Error('Utilizador não encontrado na Base de Dados');
+    if (!user) throw new BadRequestException('Utilizador não encontrado na Base de Dados');
 
-    // 1. Tira o saldo
     const userAtualizado = await (this.prisma as any).user.update({
       where: { id: idNumero },
       data: { saldo: user.saldo - valor }
     });
 
-    // 2. 🔥 Dá XP pela aposta/abertura!
     await this.adicionarXp(idNumero, valor);
 
     return userAtualizado;
   }
 
   async venderItem(userId: number, inventarioId: number) {
-    const user = await (this.prisma as any).user.findUnique({
-      where: { id: Number(userId) }, include: { inventario: true } 
-    });
-    if (!user) throw new Error("Jogador não encontrado.");
+    try {
+      // 🔥 O CADEADO: Transação garante que a skin sai e o dinheiro entra NO MESMO MILISSEGUNDO!
+      return await (this.prisma as any).$transaction(async (prisma: any) => {
+        const user = await prisma.user.findUnique({
+          where: { id: Number(userId) }, include: { inventario: true } 
+        });
+        if (!user) throw new BadRequestException("Jogador não encontrado.");
 
-    const itemQueQuerVender = user.inventario.find((skin: any) => skin.id === Number(inventarioId));
-    if (!itemQueQuerVender) throw new Error("Esta arma não te pertence!");
+        const itemQueQuerVender = user.inventario.find((skin: any) => skin.id === Number(inventarioId));
+        if (!itemQueQuerVender) throw new BadRequestException("ERRO: Esta arma já foi vendida, levantada ou não te pertence!");
 
-    await (this.prisma as any).inventario.delete({ where: { id: Number(inventarioId) } });
+        // 1. Apaga a skin
+        await prisma.inventario.delete({ where: { id: Number(inventarioId) } });
 
-    const valorDaArma = itemQueQuerVender.valor || itemQueQuerVender.preco || 0;
-    const valorDeVenda = parseFloat((valorDaArma * 0.90).toFixed(2)); 
-    const novoSaldo = user.saldo + valorDeVenda;
+        // 2. Calcula o valor
+        const valorDaArma = itemQueQuerVender.valor || itemQueQuerVender.preco || 0;
+        const valorDeVenda = parseFloat((valorDaArma * 0.90).toFixed(2)); 
+        const novoSaldo = user.saldo + valorDeVenda;
 
-    await (this.prisma as any).user.update({
-      where: { id: Number(userId) }, data: { saldo: parseFloat(novoSaldo.toFixed(2)) }
-    });
+        // 3. Dá o dinheiro
+        await prisma.user.update({
+          where: { id: Number(userId) }, data: { saldo: parseFloat(novoSaldo.toFixed(2)) }
+        });
 
-    return { sucesso: true, novoSaldo: parseFloat(novoSaldo.toFixed(2)), idVendido: inventarioId, valorRecebido: valorDeVenda };
+        // 4. 🔥 BÓNUS: Regista a venda no histórico para tu teres controlo!
+        await prisma.historicoJogo.create({
+          data: {
+            userId: Number(userId),
+            acao: "Venda de Skin",
+            detalhe: `Vendeu ${itemQueQuerVender.nome}`,
+            valor: valorDeVenda,
+            tipo: "GANHO"
+          }
+        });
+
+        return { sucesso: true, novoSaldo: parseFloat(novoSaldo.toFixed(2)), idVendido: inventarioId, valorRecebido: valorDeVenda };
+      });
+    } catch (error: any) {
+      // Se houver qualquer falha ou clique duplo, ele devolve um erro 400 legível para o site parar
+      throw new BadRequestException(error.message || "Falha ao processar a venda da skin.");
+    }
   }
 
   // ==========================================
@@ -151,7 +164,6 @@ export class UsersService {
       try {
         const apiKey = (process.env.NOWPAYMENTS_API_KEY || '').trim();
         
-        // Chamada à API do NOWPayments para criar a fatura
         const response = await axios.post('https://api.nowpayments.io/v1/invoice', {
           price_amount: dados.valor,
           price_currency: 'eur',
@@ -166,7 +178,6 @@ export class UsersService {
           }
         });
 
-        // Se o NOWPayments devolver o link da fatura com sucesso
         if (response.data && response.data.invoice_url) {
           return { 
             sucesso: true, 
@@ -208,7 +219,7 @@ export class UsersService {
   }
 
   // ==========================================
-  // DEPARTAMENTO DE INVENTÁRIO
+  // DEPARTAMENTO DE INVENTÁRIO & LEVANTAMENTOS
   // ==========================================
 
   async verInventario(userId: number) {
@@ -223,33 +234,29 @@ export class UsersService {
       where: { id: Number(userId) }, include: { inventario: true } 
     });
     
-    if (!user) throw new Error("Jogador não encontrado.");
+    if (!user) throw new BadRequestException("Jogador não encontrado.");
 
     if (!user.tradeUrl || user.tradeUrl.length < 15) {
-      throw new Error("Tens de configurar o teu Trade URL da Steam nas Definições primeiro!");
+      throw new BadRequestException("Tens de configurar o teu Trade URL da Steam nas Definições primeiro!");
     }
 
     if (!user.contaVerificada) {
-      throw new Error("CONTA NÃO VERIFICADA: Pede a verificação da tua conta nas Configurações para poderes levantar skins.");
+      throw new BadRequestException("CONTA NÃO VERIFICADA: Pede a verificação da tua conta nas Configurações para poderes levantar skins.");
     }
 
     const skin = user.inventario.find((s: any) => s.id === Number(inventarioId));
-    if (!skin) throw new Error("Esta arma não te pertence ou já foi processada!");
+    if (!skin) throw new BadRequestException("Esta arma não te pertence ou já foi processada!");
 
-    // 🔥 TRAVA DE SEGURANÇA 1: LIMITE MÍNIMO DE 2.00€
     const valorDaSkin = skin.valor || skin.preco || 0;
     if (valorDaSkin < 2.00) {
-      throw new Error("O império não envia armas abaixo de 2.00€. Vende a skin por saldo ou faz Upgrade!");
+      throw new BadRequestException("O império não envia armas abaixo de 2.00€. Vende a skin por saldo ou faz Upgrade!");
     }
 
     try {
-      // 🔥 TRAVA DE SEGURANÇA CRÍTICA 2: APAGAR A SKIN DO INVENTÁRIO LOGO!
-      // Se não apagarmos, ele clica 10 vezes e gera 10 pedidos para a mesma skin.
       await (this.prisma as any).inventario.delete({
         where: { id: Number(inventarioId) }
       });
 
-      // Criar a encomenda para o Admin enviar
       await (this.prisma as any).levantamento.create({
         data: {
           userId: Number(userId),
@@ -268,7 +275,7 @@ export class UsersService {
       return { sucesso: true, mensagem: "Pedido efetuado! Fica atento à tua Steam, vamos enviar a troca em breve." };
 
     } catch (error) {
-      throw new Error("Erro ao processar o levantamento. A skin pode já ter sido movida.");
+      throw new BadRequestException("Erro ao processar o levantamento. A skin pode já ter sido movida.");
     }
   }
 }

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
 import { FeedGateway } from './feed.gateway';
 import { UsersService } from './users.service';
@@ -8,7 +8,7 @@ export class CaixasService {
   constructor(
     private prisma: PrismaService,
     private feedGateway: FeedGateway,
-    private readonly usersService: UsersService // 🔥 O gerente de XP está pronto!
+    private readonly usersService: UsersService 
   ) {}
 
   async criarCaixa(dados: { nome: string, preco: number, imagem: string, itens: any[], ordem?: number }) {
@@ -38,86 +38,127 @@ export class CaixasService {
 
   async abrirCaixa(dados: { userId: string, caixaSelecionada: any, quantidade?: number }) {
     try {
-      const quantidade = dados.quantidade || 1;
-      const user = await (this.prisma as any).user.findUnique({ where: { id: Number(dados.userId) } });
-      if (!user) throw new Error('Utilizador não encontrado');
+      // 🔥 BLOQUEIO DE FRAUDE: Impede hackers de usarem valores negativos, zero, ou frações (ex: 1.5).
+      const quantidade = Math.floor(Number(dados.quantidade || 1));
+      if (quantidade < 1 || quantidade > 50) {
+        throw new BadRequestException('Quantidade inválida (entre 1 e 50).');
+      }
 
       const precoDaCaixa = Number(dados.caixaSelecionada.preco);
       const precoTotal = precoDaCaixa * quantidade;
 
-      if (user.saldo < precoTotal) throw new Error(`Saldo insuficiente. Precisas de ${precoTotal.toFixed(2)}€`);
+      // ======================================================================
+      // 🔥 O CADEADO DE TRANSAÇÃO: Se falhar a meio, ninguém perde nada!
+      // ======================================================================
+      return await (this.prisma as any).$transaction(async (prisma: any) => {
+        
+        const user = await prisma.user.findUnique({ where: { id: Number(dados.userId) } });
+        if (!user) throw new BadRequestException('Utilizador não encontrado');
 
-      let listaSkins = dados.caixaSelecionada.skins || dados.caixaSelecionada.itens || [];
-      if (typeof listaSkins === 'string') {
-        try { listaSkins = JSON.parse(listaSkins); } catch(e) { listaSkins = []; }
-      }
-      if (listaSkins.length === 0) throw new Error('Esta caixa não tem skins!');
-
-      let pesoTotal = 0;
-      const skinsComPeso = listaSkins.map((skin: any) => {
-        const peso = parseFloat(skin.probabilidade) || 0;
-        pesoTotal += peso;
-        return { ...skin, peso: peso };
-      });
-      if (pesoTotal <= 0) skinsComPeso.forEach((s: any) => { s.peso = 1; pesoTotal += 1; });
-
-      const skinsGanhas: any[] = [];
-      let valorTotalGanho = 0;
-
-      for (let i = 0; i < quantidade; i++) {
-        const numeroSorteado = Math.random() * pesoTotal;
-        let pesoAcumulado = 0;
-        let skinSorteada = skinsComPeso[0];
-
-        for (const skin of skinsComPeso) {
-          pesoAcumulado += skin.peso;
-          if (numeroSorteado <= pesoAcumulado) {
-            skinSorteada = skin;
-            break;
-          }
+        if (user.saldo < precoTotal) {
+            throw new BadRequestException(`Saldo insuficiente. Precisas de ${precoTotal.toFixed(2)}€`);
         }
-        skinsGanhas.push(skinSorteada);
-        valorTotalGanho += parseFloat(skinSorteada.preco || skinSorteada.valor || 0);
-      }
 
-      const novoSaldo = user.saldo - precoTotal;
+        let listaSkins = dados.caixaSelecionada.skins || dados.caixaSelecionada.itens || [];
+        if (typeof listaSkins === 'string') {
+          try { listaSkins = JSON.parse(listaSkins); } catch(e) { listaSkins = []; }
+        }
+        if (listaSkins.length === 0) throw new BadRequestException('Esta caixa não tem skins disponíveis!');
 
-      // 1. Tira o dinheiro do jogador
-      await (this.prisma as any).user.update({
-        where: { id: Number(dados.userId) }, data: { saldo: parseFloat(novoSaldo.toFixed(2)) }
-      });
-
-      // 2. 🔥 INJETA O XP! (Isto faz o nível subir de verdade!)
-      await this.usersService.adicionarXp(Number(dados.userId), precoTotal);
-
-      // 3. Guarda as skins no inventário
-      const inventarioData = skinsGanhas.map(skin => ({
-        nome: skin.nome, imagem: skin.imagem || skin.image, raridade: skin.raridade || 'Comum', valor: parseFloat(Number(skin.preco || skin.valor || 0).toFixed(2)), userId: Number(dados.userId)
-      }));
-
-      await (this.prisma as any).inventario.createMany({ data: inventarioData });
-
-      await (this.prisma as any).historicoJogo.create({
-        data: { userId: Number(dados.userId), acao: "Abertura de Caixa", detalhe: quantidade > 1 ? `Abriu ${quantidade}x ${dados.caixaSelecionada.nome}` : `Abriu a ${dados.caixaSelecionada.nome}`, valor: parseFloat(Number(valorTotalGanho).toFixed(2)), tipo: "GANHO" }
-      });
-
-      // 🔥 AQUI ENTRA A ANTENA: AVISA O FRONTEND EM TEMPO REAL PARA ROLAR NO LIVE FEED 🔥
-      skinsGanhas.forEach(skin => {
-        this.feedGateway.emitirNovoDrop({
-          nome: skin.nome,
-          imagem: skin.imagem || skin.image,
-          raridade: skin.raridade || 'Comum',
-          valor: parseFloat(Number(skin.preco || skin.valor || 0).toFixed(2)),
-          userNome: user.nome || 'Anónimo',
-          userFoto: user.avatar || '/skins/glock.png'
+        let pesoTotal = 0;
+        const skinsComPeso = listaSkins.map((skin: any) => {
+          const peso = parseFloat(skin.probabilidade) || 0;
+          pesoTotal += peso;
+          return { ...skin, peso: peso };
         });
+        
+        // Proteção: Se o admin esquecer de meter pesos, todas têm 1 (mesma chance)
+        if (pesoTotal <= 0) skinsComPeso.forEach((s: any) => { s.peso = 1; pesoTotal += 1; });
+
+        const skinsGanhas: any[] = [];
+        let valorTotalGanho = 0;
+
+        // O Motor de RNG (Sorteio)
+        for (let i = 0; i < quantidade; i++) {
+          const numeroSorteado = Math.random() * pesoTotal;
+          let pesoAcumulado = 0;
+          let skinSorteada = skinsComPeso[0];
+
+          for (const skin of skinsComPeso) {
+            pesoAcumulado += skin.peso;
+            if (numeroSorteado <= pesoAcumulado) {
+              skinSorteada = skin;
+              break;
+            }
+          }
+          skinsGanhas.push(skinSorteada);
+          valorTotalGanho += parseFloat(skinSorteada.preco || skinSorteada.valor || 0);
+        }
+
+        const novoSaldo = user.saldo - precoTotal;
+
+        // 1. Tira o dinheiro (Garantido pelo Prisma)
+        await prisma.user.update({
+          where: { id: Number(dados.userId) }, data: { saldo: parseFloat(novoSaldo.toFixed(2)) }
+        });
+
+        // 2. Guarda as skins no inventário
+        const inventarioData = skinsGanhas.map(skin => ({
+          nome: skin.nome, 
+          imagem: skin.imagem || skin.image, 
+          raridade: skin.raridade || 'Comum', 
+          valor: parseFloat(Number(skin.preco || skin.valor || 0).toFixed(2)), 
+          userId: Number(dados.userId)
+        }));
+
+        await prisma.inventario.createMany({ data: inventarioData });
+
+        // 3. Regista no Histórico
+        await prisma.historicoJogo.create({
+          data: { 
+            userId: Number(dados.userId), 
+            acao: "Abertura de Caixa", 
+            detalhe: quantidade > 1 ? `Abriu ${quantidade}x ${dados.caixaSelecionada.nome}` : `Abriu a ${dados.caixaSelecionada.nome}`, 
+            valor: parseFloat(Number(valorTotalGanho).toFixed(2)), 
+            tipo: "GANHO" 
+          }
+        });
+
+        // Retorna o resultado DA TRANSAÇÃO. 
+        // O XP e o Live Feed podem ocorrer de forma assíncrona, fora da transação vital
+        return {
+            skinsGanhas,
+            valorTotalGanho,
+            novoSaldo,
+            user
+        };
+      }).then(async (resultado: any) => {
+          // ======================================================================
+          // PÓS-TRANSAÇÃO (Sucesso garantido! O XP sobe e o Feed grita)
+          // ======================================================================
+          
+          await this.usersService.adicionarXp(Number(dados.userId), precoTotal);
+
+          resultado.skinsGanhas.forEach((skin: any) => {
+            this.feedGateway.emitirNovoDrop({
+              nome: skin.nome,
+              imagem: skin.imagem || skin.image,
+              raridade: skin.raridade || 'Comum',
+              valor: parseFloat(Number(skin.preco || skin.valor || 0).toFixed(2)),
+              userNome: resultado.user.nome || 'Anónimo',
+              userFoto: resultado.user.avatar || '/skins/glock.png'
+            });
+          });
+
+          return {
+            itensSorteados: resultado.skinsGanhas.map((s: any) => ({ nome: s.nome, imageUrl: s.imagem || s.image, valor: parseFloat(Number(s.preco || s.valor || 0).toFixed(2)), raridade: s.raridade })),
+            valorTotal: parseFloat(resultado.valorTotalGanho.toFixed(2)),
+            novoSaldo: parseFloat(resultado.novoSaldo.toFixed(2))
+          };
       });
 
-      return {
-        itensSorteados: skinsGanhas.map(s => ({ nome: s.nome, imageUrl: s.imagem || s.image, valor: parseFloat(Number(s.preco || s.valor || 0).toFixed(2)), raridade: s.raridade })),
-        valorTotal: parseFloat(valorTotalGanho.toFixed(2)),
-        novoSaldo: parseFloat(novoSaldo.toFixed(2))
-      };
-    } catch (error) { throw error; }
+    } catch (error: any) { 
+        throw new BadRequestException(error.message || "Erro ao processar a abertura da caixa."); 
+    }
   }
 }

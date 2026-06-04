@@ -1,7 +1,6 @@
-import { Controller, Get, Post, Body, UseGuards, Req, Res, Param, Put, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards, Req, Res, Param, Put, Delete, BadRequestException } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 
-// 🔥 Importamos os 4 novos Departamentos e a Base de Dados
 import { UsersService } from './users.service';
 import { CaixasService } from './caixas.service';
 import { UpgraderService } from './upgrader.service';
@@ -10,13 +9,12 @@ import { PrismaService } from './prisma.service';
 
 @Controller()
 export class AppController {
-  // A "Telefonista" agora conhece os 4 gerentes do casino E tem a chave do Prisma!
   constructor(
     private readonly usersService: UsersService,
     private readonly caixasService: CaixasService,
     private readonly upgraderService: UpgraderService,
     private readonly adminService: AdminService,
-    private prisma: PrismaService // 🔥 A CHAVE ADICIONADA AQUI (Resolve os erros!)
+    private prisma: PrismaService 
   ) {}
 
   // ==========================================
@@ -52,7 +50,6 @@ export class AppController {
     return await this.caixasService.criarCaixa(body);
   }
 
-
   // ==========================================
   // DEPARTAMENTO DOS UTILIZADORES E SALDO
   // ==========================================
@@ -78,16 +75,14 @@ export class AppController {
 
   @Post('vender-item')
   async venderItem(@Body() body: { userId: number, inventarioId: number }) {
+    // 🔥 O reencaminhamento está perfeito! O bug está dentro desta função no users.service.ts
     return await this.usersService.venderItem(body.userId, body.inventarioId);
   }
 
-
-  // 🔥 NOTA: Atualizei esta rota para ser mais segura e só mostrar o inventário DESTE jogador
   @Get('meu-inventario/:userId')
   async verInventario(@Param('userId') userId: string) {
     return await this.usersService.verInventario(Number(userId));
   }
-
 
   // ==========================================
   // DEPARTAMENTO DO UPGRADER
@@ -96,7 +91,6 @@ export class AppController {
   async upgrade(@Body() body: { userId: number, skinIds: number[], alvoId: number }) {
     return await this.upgraderService.realizarUpgrade(body);
   }
-
 
   // ==========================================
   // DEPARTAMENTO DO ADMIN E SISTEMA
@@ -151,14 +145,9 @@ export class AppController {
         const raridadeNome = skin.rarity?.name || 'Mil-Spec Grade';
         const imagemSegura = skin.image || '/skins/glock.png';
         
-        // 🔥 MOTOR DE PREÇOS AFINADO E FILTRO VIP 🔥
         let precoBase = 5.0;
 
-        // 1. Tenta usar o preço da API (se a API o fornecer)
-        if (skin.price && !isNaN(parseFloat(skin.price))) {
-          precoBase = parseFloat(skin.price);
-        } 
-        // 2. Tabela VIP de Lendas (Override de Patrão para skins milionárias)
+        if (skin.price && !isNaN(parseFloat(skin.price))) precoBase = parseFloat(skin.price);
         else if (skin.name.includes('Dragon Lore')) precoBase = 6500.0;
         else if (skin.name.includes('Gungnir')) precoBase = 7000.0;
         else if (skin.name.includes('Howl')) precoBase = 4500.0;
@@ -169,7 +158,6 @@ export class AppController {
         else if (skin.name.includes('Fade') && skin.name.includes('Butterfly')) precoBase = 2800.0;
         else if (skin.name.includes('Doppler') && skin.name.includes('Karambit')) precoBase = 1200.0;
         else if (skin.name.includes('Vanilla') && skin.name.includes('Butterfly')) precoBase = 1800.0;
-        // 3. Rede de segurança por raridade para as restantes
         else {
           if (raridadeNome.includes('Covert')) precoBase = 120.0;
           else if (raridadeNome.includes('Classified')) precoBase = 45.0;
@@ -182,10 +170,7 @@ export class AppController {
           const nomeCompleto = `${skin.name}${q.sufixo}`;
           const precoCalculado = Math.max(0.03, parseFloat((precoBase * q.multiplicador).toFixed(2)));
           
-          // Procurar primeiro pelo nome, depois decidir entre Update ou Create
-          const itemExistente = await this.prisma.item.findFirst({
-            where: { nome: nomeCompleto }
-          });
+          const itemExistente = await this.prisma.item.findFirst({ where: { nome: nomeCompleto } });
 
           if (itemExistente) {
             await this.prisma.item.update({
@@ -194,33 +179,20 @@ export class AppController {
             });
           } else {
             await this.prisma.item.create({
-              data: { 
-                nome: nomeCompleto, 
-                preco: precoCalculado, 
-                imagem: imagemSegura, 
-                raridade: raridadeNome 
-              }
+              data: { nome: nomeCompleto, preco: precoCalculado, imagem: imagemSegura, raridade: raridadeNome }
             });
           }
         }
       }
 
-      return { 
-        sucesso: true, 
-        finalizado: false, 
-        proximoOffset: offset + LOTE,
-        message: `Processado até à arma ${offset + LOTE}.` 
-      };
-
+      return { sucesso: true, finalizado: false, proximoOffset: offset + LOTE, message: `Processado até à arma ${offset + LOTE}.` };
     } catch (error: any) {
-      console.error("Erro na sincronização:", error);
       return { sucesso: false, message: error.message };
     }
   }
 
-
   // ==========================================
-  // LOGIN DA STEAM (INTOCÁVEL)
+  // LOGIN DA STEAM
   // ==========================================
   @Get('auth/steam')
   @UseGuards(AuthGuard('steam'))
@@ -234,24 +206,18 @@ export class AppController {
   }
 
   // ==========================================
-  // 🔥 ROTA DE SEGURANÇA: PROMOVER A ADMIN
+  // ADMIN E CÓDIGOS PROMOCIONAIS
   // ==========================================
   @Post('admin/promover')
   async promoverAdmin(@Body() body: { adminId: string, alvoId: string }) {
-    // 1. Verifica se quem está a pedir é REALMENTE um Admin ou o Fundador (ID 1)
     const admin = await this.prisma.user.findUnique({ where: { id: Number(body.adminId) } });
-    
     if (!admin || (admin.role !== 'ADMIN' && admin.role !== 'admin' && admin.id !== 1)) {
       return { erro: 'Acesso Negado! Não tens permissão.' };
     }
 
-    // 2. Verifica se o jogador alvo existe
     const alvo = await this.prisma.user.findUnique({ where: { id: Number(body.alvoId) } });
-    if (!alvo) {
-      return { erro: 'Jogador não encontrado na Base de Dados.' };
-    }
+    if (!alvo) return { erro: 'Jogador não encontrado na Base de Dados.' };
 
-    // 3. Promove o jogador a Admin!
     await this.prisma.user.update({
       where: { id: Number(body.alvoId) },
       data: { role: 'ADMIN' }
@@ -262,90 +228,54 @@ export class AppController {
 
   @Post('admin/despromover')
   async despromoverAdmin(@Body() body: { adminId: string, alvoId: string }) {
-    // 1. Verifica se quem pede é Admin
     const admin = await this.prisma.user.findUnique({ where: { id: Number(body.adminId) } });
-    if (!admin || (admin.role !== 'ADMIN' && admin.role !== 'admin' && admin.id !== 1)) {
-      return { erro: 'Acesso Negado! Não tens permissão.' };
-    }
+    if (!admin || (admin.role !== 'ADMIN' && admin.role !== 'admin' && admin.id !== 1)) return { erro: 'Acesso Negado!' };
 
     const alvoIdNum = Number(body.alvoId);
+    if (alvoIdNum === 1) return { erro: 'ERRO: Não podes despedir o Fundador!' };
+    if (alvoIdNum === Number(body.adminId)) return { erro: 'Não podes despedir-te a ti próprio por aqui.' };
 
-    // 2. Proteções de Segurança Máxima
-    if (alvoIdNum === 1) {
-      return { erro: 'ERRO: Não podes despedir o Fundador!' };
-    }
-    if (alvoIdNum === Number(body.adminId)) {
-      return { erro: 'Não podes despedir-te a ti próprio por aqui.' };
-    }
-
-    // 3. Verifica se o alvo existe
     const alvo = await this.prisma.user.findUnique({ where: { id: alvoIdNum } });
-    if (!alvo) {
-      return { erro: 'Jogador não encontrado na Base de Dados.' };
-    }
+    if (!alvo) return { erro: 'Jogador não encontrado.' };
 
-    // 4. Retira os poderes!
     await this.prisma.user.update({
       where: { id: alvoIdNum },
-      data: { role: 'USER' } // Volta a ser um jogador normal
+      data: { role: 'USER' } 
     });
 
     return { sucesso: true, mensagem: `O utilizador ${alvo.nome} foi removido da equipa!` };
   }
 
-  // =======================================================
-  // 🔥 ROTA DE CÓDIGOS PROMOCIONAIS (Para o Perfil)
-  // =======================================================
   @Post('codigos/resgatar')
   async resgatarCodigo(@Body() body: { userId: string, codigo: string }) {
-    const idNum = Number(body.userId);
-    const user = await (this.prisma as any).user.findUnique({ where: { id: idNum } });
-    
-    if (!user) return { erro: 'Jogador não encontrado.' };
+    try {
+      // 🔥 CADEADO DE SEGURANÇA: Usamos uma Transação para não haver uso duplo se a net falhar
+      return await this.prisma.$transaction(async (prisma: any) => {
+        const idNum = Number(body.userId);
+        const user = await prisma.user.findUnique({ where: { id: idNum } });
+        if (!user) throw new BadRequestException('Jogador não encontrado.');
 
-    // 1. Procura o código na tabela correta (promoCode)
-    const promo = await (this.prisma as any).promoCode.findUnique({ 
-      where: { codigo: body.codigo } 
-    });
+        const promo = await prisma.promoCode.findUnique({ where: { codigo: body.codigo } });
+        if (!promo || !promo.ativo) throw new BadRequestException('CÓDIGO INEXISTENTE OU DESATIVADO.');
+        if (promo.usos >= promo.limite) throw new BadRequestException('ESTE CÓDIGO JÁ ATINGIU O LIMITE DE USOS.');
 
-    if (!promo || !promo.ativo) return { erro: 'CÓDIGO INEXISTENTE OU DESATIVADO.' };
-    
-    // 🔥 Correção: Agora lê 'promo.limite' em vez de 'maxUsos'
-    if (promo.usos >= promo.limite) return { erro: 'ESTE CÓDIGO JÁ ATINGIU O LIMITE DE USOS.' };
+        const jaUsou = await prisma.codigoUsado.findFirst({ where: { userId: idNum, codigo: promo.codigo } });
+        if (jaUsou) throw new BadRequestException('JÁ RESGATASTE ESTE CÓDIGO ANTERIORMENTE.');
 
-    // 2. Verifica se o jogador já usou na tabela correta (codigoUsado)
-    const jaUsou = await (this.prisma as any).codigoUsado.findFirst({
-      where: { 
-        userId: idNum, 
-        codigo: promo.codigo 
-      }
-    });
+        await prisma.user.update({ where: { id: idNum }, data: { saldo: user.saldo + promo.valor } });
+        await prisma.promoCode.update({ where: { id: promo.id }, data: { usos: promo.usos + 1 } });
+        await prisma.codigoUsado.create({ data: { userId: idNum, codigo: promo.codigo } });
 
-    if (jaUsou) return { erro: 'JÁ RESGATASTE ESTE CÓDIGO ANTERIORMENTE.' };
-
-    // 3. Adiciona o saldo ao jogador
-    await (this.prisma as any).user.update({
-      where: { id: idNum },
-      data: { saldo: user.saldo + promo.valor }
-    });
-
-    // 4. Aumenta o contador de usos do código
-    await (this.prisma as any).promoCode.update({
-      where: { id: promo.id },
-      data: { usos: promo.usos + 1 }
-    });
-
-    // 5. Regista que este jogador já usou este código
-    await (this.prisma as any).codigoUsado.create({
-      data: { 
-        userId: idNum, 
-        codigo: promo.codigo 
-      }
-    });
-
-    return { sucesso: true, valor: promo.valor };
+        return { sucesso: true, valor: promo.valor };
+      });
+    } catch (error: any) {
+      return { erro: error.message || 'Erro ao resgatar código.' };
+    }
   }
 
+  // ==========================================
+  // OUTRAS CONFIGURAÇÕES E SUPORTE
+  // ==========================================
   @Post('utilizador/configuracoes')
   async atualizarConfiguracoes(@Body() body: { userId: number, tradeUrl?: string, email?: string, newsletter?: boolean }) {
     const updateData: any = {};
@@ -378,15 +308,10 @@ export class AppController {
     });
   }
 
-  // 2. Rota para criar um novo ticket
   @Post('suporte/ticket')
   async criarTicket(@Body() body: { userId: number, assunto: string, message: string }) {
     await (this.prisma as any).ticketSuporte.create({
-      data: {
-        userId: Number(body.userId),
-        assunto: body.assunto.toUpperCase(),
-        mensagem: body.message
-      }
+      data: { userId: Number(body.userId), assunto: body.assunto.toUpperCase(), mensagem: body.message }
     });
     return { Guide: true, sucesso: true };
   }
@@ -394,20 +319,16 @@ export class AppController {
   @Get('admin/tickets')
   async adminObterTodosTickets() {
     return await (this.prisma as any).ticketSuporte.findMany({
-      include: { user: true }, // Inclui os dados do jogador (nome, avatar) para saberes com quem falas!
+      include: { user: true },
       orderBy: { id: 'desc' }
     });
   }
 
-  // 🔥 ADMIN: Responder a um ticket
   @Post('admin/ticket/responder')
   async adminResponderTicket(@Body() body: { ticketId: number, resposta: string, status: string }) {
     await (this.prisma as any).ticketSuporte.update({
       where: { id: Number(body.ticketId) },
-      data: {
-        resposta: body.resposta,
-        status: body.status // Vai passar a 'RESPONDIDO' ou 'FECHADO'
-      }
+      data: { resposta: body.resposta, status: body.status }
     });
     return { sucesso: true, msg: "Resposta enviada ao jogador!" };
   }
@@ -415,14 +336,10 @@ export class AppController {
   @Get('suporte/livechat/:userId')
   async obterHistoricoLiveChat(@Param('userId') userId: string) {
     const chat = await (this.prisma as any).liveChat.findFirst({
-      where: { 
-        userId: Number(userId), 
-        status: 'ABERTO' 
-      },
-      orderBy: { createdAt: 'desc' }, // 🔥 Ignora as antigas e vai buscar a última!
+      where: { userId: Number(userId), status: 'ABERTO' },
+      orderBy: { createdAt: 'desc' },
       include: { mensagens: { orderBy: { createdAt: 'asc' } } }
     });
-    
     return chat || { mensagens: [] };
   }
 
@@ -430,67 +347,42 @@ export class AppController {
   async adminObterLiveChats() {
     return await (this.prisma as any).liveChat.findMany({
       where: { status: 'ABERTO' }, 
-      include: { 
-        user: true, 
-        mensagens: { orderBy: { createdAt: 'asc' } } 
-      },
+      include: { user: true, mensagens: { orderBy: { createdAt: 'asc' } } },
       orderBy: { createdAt: 'desc' }
     });
   }
 
-  // ====================================================================
-  // 🔥 SISTEMA DE MISSÕES: SUBMISSÃO DE LINKS (DINÂMICO)
-  // ====================================================================
+  // ==========================================
+  // MISSÕES
+  // ==========================================
   @Post('missoes/submeter-link')
   async submeterLinkMissao(@Body() dados: { userId: number, link: string }) {
     try {
       const { userId, link } = dados;
-
-      // 🔥 A VACINA: Corta o link no "?" e fica só com o link puro do vídeo!
       const linkLimpo = link.split('?')[0];
 
-      // 1. Descobrir a plataforma pelo link LIMPO
       let plataforma = '';
       if (linkLimpo.includes('tiktok.com')) plataforma = 'TikTok';
       else if (linkLimpo.includes('instagram.com')) plataforma = 'Instagram';
       else if (linkLimpo.includes('youtube.com')) plataforma = 'YouTube';
       else throw new Error('Link inválido. Usa TikTok, Instagram ou YouTube.');
 
-      // 2. ANTI-SPAM: Verificar se o jogador já tem um vídeo pendente NESTA plataforma
       const submissaoPendente = await (this.prisma as any).submissaoMissao.findFirst({
         where: { userId: Number(userId), plataforma, status: 'PENDENTE' }
       });
-      if (submissaoPendente) {
-        throw new Error(`Já tens um vídeo do ${plataforma} em análise! Aguarda a nossa aprovação.`);
-      }
+      if (submissaoPendente) throw new Error(`Já tens um vídeo do ${plataforma} em análise! Aguarda a nossa aprovação.`);
 
-      // 3. ANTI-BATOTA: Verificar se o LINK LIMPO já existe na base de dados
-      const linkRepetido = await (this.prisma as any).submissaoMissao.findUnique({
-        where: { link: linkLimpo }
-      });
-      if (linkRepetido) {
-        throw new Error('Este link já foi utilizado. Tens de gravar um vídeo original!');
-      }
+      const linkRepetido = await (this.prisma as any).submissaoMissao.findUnique({ where: { link: linkLimpo } });
+      if (linkRepetido) throw new Error('Este link já foi utilizado. Tens de gravar um vídeo original!');
 
-      // 4. 🔥 BUSCAR O VALOR DINÂMICO AO COFRE DE CONFIGURAÇÕES!
-      const configSocial = await (this.prisma as any).configuracao.findUnique({ 
-        where: { chave: 'recompensa_social' }
-      });
+      const configSocial = await (this.prisma as any).configuracao.findUnique({ where: { chave: 'recompensa_social' } });
       const recompensaFinal = configSocial ? parseFloat(configSocial.valor) : 0.09;
 
-      // 5. Guardar na Base de Dados com o LINK LIMPO e o valor extraído da DB
       await (this.prisma as any).submissaoMissao.create({
-        data: {
-          userId: Number(userId),
-          plataforma,
-          link: linkLimpo, 
-          recompensa: recompensaFinal, 
-          status: 'PENDENTE'
-        }
+        data: { userId: Number(userId), plataforma, link: linkLimpo, recompensa: recompensaFinal, status: 'PENDENTE' }
       });
 
       return { sucesso: true, mensagem: 'Vídeo enviado com sucesso para análise!' };
-
     } catch (error: any) {
       return { sucesso: false, mensagem: error.message };
     }
@@ -504,7 +396,6 @@ export class AppController {
       });
 
       const statusFinal = { tiktok: 'LIVRE', instagram: 'LIVRE', youtube: 'LIVRE' };
-
       submissoes.forEach((sub: any) => {
         if (sub.plataforma === 'TikTok') statusFinal.tiktok = sub.status;
         if (sub.plataforma === 'Instagram') statusFinal.instagram = sub.status;
@@ -517,17 +408,11 @@ export class AppController {
     }
   }
 
-  // ====================================================================
-  // 🔥 ADMIN: MODERAÇÃO DE MISSÕES (Aprovar / Rejeitar)
-  // ====================================================================
-
   @Get('admin/missoes/pendentes')
   async obterMissoesPendentes() {
     return await (this.prisma as any).submissaoMissao.findMany({
       where: { status: 'PENDENTE' },
-      include: {
-        user: { select: { nome: true, avatar: true } }
-      },
+      include: { user: { select: { nome: true, avatar: true } } },
       orderBy: { createdAt: 'asc' }
     });
   }
@@ -535,32 +420,20 @@ export class AppController {
   @Post('admin/missoes/aprovar/:id')
   async aprovarMissao(@Param('id') id: string) {
     try {
-      const missaoId = Number(id);
-      const missao = await (this.prisma as any).submissaoMissao.findUnique({ where: { id: missaoId }});
-      
-      if (!missao || missao.status !== 'PENDENTE') throw new Error('Missão inválida ou já processada.');
+      // 🔥 CADEADO DE SEGURANÇA: Transação garante que tudo é salvo junto!
+      await this.prisma.$transaction(async (prisma: any) => {
+        const missaoId = Number(id);
+        const missao = await prisma.submissaoMissao.findUnique({ where: { id: missaoId }});
+        
+        if (!missao || missao.status !== 'PENDENTE') throw new Error('Missão inválida ou já processada.');
 
-      await (this.prisma as any).submissaoMissao.update({
-        where: { id: missaoId },
-        data: { status: 'APROVADA' }
+        await prisma.submissaoMissao.update({ where: { id: missaoId }, data: { status: 'APROVADA' } });
+        await prisma.user.update({ where: { id: missao.userId }, data: { saldo: { increment: missao.recompensa } } });
+        await prisma.historicoJogo.create({
+          data: { userId: missao.userId, acao: 'Missão Social', detalhe: `Vídeo do ${missao.plataforma} Aprovado`, valor: missao.recompensa, tipo: 'GANHO' }
+        });
       });
-
-      await (this.prisma as any).user.update({
-        where: { id: missao.userId },
-        data: { saldo: { increment: missao.recompensa } }
-      });
-
-      await (this.prisma as any).historicoJogo.create({
-        data: {
-          userId: missao.userId,
-          acao: 'Missão Social',
-          detalhe: `Vídeo do ${missao.plataforma} Aprovado`,
-          valor: missao.recompensa,
-          tipo: 'GANHO'
-        }
-      });
-
-      return { sucesso: true, mensagem: `Missão aprovada! ${missao.recompensa}€ enviados para o jogador.` };
+      return { sucesso: true, mensagem: `Missão aprovada com sucesso e saldo entregue!` };
     } catch (error: any) {
       return { sucesso: false, mensagem: error.message };
     }
@@ -570,8 +443,7 @@ export class AppController {
   async rejeitarMissao(@Param('id') id: string) {
     try {
       await (this.prisma as any).submissaoMissao.update({
-        where: { id: Number(id) },
-        data: { status: 'REJEITADA' }
+        where: { id: Number(id) }, data: { status: 'REJEITADA' }
       });
       return { sucesso: true, mensagem: 'Missão rejeitada. O jogador não recebeu saldo.' };
     } catch (error: any) {
@@ -579,13 +451,12 @@ export class AppController {
     }
   }
 
-  // ====================================================================
-  // 🔥 CONFIGURAÇÕES GLOBAIS DA COFRE
-  // ====================================================================
+  // ==========================================
+  // CONFIGURAÇÕES GLOBAIS
+  // ==========================================
   @Get('config')
   async obterConfiguracoes() {
     let configs = await (this.prisma as any).configuracao.findMany();
-
     if (configs.length === 0) {
       await (this.prisma as any).configuracao.createMany({
         data: [
@@ -603,8 +474,7 @@ export class AppController {
   async atualizarConfiguracao(@Body() dados: { chave: string, valor: string }) {
     try {
       await (this.prisma as any).configuracao.update({
-        where: { chave: dados.chave },
-        data: { valor: String(dados.valor) }
+        where: { chave: dados.chave }, data: { valor: String(dados.valor) }
       });
       return { sucesso: true, mensagem: 'Valor atualizado com sucesso!' };
     } catch (error: any) {
@@ -614,28 +484,20 @@ export class AppController {
 
   @Put('admin/item/preco')
   async atualizarPrecoItem(@Body() body: { itemId: number, preco: number }) {
-    if (!body.itemId || body.preco === undefined) {
-      return { sucesso: false, message: "Dados incompletos." };
-    }
-
+    if (!body.itemId || body.preco === undefined) return { sucesso: false, message: "Dados incompletos." };
     try {
-      // Usa o Prisma para atualizar a skin na Base de Dados
       await this.prisma.item.update({
-        where: { id: Number(body.itemId) },
-        data: { preco: Number(body.preco) }
+        where: { id: Number(body.itemId) }, data: { preco: Number(body.preco) }
       });
       return { sucesso: true, message: "Preço atualizado com sucesso no arsenal!" };
     } catch (error) {
-      console.error("Erro ao atualizar preço:", error);
       return { sucesso: false, message: "Erro interno no servidor ao atualizar preço." };
     }
   }
 
   // ==========================================
-  // DEPARTAMENTO DE LEVANTAMENTOS (WITHDRAWS)
+  // LEVANTAMENTOS
   // ==========================================
-
-  // Jogador: Pede para levantar uma skin
   @Post('levantar-skin')
   async levantarSkin(@Body() body: { userId: number, inventarioId: number }) {
     try {
@@ -645,7 +507,6 @@ export class AppController {
     }
   }
 
-  // Admin: Vê todos os pedidos pendentes
   @Get('admin/levantamentos')
   async verLevantamentos() {
     return await this.prisma.levantamento.findMany({
@@ -655,7 +516,6 @@ export class AppController {
     });
   }
 
-  // Admin: Confirma que enviou a skin na Steam
   @Post('admin/levantamentos/aprovar/:id')
   async aprovarLevantamento(@Param('id') id: string) {
     await this.prisma.levantamento.update({
@@ -664,53 +524,50 @@ export class AppController {
     return { sucesso: true, mensagem: "Levantamento marcado como concluído!" };
   }
 
-  // Admin: Rejeita (o bot da steam falhou, trade bloqueada, etc) e devolve a skin ao site
   @Post('admin/levantamentos/rejeitar/:id')
   async rejeitarLevantamento(@Param('id') id: string) {
-    const pedido = await this.prisma.levantamento.findUnique({ where: { id: Number(id) } });
-    if (!pedido) return { sucesso: false, mensagem: "Pedido não encontrado." };
+    try {
+      // 🔥 CADEADO DE SEGURANÇA: Rejeitar um levantamento também exige transação para não duplicar armas!
+      await this.prisma.$transaction(async (prisma: any) => {
+        const pedido = await prisma.levantamento.findUnique({ where: { id: Number(id) } });
+        if (!pedido) throw new Error("Pedido não encontrado.");
 
-    // Atualiza status
-    await this.prisma.levantamento.update({
-      where: { id: Number(id) }, data: { status: 'REJEITADA' }
-    });
-
-    // Devolve a skin ao inventário do site do jogador
-    await this.prisma.inventario.create({
-      data: { userId: pedido.userId, nome: pedido.skinNome, imagem: pedido.skinImagem, raridade: 'Comum', valor: pedido.valor }
-    });
-
-    return { sucesso: true, mensagem: "Levantamento cancelado. A skin voltou para a conta do jogador no site." };
+        await prisma.levantamento.update({ where: { id: Number(id) }, data: { status: 'REJEITADA' } });
+        await prisma.inventario.create({
+          data: { userId: pedido.userId, nome: pedido.skinNome, imagem: pedido.skinImagem, raridade: 'Comum', valor: pedido.valor }
+        });
+      });
+      return { sucesso: true, mensagem: "Levantamento cancelado. A skin voltou para a conta do jogador no site." };
+    } catch (error: any) {
+      return { sucesso: false, mensagem: error.message };
+    }
   }
 
+  // ==========================================
+  // VERIFICAÇÕES DE CONTA E EMAIL
+  // ==========================================
   @Post('utilizador/pedir-codigo')
   async pedirCodigoVerificacao(@Body() body: { userId: number, email: string }) {
     const user = await this.prisma.user.findUnique({ where: { id: Number(body.userId) } });
     if (!user) return { sucesso: false, msg: "Utilizador não encontrado." };
 
-    // 1. Gera um código de 6 dígitos
     const codigo = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // 2. Guarda o código na Base de Dados
     await this.prisma.user.update({
       where: { id: Number(body.userId) },
-      data: { codigoVerificacao: codigo, email: body.email } // Guarda o email também
+      data: { codigoVerificacao: codigo, email: body.email } 
     });
-
-    // 3. Configura o carteiro (Substitui com o teu e-mail real e a App Password)
-    const nodemailer = require('nodemailer');
-    const transporter = nodemailer.createTransport({
-      service: 'gmail', // Podes usar gmail, outlook, etc.
-      auth: {
-        user: 'o-teu-email@gmail.com', // ⚠️ METE O TEU E-MAIL AQUI
-        pass: 'a-tua-password-de-aplicacao' // ⚠️ METE A PASSWORD DE APLICAÇÃO AQUI
-      }
-    });
-
-    // Se ainda não tens Password de Aplicação, o código vai apenas aparecer nos logs (para testares)
-    console.log(`[ALERTA] CÓDIGO GERADO PARA ${body.email}: ${codigo}`);
 
     try {
+      // Movido para dentro do try para evitar crash se a lib falhar
+      const nodemailer = require('nodemailer');
+      const transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: { user: 'o-teu-email@gmail.com', pass: 'a-tua-password-de-aplicacao' }
+      });
+
+      console.log(`[ALERTA] CÓDIGO GERADO PARA ${body.email}: ${codigo}`);
+
       await transporter.sendMail({
         from: '"Sweet Drop" <o-teu-email@gmail.com>',
         to: body.email,
@@ -720,12 +577,11 @@ export class AppController {
             <h2 style="color: #10b981;">Verificação de E-mail</h2>
             <p>O teu código de verificação para o Império é:</p>
             <h1 style="background-color: #1b1b1e; padding: 15px; letter-spacing: 5px; border: 1px solid #10b981; display: inline-block;">${codigo}</h1>
-            <p>Se não pediste este código, ignora este e-mail.</p>
           </div>
         `
       });
     } catch (err) {
-      console.log("Aviso: Falha ao enviar e-mail. Verifica as tuas credenciais do Nodemailer.");
+      console.log("Aviso: Falha ao enviar e-mail. Verifica as credenciais.");
     }
 
     return { sucesso: true, msg: "Código enviado! Verifica a tua caixa de entrada." };
@@ -734,63 +590,52 @@ export class AppController {
   @Post('utilizador/confirmar-codigo')
   async confirmarCodigo(@Body() body: { userId: number, codigo: string }) {
     const user = await this.prisma.user.findUnique({ where: { id: Number(body.userId) } });
-    
     if (user?.codigoVerificacao === body.codigo.trim()) {
-      // Código correto! Fica verificado e apaga o código da BD.
       await this.prisma.user.update({
         where: { id: Number(body.userId) },
         data: { emailVerificado: true, codigoVerificacao: null }
       });
       return { sucesso: true, msg: "E-mail verificado com sucesso!" };
     }
-    
     return { sucesso: false, msg: "Código incorreto. Tenta novamente." };
   }
 
   @Post('utilizador/pedir-verificacao')
   async pedirVerificacao(@Body() body: { userId: number }) {
     await this.prisma.user.update({
-      where: { id: Number(body.userId) },
-      data: { pedidoVerificacao: true }
+      where: { id: Number(body.userId) }, data: { pedidoVerificacao: true }
     });
     return { sucesso: true, msg: "Pedido enviado! Aguarda a aprovação da administração." };
   }
 
-  // 2. O Admin vê quem está à espera
   @Get('admin/verificacoes-pendentes')
   async getVerificacoes() {
     return this.prisma.user.findMany({
       where: { pedidoVerificacao: true, contaVerificada: false },
-      select: { id: true, username: true, nome: true, avatar: true, tradeUrl: true } // <-- Removido o createdAt
+      select: { id: true, username: true, nome: true, avatar: true, tradeUrl: true } 
     });
   }
 
-  // 3. O Admin aprova o jogador
   @Post('admin/aprovar-verificacao/:id')
   async aprovarVerificacao(@Param('id') id: string) {
     await this.prisma.user.update({
-      where: { id: Number(id) },
-      data: { contaVerificada: true, pedidoVerificacao: false }
+      where: { id: Number(id) }, data: { contaVerificada: true, pedidoVerificacao: false }
     });
     return { sucesso: true };
   }
 
-  // 4. O Admin rejeita o jogador
   @Post('admin/rejeitar-verificacao/:id')
   async rejeitarVerificacao(@Param('id') id: string) {
     await this.prisma.user.update({
-      where: { id: Number(id) },
-      data: { pedidoVerificacao: false } // Tira o estado de pendente para ele poder pedir de novo
+      where: { id: Number(id) }, data: { pedidoVerificacao: false } 
     });
     return { sucesso: true };
   }
 
   @Post('pagamentos/webhook')
   async cryptoWebhook(@Body() body: any) {
-    // O NOWPayments envia o status 'finished' quando o dinheiro é confirmado na rede
     if (body.payment_status === 'finished' || body.payment_status === 'completed') {
-      const txId = body.order_id; // O ID da nossa transação
-
+      const txId = body.order_id; 
       try {
         await this.usersService.confirmarDeposito(Number(txId));
         console.log(`💰 SUCESSO: Depósito Crypto #${txId} confirmado! Dinheiro a caminho da carteira!`);
@@ -798,9 +643,6 @@ export class AppController {
         console.log(`Aviso: Tentativa de re-confirmar o depósito #${txId}.`);
       }
     }
-
-    // Responder com 200 OK para eles saberem que recebemos o aviso
     return "OK";
   }
-
 }

@@ -26,12 +26,37 @@ export default function TabFabrica() {
   const carregarCaixas = () => fetch('https://sweet-7ifa.onrender.com/caixas').then(res => res.json()).then(setCaixasCriadas);
 
   // 🔥 ESCUDO ANTI-BLOQUEIO DE IMAGENS 🔥
-  const getImagemSegura = (url: string) => {
-    if (!url) return '/skins/glock.png';
+  const getImagemSegura = (url?: string) => {
+    if (!url || url.includes('URL_IMAGEM')) return '/skins/glock.png';
     if (url.includes('steam') && !url.includes('wsrv.nl')) {
       return `https://wsrv.nl/?url=${encodeURIComponent(url)}`;
     }
     return url;
+  };
+
+  // Normaliza nomes para conseguir encontrar skins mesmo com ★, StatTrak™, desgaste, etc.
+  const normalizarNomeSkin = (nome?: string) => {
+    return (nome || '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/★/g, '')
+      .replace(/stattrak™/gi, '')
+      .replace(/souvenir/gi, '')
+      .replace(/™/g, '')
+      .replace(/\((factory new|minimal wear|field-tested|field tested|well-worn|well worn|battle-scarred|battle scarred)\)/gi, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  };
+
+  const encontrarSkinOficial = (nome: string) => {
+    const nomeNormalizado = normalizarNomeSkin(nome);
+
+    return (
+      todosItens.find(dbItem => normalizarNomeSkin(dbItem.nome) === nomeNormalizado) ||
+      todosItens.find(dbItem => normalizarNomeSkin(dbItem.nome).includes(nomeNormalizado)) ||
+      todosItens.find(dbItem => nomeNormalizado.includes(normalizarNomeSkin(dbItem.nome)))
+    );
   };
 
   const adicionarItemACaixa = (item: any) => {
@@ -55,16 +80,20 @@ export default function TabFabrica() {
       if (!Array.isArray(dadosParseados)) return toast.error("O JSON tem de ser uma lista [ ... ]");
 
       const itensMapeados = dadosParseados.map((item, index) => {
-        const skinOficial = todosItens.find(dbItem => dbItem.nome.toLowerCase() === item.nome.toLowerCase());
-        let imagemCrua = skinOficial ? skinOficial.imagem : (item.imagem || item.image || '/skins/glock.png');
+        const nomeItem = item.nome || item.name || '';
+        const skinOficial = encontrarSkinOficial(nomeItem);
+
+        // Prioridade: imagem da tua BD/API oficial. Só usa a imagem do JSON se for um URL real.
+        const imagemDoJson = item.imagem || item.image || '';
+        const imagemCrua = skinOficial?.imagem || (imagemDoJson.startsWith('http') ? imagemDoJson : '/skins/glock.png');
 
         return {
-          id: skinOficial ? skinOficial.id : Date.now() + index,
-          nome: item.nome,
+          id: skinOficial?.id || Date.now() + index,
+          nome: skinOficial?.nome || nomeItem,
           imagem: getImagemSegura(imagemCrua),
-          preco: item.preco || (skinOficial ? skinOficial.preco : 0),
-          raridade: skinOficial ? skinOficial.raridade : (item.raridade || 'Comum'),
-          probabilidade: item.probabilidade || 0
+          preco: Number(item.preco ?? item.valor ?? skinOficial?.preco ?? 0),
+          raridade: skinOficial?.raridade || item.raridade || 'Comum',
+          probabilidade: Number(item.probabilidade ?? item.chance ?? 0)
         };
       });
 
@@ -182,7 +211,7 @@ export default function TabFabrica() {
              <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
                {itensFiltrados.map(item => (
                  <div key={item.id} onClick={() => adicionarItemACaixa(item)} className="bg-black/60 border border-white/5 rounded-xl p-2 cursor-pointer hover:border-emerald-500 hover:bg-emerald-500/10 flex flex-col items-center group transition-all">
-                   <img src={item.imagem} className="w-10 h-10 object-contain group-hover:scale-110 transition-transform drop-shadow-md" alt="skin" />
+                   <img src={getImagemSegura(item.imagem)} onError={(e) => { e.currentTarget.src = '/skins/glock.png'; }} className="w-10 h-10 object-contain group-hover:scale-110 transition-transform drop-shadow-md" alt="skin" />
                    <span className="text-[8px] font-bold mt-1 text-zinc-400 truncate w-full text-center group-hover:text-white">{item.nome}</span>
                  </div>
                ))}
@@ -223,7 +252,7 @@ export default function TabFabrica() {
                  <div key={item.id} className="flex items-center justify-between bg-black/40 border border-white/5 p-3 rounded-xl hover:border-white/10 transition-colors group">
                    <div className="flex items-center gap-3">
                      <div className="bg-black/60 p-2 rounded-lg border border-white/5">
-                        <img src={item.imagem || item.image} className="w-8 h-8 object-contain drop-shadow-md" alt="skin" />
+                        <img src={getImagemSegura(item.imagem || item.image)} onError={(e) => { e.currentTarget.src = '/skins/glock.png'; }} className="w-8 h-8 object-contain drop-shadow-md" alt="skin" />
                      </div>
                      <div>
                        <p className="text-[10px] font-bold text-white truncate w-32 sm:w-40">{item.nome}</p>

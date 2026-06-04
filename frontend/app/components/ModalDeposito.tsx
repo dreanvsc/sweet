@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { toast } from 'react-hot-toast'; // 🔥 Import do Motor de Notificações Premium adicionado!
+import { toast } from 'react-hot-toast'; 
 
 export default function ModalDeposito({ onClose, userId }: { onClose: () => void, userId: string }) {
   const [metodo, setMetodo] = useState<'mbway' | 'cartao' | 'crypto'>('mbway');
@@ -11,7 +11,6 @@ export default function ModalDeposito({ onClose, userId }: { onClose: () => void
   const [infoPagamento, setInfoPagamento] = useState<any>(null);
 
   const handlePagar = async () => {
-    // 🔥 Toasts em vez de Alerts
     if (!userId) return toast.error("Erro de sessão.");
     if (Number(valor) < 5) return toast.error("Depósito mínimo de 5€.");
     if (metodo === 'mbway' && telemovel.length < 9) return toast.error("Número de telemóvel inválido.");
@@ -25,13 +24,23 @@ export default function ModalDeposito({ onClose, userId }: { onClose: () => void
       const data = await res.json();
       
       if (res.ok) {
-        setInfoPagamento(data); // Mostra o resultado (link da stripe, ou morada cripto)
-        toast.success("Pedido de depósito gerado com sucesso!"); // 🔥
+        // 🔥 A MÁGICA ACONTECE AQUI!
+        if (data.metodo === 'crypto' && data.url) {
+          toast.success("Redirecionando para a Gateway...");
+          setTimeout(() => {
+            window.location.href = data.url; // 🚀 Atira o jogador direto pro NOWPayments
+          }, 800);
+          return; // Para a execução aqui para não abrir o ecrã de sucesso falso
+        }
+        
+        // Se for MBWAY ou Cartão, faz o processo normal
+        setInfoPagamento(data); 
+        toast.success("Pedido de depósito gerado com sucesso!");
       } else {
-        toast.error(data.message || "Erro a processar pagamento."); // 🔥
+        toast.error(data.message || "Erro a processar pagamento.");
       }
     } catch(e) { 
-      toast.error("Erro ao ligar ao servidor."); // 🔥
+      toast.error("Erro ao ligar ao servidor."); 
     }
     setLoading(false);
   };
@@ -94,9 +103,9 @@ export default function ModalDeposito({ onClose, userId }: { onClose: () => void
               </button>
             </>
           ) : (
-            /* ECRÃ DE SUCESSO (Instruções após clique) */
+            /* ECRÃ DE SUCESSO APENAS PARA MBWAY E CARTÃO */
             <div className="text-center py-8 animate-in fade-in zoom-in-95">
-              <span className="text-6xl block mb-6 animate-bounce drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]">{infoPagamento.metodo === 'mbway' ? '📱' : infoPagamento.metodo === 'cartao' ? '💳' : '₿'}</span>
+              <span className="text-6xl block mb-6 animate-bounce drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]">{infoPagamento.metodo === 'mbway' ? '📱' : '💳'}</span>
               <h2 className="text-2xl font-black text-white mb-2">{infoPagamento.msg}</h2>
               
               {infoPagamento.metodo === 'mbway' && <p className="text-sm text-zinc-400 bg-white/5 p-4 rounded-xl border border-white/5">Abre a tua app do banco e confirma o pagamento.</p>}
@@ -105,16 +114,6 @@ export default function ModalDeposito({ onClose, userId }: { onClose: () => void
                 <a href={infoPagamento.url} target="_blank" className="mt-6 inline-block bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white px-8 py-4 rounded-xl font-black uppercase text-sm shadow-[0_0_20px_rgba(168,85,247,0.4)] hover:scale-105 transition-all">
                   Abrir Checkout Stripe
                 </a>
-              )}
-              
-              {infoPagamento.metodo === 'crypto' && (
-                <div className="mt-4 bg-black/60 border border-amber-500/20 p-5 rounded-xl inline-block text-left w-full shadow-inner relative overflow-hidden">
-                  <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/10 blur-xl rounded-full"></div>
-                  <p className="text-[10px] text-zinc-500 font-bold uppercase mb-1 relative z-10">Envia exatamente:</p>
-                  <p className="text-emerald-400 font-mono font-black text-2xl mb-4 drop-shadow-[0_0_8px_rgba(52,211,153,0.3)] relative z-10">{infoPagamento.valorCripto} {infoPagamento.moeda}</p>
-                  <p className="text-[10px] text-zinc-500 font-bold uppercase mb-1 relative z-10">Para o endereço:</p>
-                  <p className="text-amber-400 font-mono text-xs break-all bg-white/5 p-3 rounded-lg border border-white/5 relative z-10 selection:bg-amber-500 selection:text-black">{infoPagamento.carteira}</p>
-                </div>
               )}
 
               <p className="text-[10px] text-zinc-500 uppercase font-bold mt-8 flex items-center justify-center gap-2">

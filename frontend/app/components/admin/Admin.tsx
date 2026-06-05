@@ -10,10 +10,11 @@ import AdminLiveChat from './AdminLiveChat';
 import AdminMissoes from './AdminMissoes'; 
 import AdminLevantamentos from './AdminLevantamentos';
 import AdminVerificacoes from './AdminVerificacoes';
+import TabGiveaways from './TabGiveaways';
 
 export default function Admin({ userId }: any) {
-  // 🔥 Adicionado 'verificacoes' ao estado para o TypeScript não reclamar
-  const [activeTab, setActiveTab] = useState<'users' | 'boxes' | 'stats' | 'system' | 'staff' | 'tickets' | 'livechat' | 'missoes' | 'withdraws' | 'verificacoes'>('boxes');
+  // 🔥 Adicionado 'verificacoes' e 'giveaways' ao estado
+  const [activeTab, setActiveTab] = useState<'users' | 'boxes' | 'stats' | 'system' | 'staff' | 'tickets' | 'livechat' | 'missoes' | 'withdraws' | 'verificacoes'| 'giveaways'>('boxes');
 
   // =========================================================================
   // 🔥 ESTADOS PARA A EQUIPA (PROMOVER E REMOVER)
@@ -125,6 +126,15 @@ export default function Admin({ userId }: any) {
             <span className="text-xs font-bold uppercase tracking-widest">Logística (Saques)</span>
           </button>
           
+          {/* 🔥 NOVO BOTÃO DOS SORTEIOS */}
+          <button 
+            onClick={() => setActiveTab('giveaways')} 
+            className={`flex items-center gap-3 p-4 rounded-xl text-left transition-all duration-300 ${activeTab === 'giveaways' ? 'bg-gradient-to-r from-amber-500/20 to-transparent border-l-4 border-amber-500 text-white shadow-[0_0_15px_rgba(245,158,11,0.1)] translate-x-2' : 'bg-transparent text-zinc-400 hover:text-white hover:bg-white/5 hover:translate-x-1'}`}
+          >
+            <span className="text-lg w-6 text-center drop-shadow-md">🎁</span> 
+            <span className="text-xs font-bold uppercase tracking-widest">Sorteios</span>
+          </button>
+
           <button 
             onClick={() => setActiveTab('system')} 
             className={`flex items-center gap-3 p-4 rounded-xl text-left transition-all duration-300 ${activeTab === 'system' ? 'bg-gradient-to-r from-amber-500/20 to-transparent border-l-4 border-amber-500 text-white shadow-[0_0_15px_rgba(245,158,11,0.1)] translate-x-2' : 'bg-transparent text-zinc-400 hover:text-white hover:bg-white/5 hover:translate-x-1'}`}
@@ -202,8 +212,11 @@ export default function Admin({ userId }: any) {
           {activeTab === 'livechat' && <AdminLiveChat />}
           {activeTab === 'missoes' && <AdminMissoes />}
           
-          {/* 🔥 LINHA DE RENDERIZAÇÃO DA ABA DAS VERIFICAÇÕES */}
+          {/* 🔥 ABA DAS VERIFICAÇÕES */}
           {activeTab === 'verificacoes' && <AdminVerificacoes />}
+
+          {/* 🔥 NOVA ABA DOS SORTEIOS */}
+          {activeTab === 'giveaways' && <TabGiveaways />}
 
           {/* ABA DA EQUIPA (GESTÃO) - VISUAL RENOVADO */}
           {activeTab === 'staff' && (

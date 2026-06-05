@@ -128,4 +128,20 @@ export class GiveawaysService {
 
     return { sucesso: true, vencedorId: vencedor.userId, hashUsada: hashSorteio };
   }
+  
+  async getParticipantes(giveawayId: number) {
+  return this.prisma.participanteGiveaway.findMany({
+    where: { giveawayId },
+    include: {
+      user: {
+        select: {
+          id: true,
+          nome: true,
+          email: true,
+        },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+}
 }

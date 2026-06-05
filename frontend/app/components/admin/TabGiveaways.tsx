@@ -9,6 +9,18 @@ interface Skin {
   preco: number;
 }
 
+interface Participante {
+  id: number;
+  giveawayId: number;
+  userId: number;
+  createdAt: string;
+  user: {
+    id: number;
+    nome?: string;
+    email?: string;
+  };
+}
+
 interface Giveaway {
   id: number;
   premioNome: string;
@@ -19,6 +31,7 @@ interface Giveaway {
   terminaEm: string;
   status: string;
   _count?: { participantes: number };
+  participantes?: Participante[]; // quando carregados manualmente
 }
 
 export default function TabGiveaways() {
@@ -36,7 +49,13 @@ export default function TabGiveaways() {
   const [loading, setLoading] = useState(false);
   const [giveaways, setGiveaways] = useState<Giveaway[]>([]);
 
-  // Carregar skins disponíveis
+  // Paginação
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
+  const [expandedGiveawayId, setExpandedGiveawayId] = useState<number | null>(null);
+  const [loadingParticipants, setLoadingParticipants] = useState<number | null>(null);
+
+  // Carregar skins
   useEffect(() => {
     fetch('https://sweet-7ifa.onrender.com/skins-disponiveis')
       .then(res => {
@@ -50,7 +69,7 @@ export default function TabGiveaways() {
       });
   }, []);
 
-  // Carregar sorteios ativos (igual ao que já tinhas)
+  // Carregar sorteios ativos
   const fetchGiveaways = async () => {
     try {
       const res = await fetch('https://sweet-7ifa.onrender.com/giveaways/ativos');
@@ -65,7 +84,35 @@ export default function TabGiveaways() {
     fetchGiveaways();
   }, []);
 
-  // Quando seleciona uma skin, preenche o formulário automaticamente
+  // Buscar participantes de um giveaway específico
+  const fetchParticipantes = async (giveawayId: number) => {
+    setLoadingParticipants(giveawayId);
+    try {
+      const res = await fetch(`https://sweet-7ifa.onrender.com/giveaways/${giveawayId}/participantes`);
+      const data = await res.json();
+      setGiveaways(prev =>
+        prev.map(g => (g.id === giveawayId ? { ...g, participantes: data } : g))
+      );
+    } catch (err) {
+      console.error(err);
+      setMessage({ type: 'error', text: 'Erro ao carregar participantes.' });
+    } finally {
+      setLoadingParticipants(null);
+    }
+  };
+
+  const toggleParticipantes = (giveawayId: number) => {
+    if (expandedGiveawayId === giveawayId) {
+      setExpandedGiveawayId(null);
+    } else {
+      setExpandedGiveawayId(giveawayId);
+      const giveaway = giveaways.find(g => g.id === giveawayId);
+      if (!giveaway?.participantes) {
+        fetchParticipantes(giveawayId);
+      }
+    }
+  };
+
   const handleSkinChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const skinId = Number(e.target.value);
     const skin = skins.find(s => s.id === skinId);
@@ -109,7 +156,6 @@ export default function TabGiveaways() {
       if (!response.ok) throw new Error(data.message || 'Erro ao criar sorteio');
 
       setMessage({ type: 'success', text: `Sorteio "${formData.premioNome}" criado!` });
-      // Limpar formulário
       setFormData({
         premioNome: '',
         premioImagem: '',
@@ -141,6 +187,11 @@ export default function TabGiveaways() {
       setMessage({ type: 'error', text: error.message });
     }
   };
+
+  // Paginação
+  const totalPages = Math.ceil(giveaways.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedGiveaways = giveaways.slice(startIndex, startIndex + itemsPerPage);
 
   return (
     <div className="p-6 space-y-8">
@@ -176,7 +227,6 @@ export default function TabGiveaways() {
             </select>
           </div>
 
-          {/* Pré-visualização da skin selecionada */}
           {selectedSkinId && formData.premioImagem && (
             <div className="flex items-center gap-4 p-3 bg-black/30 rounded-lg border border-white/5">
               <img src={formData.premioImagem} alt={formData.premioNome} className="w-12 h-12 rounded object-cover" />
@@ -240,34 +290,104 @@ export default function TabGiveaways() {
         </form>
       </div>
 
-      {/* Lista de sorteios ativos */}
+      {/* Lista de sorteios ativos com paginação e participantes */}
       <div className="bg-[#1E1E24] rounded-xl border border-white/5 p-6">
         <h3 className="text-xl font-semibold text-white mb-4">⚔️ Sorteios Ativos</h3>
         {giveaways.length === 0 ? (
           <div className="text-center text-zinc-500 py-8">Nenhum sorteio ativo no momento.</div>
         ) : (
-          <div className="space-y-4">
-            {giveaways.map((giveaway) => (
-              <div key={giveaway.id} className="bg-black/30 rounded-lg p-4 border border-white/5 hover:border-amber-500/30 transition-all">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                  <div className="flex items-center gap-4">
-                    <img src={giveaway.premioImagem} alt={giveaway.premioNome} className="w-16 h-16 rounded-lg object-cover" />
-                    <div>
-                      <h4 className="font-bold text-white">{giveaway.premioNome}</h4>
-                      <p className="text-sm text-zinc-400">💎 Valor: {giveaway.valor}€ | 👥 Participantes: {giveaway._count?.participantes || 0}</p>
-                      <p className="text-xs text-zinc-500">Termina: {new Date(giveaway.terminaEm).toLocaleString()}</p>
+          <>
+            <div className="space-y-4">
+              {paginatedGiveaways.map((giveaway) => (
+                <div key={giveaway.id} className="bg-black/30 rounded-lg border border-white/5 hover:border-amber-500/30 transition-all">
+                  <div className="p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div className="flex items-center gap-4 flex-1">
+                      <img src={giveaway.premioImagem} alt={giveaway.premioNome} className="w-16 h-16 rounded-lg object-cover" />
+                      <div>
+                        <h4 className="font-bold text-white">{giveaway.premioNome}</h4>
+                        <p className="text-sm text-zinc-400">💎 Valor: {giveaway.valor}€ | 👥 Participantes: {giveaway._count?.participantes || 0}</p>
+                        <p className="text-xs text-zinc-500">Termina: {new Date(giveaway.terminaEm).toLocaleString()}</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => toggleParticipantes(giveaway.id)}
+                        className="px-3 py-1.5 bg-blue-500/20 border border-blue-500 text-blue-400 rounded-lg hover:bg-blue-500/30 text-sm transition-all"
+                      >
+                        {expandedGiveawayId === giveaway.id ? '👁️ Ocultar' : '👥 Ver participantes'}
+                      </button>
+                      <button
+                        onClick={() => handleFinalizeGiveaway(giveaway.id, giveaway.premioNome)}
+                        className="px-3 py-1.5 bg-red-500/20 border border-red-500 text-red-400 rounded-lg hover:bg-red-500/30 text-sm transition-all"
+                      >
+                        🏆 Finalizar
+                      </button>
                     </div>
                   </div>
-                  <button
-                    onClick={() => handleFinalizeGiveaway(giveaway.id, giveaway.premioNome)}
-                    className="px-4 py-2 bg-red-500/20 border border-red-500 text-red-400 rounded-lg hover:bg-red-500/30 transition-all"
-                  >
-                    🏆 Finalizar Sorteio
-                  </button>
+
+                  {/* Detalhes dos participantes (expansível) */}
+                  {expandedGiveawayId === giveaway.id && (
+                    <div className="border-t border-white/10 p-4 bg-black/20">
+                      <h5 className="text-sm font-semibold text-white mb-3">
+                        📋 Participantes ({giveaway._count?.participantes || 0})
+                      </h5>
+                      {loadingParticipants === giveaway.id ? (
+                        <div className="text-center text-zinc-400 py-4">A carregar participantes...</div>
+                      ) : giveaway.participantes && giveaway.participantes.length > 0 ? (
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead className="text-zinc-500 border-b border-white/10">
+                              <tr>
+                                <th className="text-left py-2">ID</th>
+                                <th className="text-left py-2">Nome</th>
+                                <th className="text-left py-2">Email</th>
+                                <th className="text-left py-2">Data de entrada</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {giveaway.participantes.map((p) => (
+                                <tr key={p.id} className="border-b border-white/5">
+                                  <td className="py-2 text-zinc-300">{p.userId}</td>
+                                  <td className="py-2 text-white">{p.user?.nome || '—'}</td>
+                                  <td className="py-2 text-zinc-300">{p.user?.email || '—'}</td>
+                                  <td className="py-2 text-zinc-400">{new Date(p.createdAt).toLocaleString()}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <div className="text-center text-zinc-500 py-4">Nenhum participante ainda.</div>
+                      )}
+                    </div>
+                  )}
                 </div>
+              ))}
+            </div>
+
+            {/* Paginação */}
+            {totalPages > 1 && (
+              <div className="flex justify-center gap-2 mt-6">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1 rounded bg-white/10 text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white/20"
+                >
+                  Anterior
+                </button>
+                <span className="px-3 py-1 text-zinc-300">
+                  Página {currentPage} de {totalPages}
+                </span>
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-1 rounded bg-white/10 text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white/20"
+                >
+                  Próxima
+                </button>
               </div>
-            ))}
-          </div>
+            )}
+          </>
         )}
       </div>
     </div>

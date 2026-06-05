@@ -13,8 +13,10 @@ async function bootstrap() {
     origin: [
       'http://localhost:3000', // A tua oficina local 1
       'http://localhost:3001', // A tua oficina local 2
-      'https://sweet-sooty.vercel.app', // O teu link atual do Vercel (muda se for outro)
-      'https://sweetdrop.vercel.app' // O link bonito que criaste no Vercel
+      'https://sweet-sooty.vercel.app', // Link antigo
+      'https://sweetdrop.vercel.app', // Link antigo
+      'https://sweetdrop.pt', // 🔥 O TEU DOMÍNIO OFICIAL
+      'https://www.sweetdrop.pt' // 🔥 O TEU DOMÍNIO OFICIAL (COM WWW)
     ],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
@@ -33,6 +35,7 @@ async function bootstrap() {
   app.use(passport.initialize());
   app.use(passport.session());
 
-  await app.listen(3000);
+  // O Render vai buscar a porta certa ou usa a 3000
+  await app.listen(process.env.PORT || 3000);
 }
 bootstrap();

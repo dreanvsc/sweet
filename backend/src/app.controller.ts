@@ -202,7 +202,7 @@ export class AppController {
   @UseGuards(AuthGuard('steam'))
   async steamLoginReturn(@Req() req, @Res() res) {
     const user = req.user;
-    return res.redirect(`https://sweetdrop.vercel.app/?userId=${user.id}`);
+    return res.redirect(`https://sweetdrop.pt/?userId=${req.user.id}`);
   }
 
   // ==========================================

@@ -5,17 +5,17 @@ import { UsersService } from './users.service';
 
 @Injectable()
 export class SteamStrategy extends PassportStrategy(Strategy, 'steam') {
-  // 🔥 Trocámos o AppService pelo UsersService aqui
   constructor(private usersService: UsersService) {
     super({
-      returnURL: 'https://sweet-7ifa.onrender.com/auth/steam/return',
+      // 🔥 A Steam tem de devolver a resposta para o teu BACKEND (Render) primeiro!
+      returnURL: 'https://sweet-7ifa.onrender.com/api/auth/steam/return',
       realm: 'https://sweet-7ifa.onrender.com/',
       apiKey: '70414B811C0BEB087375922452721CCA',
     });
   }
 
   async validate(identifier: string, profile: any, done: any) {
-    // 🔥 E trocámos aqui também para ele chamar a função no sítio certo!
+    // 🔥 Chama a função para guardar/atualizar o utilizador na tua base de dados
     const user = await this.usersService.loginComSteam(profile);
     return done(null, user);
   }

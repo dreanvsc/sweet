@@ -5,13 +5,14 @@ import confetti from 'canvas-confetti';
 import CaseRoulettes from './CaseRoulettes';
 import CaseContents from './CaseContents';
 import CaseVictoryModal from './CaseVictoryModal';
-import { toast } from 'react-hot-toast'; // 🔥 Import adicionado!
+import { toast } from 'react-hot-toast';
 
 export default function CaseOpening({ 
   caixaSelecionada, saldo, setSaldo, setXp, setView, setInventario, userId, addDropToFeed 
 }: any) {
   
   const [isSpinning, setIsSpinning] = useState(false);
+  const [isFetching, setIsFetching] = useState(false); // 🔥 NOVA STATE
   const [itemSorteado, setItemSorteado] = useState<any>(null);
   const [roletas, setRoletas] = useState<any[][]>([]);
   const [fastOpen, setFastOpen] = useState(false);
@@ -40,7 +41,7 @@ export default function CaseOpening({
     const precoTotal = caixaSelecionada.preco * quantidade;
     if (saldo < precoTotal) return toast.error(`Saldo insuficiente! Precisas de ${precoTotal.toFixed(2)}€`);
 
-    setIsSpinning(true);
+    setIsFetching(true); // 🔥 Bloqueia o botão enquanto fala com o servidor
     setItemSorteado(null); 
 
     try {
@@ -51,11 +52,12 @@ export default function CaseOpening({
       const v = await res.json();
 
       if (!res.ok) {
-        toast.error(v.message || 'Erro ao abrir caixa.'); // 🔥
-        setIsSpinning(false);
+        toast.error(v.message || 'Erro ao abrir caixa.');
+        setIsFetching(false);
         return;
       }
 
+      // 🔥 1. Primeiro injetamos os vencedores na posição 40 da roleta
       setRoletas(prev => {
         const novas = [...prev];
         v.itensSorteados.forEach((ganho: any, i: number) => {
@@ -66,6 +68,10 @@ export default function CaseOpening({
         });
         return novas;
       });
+
+      // 🔥 2. SÓ AGORA damos ordem à roleta para começar a rodar! (Tempos perfeitamente sincronizados)
+      setIsSpinning(true);
+      setIsFetching(false);
 
       const tempoDeAnimacao = fastOpen ? 400 : 5000;
 
@@ -92,7 +98,8 @@ export default function CaseOpening({
 
     } catch (error) {
       console.error("Erro de comunicação com o servidor:", error);
-      toast.error("Falha de ligação ao servidor."); // 🔥
+      toast.error("Falha de ligação ao servidor.");
+      setIsFetching(false);
       setIsSpinning(false);
     }
   };
@@ -115,13 +122,13 @@ export default function CaseOpening({
       <div className="flex flex-wrap items-center justify-center gap-4 mb-8">
         <div className="bg-black/50 p-1 rounded-xl border border-white/10 flex gap-1 shadow-inner">
           {[1, 2, 3, 4, 5].map(num => (
-            <button key={num} onClick={() => !isSpinning && setQuantidade(num)} disabled={isSpinning}
+            <button key={num} onClick={() => !isSpinning && !isFetching && setQuantidade(num)} disabled={isSpinning || isFetching}
               className={`w-12 h-10 flex items-center justify-center rounded-lg font-black text-sm transition-all duration-300
                 ${quantidade === num ? 'bg-emerald-500 text-black shadow-[0_0_15px_rgba(16,185,129,0.4)]' : 'text-zinc-500 hover:text-white hover:bg-white/5'}`}
             >{num}</button>
           ))}
         </div>
-        <button onClick={() => !isSpinning && setFastOpen(!fastOpen)} disabled={isSpinning}
+        <button onClick={() => !isSpinning && !isFetching && setFastOpen(!fastOpen)} disabled={isSpinning || isFetching}
           className={`h-12 px-6 rounded-xl border font-black text-xs uppercase tracking-widest transition-all flex items-center gap-2 
             ${fastOpen ? 'bg-amber-500/10 text-amber-500 border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.2)]' : 'bg-black/50 text-zinc-500 border-white/10 hover:text-white hover:border-white/20'}`}
         >
@@ -131,11 +138,11 @@ export default function CaseOpening({
 
       <CaseRoulettes roletas={roletas} quantidade={quantidade} isSpinning={isSpinning} fastOpen={fastOpen} itemSorteado={itemSorteado} />
 
-      <button onClick={abrirCaixa} disabled={isSpinning}
+      <button onClick={abrirCaixa} disabled={isSpinning || isFetching}
         className={`px-8 sm:px-16 py-4 sm:py-5 font-black uppercase tracking-widest rounded-xl transition-all text-lg sm:text-xl mb-12 mt-6
-          ${isSpinning ? 'bg-zinc-800/80 text-zinc-500 cursor-not-allowed border border-white/5' : 'bg-gradient-to-r from-emerald-500 to-emerald-400 hover:from-emerald-400 hover:to-emerald-300 text-black shadow-[0_0_30px_rgba(16,185,129,0.3)] hover:shadow-[0_0_40px_rgba(16,185,129,0.5)] hover:scale-[1.02]'}`}
+          ${(isSpinning || isFetching) ? 'bg-zinc-800/80 text-zinc-500 cursor-not-allowed border border-white/5' : 'bg-gradient-to-r from-emerald-500 to-emerald-400 hover:from-emerald-400 hover:to-emerald-300 text-black shadow-[0_0_30px_rgba(16,185,129,0.3)] hover:shadow-[0_0_40px_rgba(16,185,129,0.5)] hover:scale-[1.02]'}`}
       >
-        {isSpinning ? 'A ABRIR...' : `ABRIR ${quantidade > 1 ? `${quantidade} CAIXAS` : 'CAIXA'}`}
+        {isFetching ? 'A CONECTAR...' : isSpinning ? 'A ABRIR...' : `ABRIR ${quantidade > 1 ? `${quantidade} CAIXAS` : 'CAIXA'}`}
       </button>
 
       <CaseContents caixaSelecionada={caixaSelecionada} />

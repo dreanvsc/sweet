@@ -176,28 +176,19 @@ model Levantamento {
 // ==========================================
 model Giveaway {
   id                 Int      @id @default(autoincrement())
-  
-  // O PRÉMIO
   premioNome         String
   premioImagem       String
   valor              Float
-  
-  // REGRAS (Controladas por ti)
   depositoMinimo     Float    @default(0)
   diasDeposito       Int      @default(7)
-  
-  // TEMPO E ESTADO
-  terminaEm          DateTime
-  status             String   @default("ATIVO") // "ATIVO" ou "TERMINADO"
-  
-  // PROVABLY FAIR (Transparência)
+  terminaEm          DateTime?
+  participantesMinimos Int @default(0)
+  horasContagem        Int @default(0)
+  status             String   @default("ATIVO") 
   serverSeed         String?  // O segredo do servidor gerado no início
   publicSeed         String?  // A chave pública revelada no fim
-  
-  // VENCEDOR
   vencedorId         Int?     
   vencedor           User?    @relation("VencedorGiveaway", fields: [vencedorId], references: [id])
-  
   participantes      ParticipanteGiveaway[]
   createdAt          DateTime @default(now())
 }

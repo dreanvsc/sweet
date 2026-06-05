@@ -28,34 +28,46 @@ interface Giveaway {
   valor: number;
   depositoMinimo: number;
   diasDeposito: number;
-  terminaEm: string;
-  status: string;
+  terminaEm: string | null;      // pode ser null no modo META (enquanto aguarda)
+  status: string;                // "AGUARDANDO", "ATIVO", "TERMINADO"
+  minimoParticipantes?: number;  // só para modo META
+  duracaoEmHoras?: number;       // só para modo META
   _count?: { participantes: number };
-  participantes?: Participante[]; // quando carregados manualmente
+  participantes?: Participante[];
 }
 
 export default function TabGiveaways() {
+  // ==================== ESTADOS EXISTENTES ====================
   const [skins, setSkins] = useState<Skin[]>([]);
   const [selectedSkinId, setSelectedSkinId] = useState<string>('');
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [giveaways, setGiveaways] = useState<Giveaway[]>([]);
+
+  // Paginação e participantes
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
+  const [expandedGiveawayId, setExpandedGiveawayId] = useState<number | null>(null);
+  const [loadingParticipants, setLoadingParticipants] = useState<number | null>(null);
+
+  // ==================== NOVOS ESTADOS (MODO DE SORTEIO) ====================
+  const [tipoSorteio, setTipoSorteio] = useState<'data' | 'meta'>('data');
+
+  // Formulário unificado
   const [formData, setFormData] = useState({
     premioNome: '',
     premioImagem: '',
     valor: 0,
     depositoMinimo: 0,
     diasDeposito: 0,
+    // Modo DATA
     terminaEm: '',
+    // Modo META
+    participantesMinimos: 25,
+    horasContagem: 24,
   });
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [giveaways, setGiveaways] = useState<Giveaway[]>([]);
 
-  // Paginação
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 8;
-  const [expandedGiveawayId, setExpandedGiveawayId] = useState<number | null>(null);
-  const [loadingParticipants, setLoadingParticipants] = useState<number | null>(null);
-
-  // Carregar skins
+  // ==================== BUSCA DE SKINS ====================
   useEffect(() => {
     fetch('https://sweet-7ifa.onrender.com/skins-disponiveis')
       .then(res => {
@@ -69,7 +81,7 @@ export default function TabGiveaways() {
       });
   }, []);
 
-  // Carregar sorteios ativos
+  // ==================== BUSCA DE GIVEAWAYS ATIVOS ====================
   const fetchGiveaways = async () => {
     try {
       const res = await fetch('https://sweet-7ifa.onrender.com/giveaways/ativos');
@@ -84,7 +96,7 @@ export default function TabGiveaways() {
     fetchGiveaways();
   }, []);
 
-  // Buscar participantes de um giveaway específico
+  // ==================== PARTICIPANTES ====================
   const fetchParticipantes = async (giveawayId: number) => {
     setLoadingParticipants(giveawayId);
     try {
@@ -113,16 +125,17 @@ export default function TabGiveaways() {
     }
   };
 
+  // ==================== EVENTOS DO FORMULÁRIO ====================
   const handleSkinChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const skinId = Number(e.target.value);
     const skin = skins.find(s => s.id === skinId);
     if (skin) {
-      setFormData({
-        ...formData,
+      setFormData(prev => ({
+        ...prev,
         premioNome: skin.nome,
         premioImagem: skin.imagem,
         valor: skin.preco,
-      });
+      }));
       setSelectedSkinId(e.target.value);
     }
   };
@@ -132,30 +145,57 @@ export default function TabGiveaways() {
     setLoading(true);
     setMessage(null);
 
-    if (!formData.premioNome || !formData.premioImagem || formData.valor <= 0 || !formData.terminaEm) {
-      setMessage({ type: 'error', text: 'Preenche todos os campos obrigatórios.' });
+    // Validações gerais
+    if (!formData.premioNome || !formData.premioImagem || formData.valor <= 0) {
+      setMessage({ type: 'error', text: 'Preenche todos os campos obrigatórios (skin, valor).' });
+      setLoading(false);
+      return;
+    }
+
+    // Validações específicas do modo escolhido
+    if (tipoSorteio === 'data' && !formData.terminaEm) {
+      setMessage({ type: 'error', text: 'Define uma data de término para o modo Clássico.' });
+      setLoading(false);
+      return;
+    }
+    if (tipoSorteio === 'meta' && formData.participantesMinimos <= 0) {
+      setMessage({ type: 'error', text: 'O mínimo de participantes tem de ser maior que zero.' });
       setLoading(false);
       return;
     }
 
     try {
+      // Construir payload conforme o tipo de sorteio
+      const payload: any = {
+        premioNome: formData.premioNome,
+        premioImagem: formData.premioImagem,
+        valor: Number(formData.valor),
+        depositoMinimo: Number(formData.depositoMinimo),
+        diasDeposito: Number(formData.diasDeposito),
+      };
+
+      if (tipoSorteio === 'data') {
+        payload.terminaEm = new Date(formData.terminaEm).toISOString();
+        payload.minimoParticipantes = 0;      // zero significa que não usa meta
+        payload.duracaoEmHoras = 0;
+      } else {
+        // Modo META: envia os campos específicos
+        payload.minimoParticipantes = Number(formData.participantesMinimos);
+        payload.duracaoEmHoras = Number(formData.horasContagem);
+        payload.terminaEm = null;             // será calculado quando atingir a meta
+      }
+
       const response = await fetch('https://sweet-7ifa.onrender.com/giveaways/admin/criar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          premioNome: formData.premioNome,
-          premioImagem: formData.premioImagem,
-          valor: Number(formData.valor),
-          depositoMinimo: Number(formData.depositoMinimo),
-          diasDeposito: Number(formData.diasDeposito),
-          terminaEm: new Date(formData.terminaEm).toISOString(),
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || 'Erro ao criar sorteio');
 
       setMessage({ type: 'success', text: `Sorteio "${formData.premioNome}" criado!` });
+      // Limpar formulário
       setFormData({
         premioNome: '',
         premioImagem: '',
@@ -163,6 +203,8 @@ export default function TabGiveaways() {
         depositoMinimo: 0,
         diasDeposito: 0,
         terminaEm: '',
+        participantesMinimos: 25,
+        horasContagem: 24,
       });
       setSelectedSkinId('');
       fetchGiveaways();
@@ -188,11 +230,12 @@ export default function TabGiveaways() {
     }
   };
 
-  // Paginação
+  // ==================== PAGINAÇÃO ====================
   const totalPages = Math.ceil(giveaways.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedGiveaways = giveaways.slice(startIndex, startIndex + itemsPerPage);
 
+  // ==================== RENDER ====================
   return (
     <div className="p-6 space-y-8">
       <div>
@@ -206,10 +249,37 @@ export default function TabGiveaways() {
         </div>
       )}
 
-      {/* Formulário de criação */}
+      {/* ==================== FORMULÁRIO DE CRIAÇÃO (MODO CLÁSSICO / META) ==================== */}
       <div className="bg-[#1E1E24] rounded-xl border border-white/5 p-6">
         <h3 className="text-xl font-semibold text-white mb-4">📦 Criar Novo Sorteio</h3>
         <form onSubmit={handleCreateGiveaway} className="space-y-4">
+          {/* SWITCHER MODO */}
+          <div className="flex bg-black/50 p-1 rounded-xl border border-white/10">
+            <button
+              type="button"
+              onClick={() => setTipoSorteio('data')}
+              className={`flex-1 py-3 text-xs font-black uppercase tracking-widest rounded-lg transition-all ${
+                tipoSorteio === 'data'
+                  ? 'bg-emerald-500 text-black shadow-lg'
+                  : 'text-zinc-500 hover:text-white'
+              }`}
+            >
+              ⏰ Clássico (Data Fixa)
+            </button>
+            <button
+              type="button"
+              onClick={() => setTipoSorteio('meta')}
+              className={`flex-1 py-3 text-xs font-black uppercase tracking-widest rounded-lg transition-all ${
+                tipoSorteio === 'meta'
+                  ? 'bg-purple-500 text-white shadow-lg'
+                  : 'text-zinc-500 hover:text-white'
+              }`}
+            >
+              👥 Hype (Meta de Pessoas)
+            </button>
+          </div>
+
+          {/* SELECIONAR SKIN */}
           <div>
             <label className="block text-sm font-medium text-zinc-400 mb-1">Escolher Skin *</label>
             <select
@@ -227,6 +297,7 @@ export default function TabGiveaways() {
             </select>
           </div>
 
+          {/* PRÉ-VISUALIZAÇÃO */}
           {selectedSkinId && formData.premioImagem && (
             <div className="flex items-center gap-4 p-3 bg-black/30 rounded-lg border border-white/5">
               <img src={formData.premioImagem} alt={formData.premioNome} className="w-12 h-12 rounded object-cover" />
@@ -237,7 +308,8 @@ export default function TabGiveaways() {
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* CAMPOS COMUNS */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-zinc-400 mb-1">Valor (€) *</label>
               <input
@@ -268,29 +340,69 @@ export default function TabGiveaways() {
                 className="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-white"
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-zinc-400 mb-1">Data de Término *</label>
+          </div>
+
+          {/* MODO CLÁSSICO: DATA DE TÉRMINO */}
+          {tipoSorteio === 'data' && (
+            <div className="bg-emerald-500/5 border border-emerald-500/20 p-4 rounded-xl animate-in fade-in zoom-in-95 duration-300">
+              <label className="block text-sm font-medium text-emerald-400 mb-1">Data de Término *</label>
               <input
                 type="datetime-local"
                 value={formData.terminaEm}
                 onChange={(e) => setFormData({ ...formData, terminaEm: e.target.value })}
-                className="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-white"
-                required
+                className="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-white focus:border-emerald-500 outline-none"
+                required={tipoSorteio === 'data'}
               />
             </div>
-          </div>
+          )}
+
+          {/* MODO HYPE: META DE PARTICIPANTES + DURAÇÃO */}
+          {tipoSorteio === 'meta' && (
+            <div className="grid grid-cols-2 gap-4 bg-purple-500/5 border border-purple-500/20 p-4 rounded-xl animate-in fade-in zoom-in-95 duration-300">
+              <div>
+                <label className="block text-sm font-medium text-purple-400 mb-1">Participantes Mínimos</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={formData.participantesMinimos}
+                  onChange={(e) => setFormData({ ...formData, participantesMinimos: parseInt(e.target.value) })}
+                  className="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-white focus:border-purple-500 outline-none"
+                  required={tipoSorteio === 'meta'}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-purple-400 mb-1">Horas Após Atingir Meta</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={formData.horasContagem}
+                  onChange={(e) => setFormData({ ...formData, horasContagem: parseInt(e.target.value) })}
+                  className="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-white focus:border-purple-500 outline-none"
+                  required={tipoSorteio === 'meta'}
+                />
+              </div>
+              <p className="col-span-2 text-xs text-zinc-500 italic">
+                O sorteio só fica ativo após atingir {formData.participantesMinimos} participantes. 
+                Depois decorrerá durante {formData.horasContagem}h.
+              </p>
+            </div>
+          )}
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-gradient-to-r from-amber-600 to-amber-500 text-white font-bold py-3 rounded-lg hover:from-amber-500 hover:to-amber-400 transition-all disabled:opacity-50"
+            className={`w-full font-black uppercase tracking-widest py-4 rounded-xl transition-all ${
+              tipoSorteio === 'data'
+                ? 'bg-emerald-500 hover:bg-emerald-400 text-black shadow-[0_0_15px_rgba(16,185,129,0.2)]'
+                : 'bg-purple-500 hover:bg-purple-400 text-white shadow-[0_0_15px_rgba(168,85,247,0.2)]'
+            }`}
           >
-            {loading ? 'A Criar...' : '🎲 Criar Sorteio'}
+            {loading ? 'A CRIAR...' : 'LANÇAR SORTEIO NO SITE'}
           </button>
         </form>
       </div>
 
-      {/* Lista de sorteios ativos com paginação e participantes */}
+      {/* ==================== LISTAGEM DE GIVEAWAYS ATIVOS (COM PAGINAÇÃO E PARTICIPANTES) ==================== */}
       <div className="bg-[#1E1E24] rounded-xl border border-white/5 p-6">
         <h3 className="text-xl font-semibold text-white mb-4">⚔️ Sorteios Ativos</h3>
         {giveaways.length === 0 ? (
@@ -305,8 +417,44 @@ export default function TabGiveaways() {
                       <img src={giveaway.premioImagem} alt={giveaway.premioNome} className="w-16 h-16 rounded-lg object-cover" />
                       <div>
                         <h4 className="font-bold text-white">{giveaway.premioNome}</h4>
-                        <p className="text-sm text-zinc-400">💎 Valor: {giveaway.valor}€ | 👥 Participantes: {giveaway._count?.participantes || 0}</p>
-                        <p className="text-xs text-zinc-500">Termina: {new Date(giveaway.terminaEm).toLocaleString()}</p>
+                        <p className="text-sm text-zinc-400">
+                          💎 Valor: {giveaway.valor}€ | 👥 Participantes: {giveaway._count?.participantes || 0}
+                        </p>
+                        {/* Exibe informações específicas do tipo de sorteio */}
+                        {giveaway.minimoParticipantes && giveaway.minimoParticipantes > 0 ? (
+                          // Modo META
+                          <>
+                            <p className="text-xs text-purple-400">
+                              🎯 Meta: {giveaway.minimoParticipantes} participantes
+                              {giveaway.status === 'AGUARDANDO' && ` (faltam ${Math.max(0, giveaway.minimoParticipantes - (giveaway._count?.participantes || 0))})`}
+                            </p>
+                            {giveaway.status === 'ATIVO' && giveaway.terminaEm && (
+                              <p className="text-xs text-zinc-500">
+                                ⏳ Termina: {new Date(giveaway.terminaEm).toLocaleString()}
+                              </p>
+                            )}
+                            {giveaway.status === 'AGUARDANDO' && (
+                              <p className="text-xs text-yellow-500">🔒 A aguardar participantes mínimos para iniciar contagem</p>
+                            )}
+                          </>
+                        ) : (
+                          // Modo DATA
+                          giveaway.terminaEm && (
+                            <p className="text-xs text-zinc-500">⏰ Termina: {new Date(giveaway.terminaEm).toLocaleString()}</p>
+                          )
+                        )}
+                        {/* Badge de status */}
+                        <div className="flex gap-2 mt-1">
+                          {giveaway.status === 'AGUARDANDO' && (
+                            <span className="text-yellow-400 text-[10px] bg-yellow-500/20 px-2 py-0.5 rounded-full">⏳ Aguardando</span>
+                          )}
+                          {giveaway.status === 'ATIVO' && (
+                            <span className="text-green-400 text-[10px] bg-green-500/20 px-2 py-0.5 rounded-full">🎲 Ativo</span>
+                          )}
+                          {giveaway.status === 'TERMINADO' && (
+                            <span className="text-red-400 text-[10px] bg-red-500/20 px-2 py-0.5 rounded-full">🏆 Terminado</span>
+                          )}
+                        </div>
                       </div>
                     </div>
                     <div className="flex gap-2">
@@ -325,7 +473,7 @@ export default function TabGiveaways() {
                     </div>
                   </div>
 
-                  {/* Detalhes dos participantes (expansível) */}
+                  {/* EXPANSÃO DE PARTICIPANTES */}
                   {expandedGiveawayId === giveaway.id && (
                     <div className="border-t border-white/10 p-4 bg-black/20">
                       <h5 className="text-sm font-semibold text-white mb-3">
@@ -365,7 +513,7 @@ export default function TabGiveaways() {
               ))}
             </div>
 
-            {/* Paginação */}
+            {/* PAGINAÇÃO */}
             {totalPages > 1 && (
               <div className="flex justify-center gap-2 mt-6">
                 <button

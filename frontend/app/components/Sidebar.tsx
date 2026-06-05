@@ -4,7 +4,6 @@ import React, { useState } from 'react';
 import ModalDeposito from './ModalDeposito'; 
 import LiveChatWidget from './support/LiveChatWidget';
 import { toast } from 'react-hot-toast';
-import Giveaways from './components/Giveaways';
 
 export default function Sidebar({ view, setView, saldo, userId, userData }: any) {
   const [modalAberto, setModalAberto] = useState(false);

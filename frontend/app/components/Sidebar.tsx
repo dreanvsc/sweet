@@ -93,8 +93,8 @@ export default function Sidebar({ view, setView, saldo, userId, userData }: any)
           <span className="text-lg drop-shadow-md">🪙</span> <span className="text-[10px] font-bold uppercase tracking-widest">Coinflip</span>
         </button>
 
-        <button onClick={() => setView('giveaways')} className="teu-design-do-botao">
-          🎁 Giveaways
+        <button onClick={() => setView('giveaways')} className={`flex items-center gap-3 p-3 rounded-xl transition-all duration-300 ${view === 'giveaways' ? 'bg-gradient-to-r from-purple-500/20 to-transparent border-l-4 border-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.1)]' : 'text-zinc-400 hover:text-white hover:bg-white/5 hover:translate-x-1'}`}>
+          <span className="text-lg drop-shadow-md">🎁</span> <span className="text-[10px] font-bold uppercase tracking-widest">Giveaways</span>
         </button>
 
         {(userData?.role === 'admin' || userData?.role === 'ADMIN' || userData?.isAdmin === true || String(userId) === '1') && (

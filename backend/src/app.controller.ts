@@ -194,12 +194,12 @@ export class AppController {
   // ==========================================
   // LOGIN DA STEAM
   // ==========================================
-  // 1. Adiciona o api/ aqui!
-  @Get('api/auth/steam')
+  // 1. A porta onde o teu SITE bate (SEM o api/)
+  @Get('auth/steam')
   @UseGuards(AuthGuard('steam'))
   async steamLogin() {}
 
-  // 2. Adiciona o api/ aqui também!
+  // 2. A porta onde a STEAM devolve o jogador (COM o api/)
   @Get('api/auth/steam/return')
   @UseGuards(AuthGuard('steam'))
   async steamLoginReturn(@Req() req, @Res() res) {

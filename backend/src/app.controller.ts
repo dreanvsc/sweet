@@ -194,15 +194,17 @@ export class AppController {
   // ==========================================
   // LOGIN DA STEAM
   // ==========================================
-  @Get('auth/steam')
+  // 1. Adiciona o api/ aqui!
+  @Get('api/auth/steam')
   @UseGuards(AuthGuard('steam'))
   async steamLogin() {}
 
-  @Get('auth/steam/return')
+  // 2. Adiciona o api/ aqui também!
+  @Get('api/auth/steam/return')
   @UseGuards(AuthGuard('steam'))
   async steamLoginReturn(@Req() req, @Res() res) {
     const user = req.user;
-    // 🔥 AGORA VAI PARA O TEU DOMÍNIO OFICIAL!
+    // O destino final de luxo
     return res.redirect(`https://sweetdrop.pt/?userId=${req.user.id}`);
   }
 

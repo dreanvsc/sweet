@@ -1,319 +1,346 @@
 'use client';
 
-import React, { useState } from 'react';
-import TabEstatisticas from './TabEstatisticas';
-import TabSistema from './TabSistema';
-import TabClientes from './TabClientes';
-import TabFabrica from './TabFabrica';
-import AdminTickets from './AdminTickets';
-import AdminLiveChat from './AdminLiveChat';
-import AdminMissoes from './AdminMissoes'; 
-import AdminLevantamentos from './AdminLevantamentos';
-import AdminVerificacoes from './AdminVerificacoes';
-import TabGiveaways from './TabGiveaways';
+import React, { useState, useEffect } from 'react';
 
-export default function Admin({ userId }: any) {
-  // 🔥 Adicionado 'verificacoes' e 'giveaways' ao estado
-  const [activeTab, setActiveTab] = useState<'users' | 'boxes' | 'stats' | 'system' | 'staff' | 'tickets' | 'livechat' | 'missoes' | 'withdraws' | 'verificacoes'| 'giveaways'>('boxes');
+interface Skin {
+  id: number;
+  nome: string;
+  imagem: string;
+  valor: number;
+  // outros campos que existirem...
+}
 
-  // =========================================================================
-  // 🔥 ESTADOS PARA A EQUIPA (PROMOVER E REMOVER)
-  // =========================================================================
-  const [alvoIdPromover, setAlvoIdPromover] = useState('');
-  const [msgPromover, setMsgPromover] = useState<{ texto: string, tipo: 'sucesso' | 'erro' } | null>(null);
+interface Giveaway {
+  id: number;
+  premioNome: string;
+  premioImagem: string;
+  valor: number;
+  depositoMinimo: number;
+  diasDeposito: number;
+  terminaEm: string;
+  status: 'ATIVO' | 'TERMINADO';
+  _count?: { participantes: number };
+}
 
-  const [alvoIdRemover, setAlvoIdRemover] = useState('');
-  const [msgRemover, setMsgRemover] = useState<{ texto: string, tipo: 'sucesso' | 'erro' } | null>(null);
+export default function TabGiveaways() {
+  const [giveaways, setGiveaways] = useState<Giveaway[]>([]);
+  const [skins, setSkins] = useState<Skin[]>([]);
+  const [loadingSkins, setLoadingSkins] = useState(true);
+  const [loadingGiveaways, setLoadingGiveaways] = useState(true);
+  const [manualMode, setManualMode] = useState(false); // Modo manual ativado?
+  const [formData, setFormData] = useState({
+    skinId: '',           // ID da skin selecionada (modo automático)
+    premioNome: '',
+    premioImagem: '',
+    valor: 0,
+    depositoMinimo: 0,
+    diasDeposito: 0,
+    terminaEm: '',
+  });
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const promoverJogador = async () => {
-    if (!alvoIdPromover) return setMsgPromover({ texto: 'Insere o ID do jogador!', tipo: 'erro' });
-
+  // Buscar lista de skins disponíveis
+  const fetchSkins = async () => {
     try {
-      const res = await fetch('https://sweet-7ifa.onrender.com/admin/promover', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ adminId: userId, alvoId: alvoIdPromover })
-      });
-      
-      const data = await res.json();
-      
-      if (data.sucesso) {
-        setMsgPromover({ texto: data.mensagem, tipo: 'sucesso' });
-        setAlvoIdPromover('');
-      } else {
-        setMsgPromover({ texto: data.erro, tipo: 'erro' });
-      }
+      setLoadingSkins(true);
+      const response = await fetch('https://sweet-7ifa.onrender.com/items'); // Ajusta o endpoint se necessário
+      if (!response.ok) throw new Error('Erro ao carregar skins');
+      const data = await response.json();
+      setSkins(data);
     } catch (error) {
-      setMsgPromover({ texto: 'Erro ao ligar ao servidor.', tipo: 'erro' });
+      console.error('Erro ao carregar skins:', error);
+      setMessage({ type: 'error', text: 'Falha ao carregar lista de skins. Usa o modo manual.' });
+      setManualMode(true);
+    } finally {
+      setLoadingSkins(false);
     }
   };
 
-  const despromoverJogador = async () => {
-    if (!alvoIdRemover) return setMsgRemover({ texto: 'Insere o ID do jogador!', tipo: 'erro' });
+  // Buscar sorteios ativos
+  const fetchGiveaways = async () => {
+    try {
+      setLoadingGiveaways(true);
+      const response = await fetch('https://sweet-7ifa.onrender.com/giveaways/ativos');
+      if (!response.ok) throw new Error('Erro ao carregar sorteios');
+      const data = await response.json();
+      setGiveaways(data);
+    } catch (error) {
+      console.error('Erro ao carregar sorteios:', error);
+      setMessage({ type: 'error', text: 'Falha ao carregar sorteios ativos.' });
+    } finally {
+      setLoadingGiveaways(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSkins();
+    fetchGiveaways();
+  }, []);
+
+  // Quando uma skin é selecionada, preenche os campos automaticamente
+  const handleSkinSelect = (skinId: string) => {
+    const selectedSkin = skins.find(skin => skin.id.toString() === skinId);
+    if (selectedSkin) {
+      setFormData({
+        ...formData,
+        skinId,
+        premioNome: selectedSkin.nome,
+        premioImagem: selectedSkin.imagem,
+        valor: selectedSkin.valor,   // opcional: usar valor da skin
+      });
+    }
+  };
+
+  // Criar sorteio
+  const handleCreateGiveaway = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setMessage(null);
+
+    // Validação
+    if (!formData.premioNome || !formData.premioImagem || formData.valor <= 0 || !formData.terminaEm) {
+      setMessage({ type: 'error', text: 'Preenche todos os campos obrigatórios corretamente.' });
+      setIsSubmitting(false);
+      return;
+    }
 
     try {
-      const res = await fetch('https://sweet-7ifa.onrender.com/admin/despromover', {
+      const response = await fetch('https://sweet-7ifa.onrender.com/giveaways/admin/criar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ adminId: userId, alvoId: alvoIdRemover })
+        body: JSON.stringify({
+          premioNome: formData.premioNome,
+          premioImagem: formData.premioImagem,
+          valor: Number(formData.valor),
+          depositoMinimo: Number(formData.depositoMinimo),
+          diasDeposito: Number(formData.diasDeposito),
+          terminaEm: new Date(formData.terminaEm).toISOString(),
+        }),
       });
-      
-      const data = await res.json();
-      
-      if (data.sucesso) {
-        setMsgRemover({ texto: data.mensagem, tipo: 'sucesso' });
-        setAlvoIdRemover('');
-      } else {
-        setMsgRemover({ texto: data.erro, tipo: 'erro' });
-      }
-    } catch (error) {
-      setMsgRemover({ texto: 'Erro ao ligar ao servidor.', tipo: 'erro' });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || 'Erro ao criar sorteio');
+
+      setMessage({ type: 'success', text: `Sorteio "${formData.premioNome}" criado!` });
+      // Limpar formulário
+      setFormData({
+        skinId: '',
+        premioNome: '',
+        premioImagem: '',
+        valor: 0,
+        depositoMinimo: 0,
+        diasDeposito: 0,
+        terminaEm: '',
+      });
+      setManualMode(false);
+      fetchGiveaways(); // recarregar lista
+    } catch (error: any) {
+      setMessage({ type: 'error', text: error.message || 'Erro ao criar sorteio.' });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Forçar finalização
+  const handleFinalizeGiveaway = async (id: number, nome: string) => {
+    if (!confirm(`Tens a certeza que queres finalizar o sorteio "${nome}" agora?`)) return;
+
+    try {
+      const response = await fetch(`https://sweet-7ifa.onrender.com/giveaways/admin/finalizar/${id}`, {
+        method: 'POST',
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || 'Erro ao finalizar sorteio');
+
+      setMessage({ type: 'success', text: `Sorteio "${nome}" finalizado!` });
+      fetchGiveaways();
+    } catch (error: any) {
+      setMessage({ type: 'error', text: error.message || 'Erro ao finalizar sorteio.' });
     }
   };
 
   return (
-    <div className="w-full max-w-[1400px] mx-auto animate-in fade-in pb-20 pt-4 flex flex-col md:flex-row gap-8 relative">
-      
-      {/* ================================================= */}
-      {/* MENU LATERAL (DASHBOARD PREMIUM) */}
-      {/* ================================================= */}
-      <div className="w-full md:w-72 flex-shrink-0 flex flex-col gap-2">
-        
-        {/* CABEÇALHO DO MENU */}
-        <div className="mb-6 px-4 py-6 bg-black/20 rounded-2xl border border-white/5 backdrop-blur-sm shadow-lg flex items-center gap-4">
-          <div className="w-12 h-12 bg-amber-500/10 rounded-xl flex items-center justify-center border border-amber-500/20 shadow-[0_0_15px_rgba(245,158,11,0.2)]">
-             <span className="text-2xl drop-shadow-[0_0_8px_rgba(245,158,11,0.8)]">👑</span>
-          </div>
-          <div>
-            <h2 className="text-xl font-black italic uppercase text-white tracking-tighter drop-shadow-md">Admin</h2>
-            <p className="text-zinc-500 text-[9px] font-black tracking-widest uppercase mt-0.5">Centro de Comando</p>
-          </div>
-        </div>
-        
-        {/* BOTÕES PRINCIPAIS */}
-        <div className="flex flex-col gap-1.5 mb-4">
-          <p className="text-zinc-600 text-[10px] font-black uppercase tracking-widest px-4 mb-2">Gestão Principal</p>
-          
-          <button 
-            onClick={() => setActiveTab('stats')} 
-            className={`flex items-center gap-3 p-4 rounded-xl text-left transition-all duration-300 ${activeTab === 'stats' ? 'bg-gradient-to-r from-amber-500/20 to-transparent border-l-4 border-amber-500 text-white shadow-[0_0_15px_rgba(245,158,11,0.1)] translate-x-2' : 'bg-transparent text-zinc-400 hover:text-white hover:bg-white/5 hover:translate-x-1'}`}
-          >
-            <span className="text-lg w-6 text-center drop-shadow-md">📊</span> 
-            <span className="text-xs font-bold uppercase tracking-widest">Estatísticas</span>
-          </button>
-          
-          <button 
-            onClick={() => setActiveTab('users')} 
-            className={`flex items-center gap-3 p-4 rounded-xl text-left transition-all duration-300 ${activeTab === 'users' ? 'bg-gradient-to-r from-amber-500/20 to-transparent border-l-4 border-amber-500 text-white shadow-[0_0_15px_rgba(245,158,11,0.1)] translate-x-2' : 'bg-transparent text-zinc-400 hover:text-white hover:bg-white/5 hover:translate-x-1'}`}
-          >
-            <span className="text-lg w-6 text-center drop-shadow-md">👥</span> 
-            <span className="text-xs font-bold uppercase tracking-widest">Clientes</span>
-          </button>
-          
-          <button 
-            onClick={() => setActiveTab('boxes')} 
-            className={`flex items-center gap-3 p-4 rounded-xl text-left transition-all duration-300 ${activeTab === 'boxes' ? 'bg-gradient-to-r from-amber-500/20 to-transparent border-l-4 border-amber-500 text-white shadow-[0_0_15px_rgba(245,158,11,0.1)] translate-x-2' : 'bg-transparent text-zinc-400 hover:text-white hover:bg-white/5 hover:translate-x-1'}`}
-          >
-            <span className="text-lg w-6 text-center drop-shadow-md">📦</span> 
-            <span className="text-xs font-bold uppercase tracking-widest">Fábrica de Caixas</span>
-          </button>
-
-          <button 
-            onClick={() => setActiveTab('withdraws')} 
-            className={`flex items-center gap-3 p-4 rounded-xl text-left transition-all duration-300 ${activeTab === 'withdraws' ? 'bg-gradient-to-r from-amber-500/20 to-transparent border-l-4 border-amber-500 text-white shadow-[0_0_15px_rgba(245,158,11,0.1)] translate-x-2' : 'bg-transparent text-zinc-400 hover:text-white hover:bg-white/5 hover:translate-x-1'}`}
-          >
-            <span className="text-lg w-6 text-center drop-shadow-md">📦</span> 
-            <span className="text-xs font-bold uppercase tracking-widest">Logística (Saques)</span>
-          </button>
-          
-          {/* 🔥 NOVO BOTÃO DOS SORTEIOS */}
-          <button 
-            onClick={() => setActiveTab('giveaways')} 
-            className={`flex items-center gap-3 p-4 rounded-xl text-left transition-all duration-300 ${activeTab === 'giveaways' ? 'bg-gradient-to-r from-amber-500/20 to-transparent border-l-4 border-amber-500 text-white shadow-[0_0_15px_rgba(245,158,11,0.1)] translate-x-2' : 'bg-transparent text-zinc-400 hover:text-white hover:bg-white/5 hover:translate-x-1'}`}
-          >
-            <span className="text-lg w-6 text-center drop-shadow-md">🎁</span> 
-            <span className="text-xs font-bold uppercase tracking-widest">Sorteios</span>
-          </button>
-
-          <button 
-            onClick={() => setActiveTab('system')} 
-            className={`flex items-center gap-3 p-4 rounded-xl text-left transition-all duration-300 ${activeTab === 'system' ? 'bg-gradient-to-r from-amber-500/20 to-transparent border-l-4 border-amber-500 text-white shadow-[0_0_15px_rgba(245,158,11,0.1)] translate-x-2' : 'bg-transparent text-zinc-400 hover:text-white hover:bg-white/5 hover:translate-x-1'}`}
-          >
-            <span className="text-lg w-6 text-center drop-shadow-md">⚙️</span> 
-            <span className="text-xs font-bold uppercase tracking-widest">Sistema / API</span>
-          </button>
-        </div>
-
-        <div className="w-full h-px bg-white/5 my-2"></div>
-
-        {/* SUPORTE E SEGURANÇA */}
-        <div className="flex flex-col gap-1.5 mt-2 mb-4">
-          <p className="text-zinc-600 text-[10px] font-black uppercase tracking-widest px-4 mb-2">Suporte & Segurança</p>
-
-          <button 
-            onClick={() => setActiveTab('livechat')} 
-            className={`flex items-center gap-3 p-4 rounded-xl text-left transition-all duration-300 ${activeTab === 'livechat' ? 'bg-gradient-to-r from-emerald-500/20 to-transparent border-l-4 border-emerald-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.15)] translate-x-2' : 'bg-transparent text-zinc-400 hover:text-white hover:bg-white/5 hover:translate-x-1'}`}
-          >
-            <span className="text-lg w-6 text-center drop-shadow-md">⚡</span> 
-            <span className="text-xs font-bold uppercase tracking-widest">Chat ao Vivo</span>
-          </button>
-
-          <button 
-            onClick={() => setActiveTab('tickets')} 
-            className={`flex items-center gap-3 p-4 rounded-xl text-left transition-all duration-300 ${activeTab === 'tickets' ? 'bg-gradient-to-r from-blue-500/20 to-transparent border-l-4 border-blue-500 text-white shadow-[0_0_15px_rgba(59,130,246,0.1)] translate-x-2' : 'bg-transparent text-zinc-400 hover:text-white hover:bg-white/5 hover:translate-x-1'}`}
-          >
-            <span className="text-lg w-6 text-center drop-shadow-md">🎫</span> 
-            <span className="text-xs font-bold uppercase tracking-widest">Tickets</span>
-          </button>
-          
-          <button 
-            onClick={() => setActiveTab('missoes')} 
-            className={`flex items-center gap-3 p-4 rounded-xl text-left transition-all duration-300 ${activeTab === 'missoes' ? 'bg-gradient-to-r from-purple-500/20 to-transparent border-l-4 border-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.15)] translate-x-2' : 'bg-transparent text-zinc-400 hover:text-white hover:bg-white/5 hover:translate-x-1'}`}
-          >
-            <span className="text-lg w-6 text-center drop-shadow-md">📹</span> 
-            <span className="text-xs font-bold uppercase tracking-widest">Moderação</span>
-          </button>
-
-          {/* 🔥 NOVO BOTÃO DAS VERIFICAÇÕES DO CEO */}
-          <button 
-            onClick={() => setActiveTab('verificacoes')} 
-            className={`flex items-center gap-3 p-4 rounded-xl text-left transition-all duration-300 ${activeTab === 'verificacoes' ? 'bg-gradient-to-r from-indigo-500/20 to-transparent border-l-4 border-indigo-500 text-white shadow-[0_0_15px_rgba(99,102,241,0.15)] translate-x-2' : 'bg-transparent text-zinc-400 hover:text-white hover:bg-white/5 hover:translate-x-1'}`}
-          >
-            <span className="text-lg w-6 text-center drop-shadow-md">🛡️</span> 
-            <span className="text-xs font-bold uppercase tracking-widest">Verificações VIP</span>
-          </button>
-        </div>
-
-        {/* GESTÃO DE EQUIPA (DESTACADO) */}
-        <button 
-          onClick={() => setActiveTab('staff')} 
-          className={`flex items-center gap-3 p-4 rounded-xl text-left transition-all duration-300 mt-auto border ${activeTab === 'staff' ? 'bg-gradient-to-r from-red-500/20 to-red-500/5 border-red-500/50 text-white shadow-[0_0_20px_rgba(239,68,68,0.2)]' : 'bg-[#161619] border-white/5 text-zinc-400 hover:text-white hover:border-red-500/30'}`}
-        >
-          <span className="text-lg w-6 text-center drop-shadow-md">👑</span> 
-          <span className="text-xs font-black uppercase tracking-widest">A Minha Equipa</span>
-        </button>
+    <div className="p-6 space-y-8">
+      <div>
+        <h2 className="text-2xl font-bold text-white">🎁 Sorteios Imperiais</h2>
+        <p className="text-zinc-400 mt-1">Cria e gere sorteios com provably fair.</p>
       </div>
 
-      {/* ================================================= */}
-      {/* ÁREA DE CONTEÚDO (O PALCO PRINCIPAL) */}
-      {/* ================================================= */}
-      <div className="flex-1 bg-black/40 backdrop-blur-md p-6 sm:p-8 rounded-3xl border border-white/5 shadow-2xl min-h-[700px] w-full relative overflow-hidden">
-        
-        {/* LUZ DE FUNDO GERAL */}
-        <div className="absolute -top-40 -right-40 w-96 h-96 bg-amber-500/5 blur-[100px] rounded-full pointer-events-none"></div>
+      {message && (
+        <div className={`p-4 rounded-lg ${message.type === 'success' ? 'bg-emerald-500/20 border border-emerald-500 text-emerald-400' : 'bg-red-500/20 border border-red-500 text-red-400'}`}>
+          {message.text}
+        </div>
+      )}
 
-        <div className="relative z-10 w-full h-full">
-          {activeTab === 'stats' && <TabEstatisticas />}
-          {activeTab === 'system' && <TabSistema />}
-          {activeTab === 'users' && <TabClientes />}
-          {activeTab === 'boxes' && <TabFabrica />}
-          {activeTab === 'withdraws' && <AdminLevantamentos />}
-          {activeTab === 'tickets' && <AdminTickets />}
-          {activeTab === 'livechat' && <AdminLiveChat />}
-          {activeTab === 'missoes' && <AdminMissoes />}
-          
-          {/* 🔥 ABA DAS VERIFICAÇÕES */}
-          {activeTab === 'verificacoes' && <AdminVerificacoes />}
+      {/* Formulário de criação */}
+      <div className="bg-[#1E1E24] rounded-xl border border-white/5 p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-xl font-semibold text-white">📦 Criar Novo Sorteio</h3>
+          <button
+            type="button"
+            onClick={() => setManualMode(!manualMode)}
+            className="text-xs text-amber-400 hover:text-amber-300 underline"
+          >
+            {manualMode ? '← Voltar à seleção automática' : '✍️ Inserir manualmente'}
+          </button>
+        </div>
 
-          {/* 🔥 NOVA ABA DOS SORTEIOS */}
-          {activeTab === 'giveaways' && <TabGiveaways />}
+        <form onSubmit={handleCreateGiveaway} className="space-y-4">
+          {!manualMode ? (
+            // MODO AUTOMÁTICO: selecionar skin do catálogo
+            <>
+              <div>
+                <label className="block text-sm font-medium text-zinc-400 mb-1">Escolher Skin *</label>
+                {loadingSkins ? (
+                  <div className="text-zinc-400">A carregar skins...</div>
+                ) : (
+                  <select
+                    value={formData.skinId}
+                    onChange={(e) => handleSkinSelect(e.target.value)}
+                    className="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-amber-500"
+                    required
+                  >
+                    <option value="">-- Seleciona uma skin --</option>
+                    {skins.map((skin) => (
+                      <option key={skin.id} value={skin.id}>
+                        {skin.nome} - {skin.valor}€
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
 
-          {/* ABA DA EQUIPA (GESTÃO) - VISUAL RENOVADO */}
-          {activeTab === 'staff' && (
-            <div className="animate-in fade-in slide-in-from-bottom-4">
-              
-              {/* TÍTULO DA ABA */}
-              <div className="flex items-center gap-4 mb-8 pb-6 border-b border-white/5">
-                <div className="w-12 h-12 bg-red-500/10 rounded-xl flex items-center justify-center border border-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.2)]">
-                   <span className="text-2xl">👑</span>
+              {/* Pré-visualização da skin selecionada */}
+              {formData.skinId && formData.premioImagem && (
+                <div className="flex items-center gap-4 p-3 bg-black/30 rounded-lg border border-white/5">
+                  <img src={formData.premioImagem} alt={formData.premioNome} className="w-12 h-12 rounded object-cover" />
+                  <div>
+                    <p className="text-white font-bold">{formData.premioNome}</p>
+                    <p className="text-amber-400 text-sm">{formData.valor}€</p>
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            // MODO MANUAL: campos de texto tradicionais
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-zinc-400 mb-1">Nome do Prémio *</label>
+                  <input
+                    type="text"
+                    value={formData.premioNome}
+                    onChange={(e) => setFormData({ ...formData, premioNome: e.target.value })}
+                    className="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-white"
+                    placeholder="Ex: Dragon Lore AWP"
+                    required
+                  />
                 </div>
                 <div>
-                  <h3 className="text-2xl font-black italic uppercase text-white tracking-tighter">Gestão de Equipa</h3>
-                  <p className="text-zinc-400 text-[10px] font-bold tracking-widest uppercase mt-1">Atribui ou remove poderes imperiais</p>
+                  <label className="block text-sm font-medium text-zinc-400 mb-1">URL da Imagem *</label>
+                  <input
+                    type="text"
+                    value={formData.premioImagem}
+                    onChange={(e) => setFormData({ ...formData, premioImagem: e.target.value })}
+                    className="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-white"
+                    placeholder="https://exemplo.com/imagem.png"
+                    required
+                  />
                 </div>
               </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                
-                {/* CARD: PROMOVER ADMIN */}
-                <div className="bg-[#161619]/80 backdrop-blur-sm border border-amber-500/10 rounded-3xl p-6 md:p-8 shadow-xl relative overflow-hidden group hover:border-amber-500/30 transition-all duration-300 hover:shadow-[0_0_30px_rgba(245,158,11,0.05)]">
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 blur-3xl rounded-full group-hover:bg-amber-500/10 transition-colors"></div>
-                  
-                  <div className="flex items-center gap-3 mb-2 relative z-10">
-                     <span className="text-xl">👑</span>
-                     <h3 className="text-xl font-black uppercase italic text-white drop-shadow-md">Promover a Admin</h3>
-                  </div>
-                  <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest mb-8 relative z-10">Dá acesso total ao painel de controlo</p>
-
-                  <div className="flex flex-col gap-4 relative z-10">
-                    <div>
-                      <label className="text-zinc-400 text-[9px] uppercase font-black tracking-widest ml-2 block mb-2">ID do Jogador na Base de Dados</label>
-                      <input 
-                        type="number" 
-                        value={alvoIdPromover} 
-                        onChange={(e) => setAlvoIdPromover(e.target.value)} 
-                        placeholder="Ex: 5"
-                        className="w-full bg-black/50 border border-white/10 text-white font-mono font-black text-xl rounded-xl p-4 outline-none focus:border-amber-500 transition-colors shadow-inner text-center placeholder:text-zinc-700" 
-                      />
-                    </div>
-
-                    <button 
-                      onClick={promoverJogador}
-                      className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black py-4 rounded-xl font-black uppercase tracking-widest transition-all hover:scale-[1.02] shadow-[0_0_20px_rgba(245,158,11,0.2)] hover:shadow-[0_0_30px_rgba(245,158,11,0.4)] mt-2 flex items-center justify-center gap-2"
-                    >
-                      <span>ATRIBUIR PODERES</span>
-                    </button>
-
-                    {msgPromover && (
-                      <div className={`p-4 rounded-xl text-center text-[10px] font-black uppercase tracking-widest mt-2 border flex items-center justify-center gap-2 animate-in fade-in ${msgPromover.tipo === 'sucesso' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'}`}>
-                        {msgPromover.tipo === 'sucesso' ? '✅' : '❌'} {msgPromover.texto}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* CARD: REMOVER ADMIN */}
-                <div className="bg-[#161619]/80 backdrop-blur-sm border border-red-500/10 rounded-3xl p-6 md:p-8 shadow-xl relative overflow-hidden group hover:border-red-500/30 transition-all duration-300 hover:shadow-[0_0_30px_rgba(239,68,68,0.05)]">
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/5 blur-3xl rounded-full group-hover:bg-red-500/10 transition-colors"></div>
-                  
-                  <div className="flex items-center gap-3 mb-2 relative z-10">
-                     <span className="text-xl">⚔️</span>
-                     <h3 className="text-xl font-black uppercase italic text-red-500 drop-shadow-md">Despromover Admin</h3>
-                  </div>
-                  <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest mb-8 relative z-10">Rebaixa um membro a jogador comum</p>
-
-                  <div className="flex flex-col gap-4 relative z-10">
-                    <div>
-                      <label className="text-zinc-400 text-[9px] uppercase font-black tracking-widest ml-2 block mb-2">ID do Jogador na Base de Dados</label>
-                      <input 
-                        type="number" 
-                        value={alvoIdRemover} 
-                        onChange={(e) => setAlvoIdRemover(e.target.value)} 
-                        placeholder="Ex: 5"
-                        className="w-full bg-black/50 border border-white/10 text-white font-mono font-black text-xl rounded-xl p-4 outline-none focus:border-red-500 transition-colors shadow-inner text-center placeholder:text-zinc-700" 
-                      />
-                    </div>
-
-                    <button 
-                      onClick={despromoverJogador}
-                      className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white py-4 rounded-xl font-black uppercase tracking-widest transition-all hover:scale-[1.02] shadow-[0_0_20px_rgba(220,38,38,0.2)] hover:shadow-[0_0_30px_rgba(220,38,38,0.4)] mt-2 flex items-center justify-center gap-2"
-                    >
-                      <span>REMOVER PERMISSÕES</span>
-                    </button>
-
-                    {msgRemover && (
-                      <div className={`p-4 rounded-xl text-center text-[10px] font-black uppercase tracking-widest mt-2 border flex items-center justify-center gap-2 animate-in fade-in ${msgRemover.tipo === 'sucesso' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'}`}>
-                        {msgRemover.tipo === 'sucesso' ? '✅' : '❌'} {msgRemover.texto}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-              </div>
-            </div>
+            </>
           )}
 
-        </div>
+          {/* Campos comuns */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-zinc-400 mb-1">Valor (€) *</label>
+              <input
+                type="number"
+                step="0.01"
+                value={formData.valor}
+                onChange={(e) => setFormData({ ...formData, valor: parseFloat(e.target.value) })}
+                className="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-white"
+                placeholder="Ex: 250.00"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-zinc-400 mb-1">Depósito Mínimo (€)</label>
+              <input
+                type="number"
+                step="0.01"
+                value={formData.depositoMinimo}
+                onChange={(e) => setFormData({ ...formData, depositoMinimo: parseFloat(e.target.value) })}
+                className="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-white"
+                placeholder="Ex: 10.00"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-zinc-400 mb-1">Dias para Depósito</label>
+              <input
+                type="number"
+                value={formData.diasDeposito}
+                onChange={(e) => setFormData({ ...formData, diasDeposito: parseInt(e.target.value) })}
+                className="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-white"
+                placeholder="Ex: 7"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-zinc-400 mb-1">Data de Término *</label>
+              <input
+                type="datetime-local"
+                value={formData.terminaEm}
+                onChange={(e) => setFormData({ ...formData, terminaEm: e.target.value })}
+                className="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-white"
+                required
+              />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="w-full bg-gradient-to-r from-amber-600 to-amber-500 text-white font-bold py-3 rounded-lg hover:from-amber-500 hover:to-amber-400 transition-all disabled:opacity-50"
+          >
+            {isSubmitting ? 'A Criar...' : '🎲 Criar Sorteio'}
+          </button>
+        </form>
+      </div>
+
+      {/* Lista de sorteios ativos */}
+      <div className="bg-[#1E1E24] rounded-xl border border-white/5 p-6">
+        <h3 className="text-xl font-semibold text-white mb-4">⚔️ Sorteios Ativos</h3>
+        {loadingGiveaways ? (
+          <div className="text-center text-zinc-400 py-8">A carregar sorteios...</div>
+        ) : giveaways.length === 0 ? (
+          <div className="text-center text-zinc-500 py-8">Nenhum sorteio ativo no momento.</div>
+        ) : (
+          <div className="space-y-4">
+            {giveaways.map((giveaway) => (
+              <div key={giveaway.id} className="bg-black/30 rounded-lg p-4 border border-white/5 hover:border-amber-500/30 transition-all">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                  <div className="flex items-center gap-4">
+                    <img src={giveaway.premioImagem} alt={giveaway.premioNome} className="w-16 h-16 rounded-lg object-cover" />
+                    <div>
+                      <h4 className="font-bold text-white">{giveaway.premioNome}</h4>
+                      <p className="text-sm text-zinc-400">💎 Valor: {giveaway.valor}€ | 👥 Participantes: {giveaway._count?.participantes || 0}</p>
+                      <p className="text-xs text-zinc-500">Termina: {new Date(giveaway.terminaEm).toLocaleString()}</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleFinalizeGiveaway(giveaway.id, giveaway.premioNome)}
+                    className="px-4 py-2 bg-red-500/20 border border-red-500 text-red-400 rounded-lg hover:bg-red-500/30 transition-all"
+                  >
+                    🏆 Finalizar Sorteio
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

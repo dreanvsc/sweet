@@ -1,4 +1,4 @@
-`'use client';
+'use client';
 
 import { useState, useEffect } from 'react';
 import LiveDrops from './components/LiveDrops';
@@ -12,7 +12,7 @@ import Coinflip from './components/coinflip/Coinflip';
 import Giveaways from './components/Giveaways';
 
 export default function Home() {
-  const [view, setView] = useState<'store' | 'opening' | 'upgrader' | 'daily' | 'profile'| 'admin' | 'battles' | 'coinflip' | 'giveaways'>('store');
+  const [view, setView] = useState<'store' | 'opening' | 'upgrader' | 'daily' | 'profile'| 'admin' | 'battles' | 'coinflip'>('store');
   const [saldo, setSaldo] = useState(0.0); 
   const [xp, setXp] = useState(0);
   const [inventario, setInventario] = useState<any[]>([]); 

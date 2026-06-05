@@ -90,11 +90,11 @@ export default function Home() {
             <div className="w-full max-w-[1500px] mx-auto animate-in fade-in pb-16">
               
               {/* ================================================================================= */}
-              {/* 1. BANNER DO EVENTO (Key-Drop Style) */}
+              {/* 1. BANNER DO EVENTO */}
               {/* ================================================================================= */}
-              <div className="w-full relative rounded-2xl overflow-hidden mb-8 shadow-[0_20px_50px_rgba(0,0,0,0.5)] group border border-white/5 cursor-pointer mt-2">
+              <div className="w-full relative rounded-2xl overflow-hidden mb-10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] group border border-white/5 cursor-pointer mt-2">
                 <img 
-                  src="https://steamuserimages-a.akamaihd.net/ugc/2002452336336332152/9F614489DEFC1FDE2E8DF18D80BEAF64C592CBEB/" 
+                  src="https://cdn.cloudflare.steamstatic.com/apps/csgo/images/csgo_react/social/cs2.jpg" 
                   alt="Banner Evento" 
                   className="w-full h-[200px] md:h-[300px] lg:h-[350px] object-cover group-hover:scale-105 transition-transform duration-700" 
                 />
@@ -115,7 +115,7 @@ export default function Home() {
               </div>
 
               {/* ================================================================================= */}
-              {/* 2. CAIXAS DO EVENTO (Grelha 6 Colunas) */}
+              {/* 2. CAIXAS DO EVENTO (Grelha 6 Colunas - Imagem a ocupar tudo) */}
               {/* ================================================================================= */}
               <div className="mb-16">
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4">
@@ -123,26 +123,35 @@ export default function Home() {
                     <div 
                       key={c.id || i} 
                       onClick={() => { setCaixaSelecionada(c); setView('opening'); }}
-                      className="relative bg-[#1a1a21] border border-yellow-500/30 rounded flex flex-col group hover:-translate-y-1 hover:border-yellow-400 hover:shadow-[0_8px_25px_rgba(234,179,8,0.2)] transition-all duration-300 cursor-pointer overflow-hidden"
+                      // 🔥 Caixa com altura fixa (h-48) para a imagem preencher na perfeição
+                      className="relative h-40 sm:h-48 md:h-56 bg-[#1a1a21] border border-yellow-500/40 rounded-xl group hover:-translate-y-1 hover:border-yellow-400 hover:shadow-[0_8px_25px_rgba(234,179,8,0.3)] transition-all duration-300 cursor-pointer overflow-hidden flex flex-col justify-end"
                     >
-                      <div className="absolute top-0 left-0 bg-yellow-500 text-black text-[8px] font-black px-2 py-0.5 rounded-br uppercase z-20">
+                      <div className="absolute top-0 left-0 bg-yellow-500 text-black text-[9px] font-black px-2 py-1 rounded-br-lg uppercase z-20">
                         EVENTO
                       </div>
 
-                      <div className="w-full flex-1 flex items-center justify-center p-2 relative mt-4 min-h-[100px]">
-                        <div className="absolute inset-0 bg-yellow-500/10 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                        <img src={c.imagem} alt={c.nome} className="max-h-[75px] sm:max-h-[85px] object-contain relative z-10 drop-shadow-[0_5px_15px_rgba(0,0,0,0.5)] group-hover:scale-110 transition-transform duration-300" />
-                      </div>
+                      {/* 🔥 IMAGEM A OCUPAR O FUNDO TODO */}
+                      {c.imagem && (
+                        <img 
+                          src={c.imagem} 
+                          alt={c.nome} 
+                          className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 z-0" 
+                        />
+                      )}
 
-                      <div className="w-full flex flex-col items-center px-2 pb-2 z-10 mt-2">
-                        <span className="text-zinc-400 text-[10px] sm:text-[11px] font-medium truncate w-full text-center group-hover:text-white transition-colors">{c.nome}</span>
-                        <div className="w-4 h-[2px] bg-yellow-500/50 group-hover:bg-yellow-400 transition-colors my-1.5 rounded-full"></div>
-                      </div>
+                      {/* Degrade escuro por cima da imagem para lermos o preço */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#0b0b0d] via-[#0b0b0d]/50 to-transparent z-10"></div>
 
-                      <div className="w-full bg-[#131317] py-2 flex items-center justify-center gap-1 border-t border-white/5 mt-auto z-10">
-                        <div className="flex items-center justify-center gap-1.5">
-                          <div className="w-3.5 h-3.5 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center text-[#131317] text-[8px] font-black shadow-sm">€</div>
-                          <span className="text-zinc-100 font-bold text-[11px] sm:text-[12px] group-hover:text-yellow-400 transition-colors">
+                      {/* 🔥 ÁREA DO NOME E PREÇO */}
+                      <div className="relative z-20 w-full p-3 flex flex-col items-center">
+                        <span className="text-zinc-100 text-[11px] sm:text-xs font-black uppercase tracking-widest truncate w-full text-center drop-shadow-md">
+                          {c.nome}
+                        </span>
+                        <div className="w-6 h-[2px] bg-yellow-500/80 my-2 rounded-full"></div>
+                        
+                        <div className="bg-black/60 backdrop-blur-sm border border-white/10 px-3 py-1 rounded-md flex items-center justify-center gap-1.5 w-max">
+                          <span className="text-yellow-500 text-[10px] font-black">€</span>
+                          <span className="text-white font-bold text-xs sm:text-sm">
                             {Number(c.preco).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </span>
                         </div>
@@ -167,22 +176,29 @@ export default function Home() {
                       <div 
                         key={c.id || i} 
                         onClick={() => { setCaixaSelecionada(c); setView('opening'); }}
-                        className="relative bg-[#1a1a21] border border-white/5 rounded flex flex-col group hover:-translate-y-1 hover:border-indigo-500/40 hover:shadow-[0_8px_20px_rgba(0,0,0,0.6)] transition-all duration-300 cursor-pointer overflow-hidden"
+                        className="relative h-40 sm:h-48 md:h-56 bg-[#1a1a21] border border-white/10 rounded-xl group hover:-translate-y-1 hover:border-emerald-500/50 hover:shadow-[0_8px_25px_rgba(16,185,129,0.2)] transition-all duration-300 cursor-pointer overflow-hidden flex flex-col justify-end"
                       >
-                        <div className="w-full flex-1 flex items-center justify-center p-2 relative mt-4 min-h-[100px]">
-                          <div className="absolute inset-0 bg-indigo-500/10 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                          <img src={c.imagem} alt={c.nome} className="max-h-[75px] sm:max-h-[85px] object-contain relative z-10 drop-shadow-[0_5px_15px_rgba(0,0,0,0.5)] group-hover:scale-110 transition-transform duration-300" />
-                        </div>
+                        {/* IMAGEM A OCUPAR O FUNDO TODO */}
+                        {c.imagem && (
+                          <img 
+                            src={c.imagem} 
+                            alt={c.nome} 
+                            className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 z-0" 
+                          />
+                        )}
 
-                        <div className="w-full flex flex-col items-center px-2 pb-2 z-10 mt-2">
-                          <span className="text-zinc-400 text-[10px] sm:text-[11px] font-medium truncate w-full text-center group-hover:text-white transition-colors">{c.nome}</span>
-                          <div className="w-4 h-[2px] bg-indigo-500/40 group-hover:bg-indigo-400 transition-colors my-1.5 rounded-full"></div>
-                        </div>
+                        <div className="absolute inset-0 bg-gradient-to-t from-[#0b0b0d] via-[#0b0b0d]/50 to-transparent z-10"></div>
 
-                        <div className="w-full bg-[#131317] py-2 flex items-center justify-center gap-1 border-t border-white/5 mt-auto z-10">
-                          <div className="flex items-center justify-center gap-1.5">
-                            <div className="w-3.5 h-3.5 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center text-[#131317] text-[8px] font-black shadow-sm">€</div>
-                            <span className="text-zinc-100 font-bold text-[11px] sm:text-[12px] group-hover:text-white transition-colors">
+                        {/* NOME E PREÇO */}
+                        <div className="relative z-20 w-full p-3 flex flex-col items-center">
+                          <span className="text-zinc-100 text-[11px] sm:text-xs font-black uppercase tracking-widest truncate w-full text-center drop-shadow-md">
+                            {c.nome}
+                          </span>
+                          <div className="w-6 h-[2px] bg-emerald-500/80 my-2 rounded-full"></div>
+                          
+                          <div className="bg-black/60 backdrop-blur-sm border border-white/10 px-3 py-1 rounded-md flex items-center justify-center gap-1.5 w-max group-hover:bg-emerald-500/10 transition-colors">
+                            <span className="text-emerald-500 text-[10px] font-black">€</span>
+                            <span className="text-white font-bold text-xs sm:text-sm">
                               {Number(c.preco).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </span>
                           </div>

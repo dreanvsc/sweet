@@ -202,6 +202,7 @@ export class AppController {
   @UseGuards(AuthGuard('steam'))
   async steamLoginReturn(@Req() req, @Res() res) {
     const user = req.user;
+    // 🔥 AGORA VAI PARA O TEU DOMÍNIO OFICIAL!
     return res.redirect(`https://sweetdrop.pt/?userId=${req.user.id}`);
   }
 

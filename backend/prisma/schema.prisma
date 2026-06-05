@@ -31,6 +31,9 @@ model User {
   codigoExpiracao         DateTime?
   contaVerificada   Boolean @default(false)
   pedidoVerificacao Boolean @default(false)
+
+  giveawaysVencidos     Giveaway[]             @relation("VencedorGiveaway")
+  giveawaysParticipados ParticipanteGiveaway[]
 }
 
 // O Inventário (Atualizado)
@@ -166,4 +169,48 @@ model Levantamento {
   dataPedido  DateTime @default(now())
 
   user        User     @relation(fields: [userId], references: [id])
+}
+
+// ==========================================
+// SISTEMA DE GIVEAWAYS
+// ==========================================
+model Giveaway {
+  id                 Int      @id @default(autoincrement())
+  
+  // O PRÉMIO
+  premioNome         String
+  premioImagem       String
+  valor              Float
+  
+  // REGRAS (Controladas por ti)
+  depositoMinimo     Float    @default(0)
+  diasDeposito       Int      @default(7)
+  
+  // TEMPO E ESTADO
+  terminaEm          DateTime
+  status             String   @default("ATIVO") // "ATIVO" ou "TERMINADO"
+  
+  // PROVABLY FAIR (Transparência)
+  serverSeed         String?  // O segredo do servidor gerado no início
+  publicSeed         String?  // A chave pública revelada no fim
+  
+  // VENCEDOR
+  vencedorId         Int?     
+  vencedor           User?    @relation("VencedorGiveaway", fields: [vencedorId], references: [id])
+  
+  participantes      ParticipanteGiveaway[]
+  createdAt          DateTime @default(now())
+}
+
+model ParticipanteGiveaway {
+  id          Int      @id @default(autoincrement())
+  giveawayId  Int
+  userId      Int
+  
+  giveaway    Giveaway @relation(fields: [giveawayId], references: [id])
+  user        User     @relation(fields: [userId], references: [id])
+  createdAt   DateTime @default(now())
+
+  // O Cadeado de Segurança: O mesmo jogador só pode ter 1 registo por Giveaway
+  @@unique([giveawayId, userId]) 
 }

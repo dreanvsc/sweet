@@ -3,7 +3,8 @@
 import React, { useState } from 'react';
 import ModalDeposito from './ModalDeposito'; 
 import LiveChatWidget from './support/LiveChatWidget';
-import { toast } from 'react-hot-toast'; // 🔥 Import do Motor de Notificações Premium adicionado!
+import { toast } from 'react-hot-toast';
+import Giveaways from './components/Giveaways';
 
 export default function Sidebar({ view, setView, saldo, userId, userData }: any) {
   const [modalAberto, setModalAberto] = useState(false);
@@ -90,6 +91,10 @@ export default function Sidebar({ view, setView, saldo, userId, userData }: any)
 
         <button onClick={() => setView('coinflip')} className={`flex items-center gap-3 p-3 rounded-xl transition-all duration-300 ${view === 'coinflip' ? 'bg-gradient-to-r from-amber-500/20 to-transparent border-l-4 border-amber-500 text-white shadow-[0_0_15px_rgba(245,158,11,0.1)]' : 'text-zinc-400 hover:text-white hover:bg-white/5 hover:translate-x-1'}`}>
           <span className="text-lg drop-shadow-md">🪙</span> <span className="text-[10px] font-bold uppercase tracking-widest">Coinflip</span>
+        </button>
+
+        <button onClick={() => setView('giveaways')} className="teu-design-do-botao">
+          🎁 Giveaways
         </button>
 
         {(userData?.role === 'admin' || userData?.role === 'ADMIN' || userData?.isAdmin === true || String(userId) === '1') && (

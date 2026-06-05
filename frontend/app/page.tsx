@@ -8,7 +8,7 @@ import Upgrader from './components/upgrader/Upgrader';
 import Profile from './components/profile/Profile';
 import Admin from './components/admin/Admin';
 import CaseBattles from './components/battles/CaseBattles';
-import Coinflip from './components/coinflip/Coinflip'; // <-- Adicionado
+import Coinflip from './components/coinflip/Coinflip'; 
 
 export default function Home() {
   const [view, setView] = useState<'store' | 'opening' | 'upgrader' | 'daily' | 'profile'| 'admin' | 'battles' | 'coinflip'>('store');
@@ -39,13 +39,9 @@ export default function Home() {
     }
   }, []);
 
-  // ====================================================================
-  // 🔥 A MÁQUINA DE SINCRONIZAÇÃO (Atualiza Saldo e Skins de uma vez)
-  // ====================================================================
   const atualizarTudo = () => {
     if (!userId) return;
     
-    // 1. Puxa o Saldo Atualizado
     fetch(`https://sweet-7ifa.onrender.com/utilizador/${userId}`)
       .then(res => res.json())
       .then(dados => {
@@ -55,7 +51,6 @@ export default function Home() {
         }
       }).catch(err => console.error(err));
 
-    // 2. Puxa a Mochila Atualizada
     fetch(`https://sweet-7ifa.onrender.com/meu-inventario/${userId}`)
       .then(res => res.json())
       .then(data => { setInventario(Array.isArray(data) ? data : []); })
@@ -63,7 +58,7 @@ export default function Home() {
   };
 
   useEffect(() => {
-    if (userId) atualizarTudo(); // Arranca a sincronização quando entra
+    if (userId) atualizarTudo(); 
   }, [userId]); 
 
   useEffect(() => {
@@ -78,6 +73,10 @@ export default function Home() {
       .catch(err => console.error(err));
   }, []);
 
+  // Divisão das caixas para o Layout (Evento vs Normais)
+  const caixasEvento = caixasDaLoja.slice(0, 6);
+  const caixasNormais = caixasDaLoja.slice(6);
+
   return (
     <main className="min-h-screen bg-[#0b0b0d] text-zinc-200 font-sans flex flex-col overflow-x-hidden w-full max-w-[100vw]">
       <LiveDrops drops={liveDrops} />
@@ -85,55 +84,115 @@ export default function Home() {
       <div className="flex flex-1 relative w-full">
         <Sidebar view={view} setView={setView} nivel={nivel} progressoNivel={progressoNivel} saldo={saldo} userId={userId} userData={userData} />
 
-        <section className="flex-1 ml-0 lg:ml-56 p-4 sm:p-6 md:p-10 w-full lg:max-w-[calc(100%-14rem)] flex flex-col min-h-screen">
+        <section className="flex-1 ml-0 lg:ml-56 p-4 sm:p-6 md:p-8 w-full lg:max-w-[calc(100%-14rem)] flex flex-col min-h-screen">
           
           {view === 'store' && (
-            <div className="animate-in fade-in pb-20 w-full">
-              <div className="mb-10 flex flex-col items-center justify-center text-center">
-                <span className="text-5xl mb-4">🛒</span>
-                <h2 className="text-3xl sm:text-4xl font-black italic uppercase text-white tracking-tighter">SWEET DROP STORE</h2>
+            <div className="w-full max-w-[1500px] mx-auto animate-in fade-in pb-16">
+              
+              {/* ================================================================================= */}
+              {/* 1. BANNER DO EVENTO (Key-Drop Style) */}
+              {/* ================================================================================= */}
+              <div className="w-full relative rounded-2xl overflow-hidden mb-8 shadow-[0_20px_50px_rgba(0,0,0,0.5)] group border border-white/5 cursor-pointer mt-2">
+                <img 
+                  src="https://steamuserimages-a.akamaihd.net/ugc/2002452336336332152/9F614489DEFC1FDE2E8DF18D80BEAF64C592CBEB/" 
+                  alt="Banner Evento" 
+                  className="w-full h-[200px] md:h-[300px] lg:h-[350px] object-cover group-hover:scale-105 transition-transform duration-700" 
+                />
+                
+                <div className="absolute inset-0 bg-gradient-to-t from-[#0b0b0d] via-black/40 to-transparent"></div>
+                
+                <div className="absolute bottom-6 left-6 md:bottom-10 md:left-10 z-10">
+                  <div className="bg-yellow-500 text-black text-[10px] md:text-xs font-black px-2 py-1 rounded-sm uppercase tracking-widest w-max mb-3">
+                    Evento Limitado
+                  </div>
+                  <h1 className="text-3xl md:text-5xl font-black text-white italic uppercase tracking-tighter drop-shadow-lg">
+                    High Risk Zone
+                  </h1>
+                  <p className="hidden md:block text-zinc-300 font-medium mt-2 max-w-lg text-sm">
+                    Abre as caixas exclusivas deste evento e aumenta as tuas probabilidades de sacar facas lendárias. Termina em breve!
+                  </p>
+                </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 w-full max-w-7xl mx-auto">
-                {caixasDaLoja.map((caixa) => (
-  <div 
-    key={caixa.id} 
-    onClick={() => { setCaixaSelecionada(caixa); setView('opening'); }}
-    className="relative h-72 sm:h-80 rounded-2xl overflow-hidden cursor-pointer group border border-white/10 hover:border-emerald-500/50 shadow-lg hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all duration-300 hover:-translate-y-2"
-  >
-    {/* Imagem a Ocupar TUDO (object-cover estica a imagem para preencher o cartão) */}
-    <img 
-      src={caixa.imagem} 
-      alt={caixa.nome} 
-      className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
-    />
 
-    {/* Sombra de Fundo (Gradient) para que o texto e os botões se leiam perfeitamente */}
-    <div className="absolute inset-0 bg-gradient-to-t from-[#0b0b0d] via-black/30 to-transparent opacity-90 group-hover:opacity-70 transition-opacity duration-500"></div>
+              {/* ================================================================================= */}
+              {/* 2. CAIXAS DO EVENTO (Grelha 6 Colunas) */}
+              {/* ================================================================================= */}
+              <div className="mb-16">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4">
+                  {caixasEvento.map((c: any, i: number) => (
+                    <div 
+                      key={c.id || i} 
+                      onClick={() => { setCaixaSelecionada(c); setView('opening'); }}
+                      className="relative bg-[#1a1a21] border border-yellow-500/30 rounded flex flex-col group hover:-translate-y-1 hover:border-yellow-400 hover:shadow-[0_8px_25px_rgba(234,179,8,0.2)] transition-all duration-300 cursor-pointer overflow-hidden"
+                    >
+                      <div className="absolute top-0 left-0 bg-yellow-500 text-black text-[8px] font-black px-2 py-0.5 rounded-br uppercase z-20">
+                        EVENTO
+                      </div>
 
-    {/* Preço (Canto Superior Direito, igual à tua referência) */}
-    <div className="absolute top-3 right-3 bg-black/80 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/10 shadow-lg z-10">
-      <span className="text-white font-black text-xs sm:text-sm drop-shadow-md">
-        {caixa.preco.toFixed(2)}€
-      </span>
-    </div>
+                      <div className="w-full flex-1 flex items-center justify-center p-2 relative mt-4 min-h-[100px]">
+                        <div className="absolute inset-0 bg-yellow-500/10 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                        <img src={c.imagem} alt={c.nome} className="max-h-[75px] sm:max-h-[85px] object-contain relative z-10 drop-shadow-[0_5px_15px_rgba(0,0,0,0.5)] group-hover:scale-110 transition-transform duration-300" />
+                      </div>
 
-    {/* Área de Texto e Botão (No fundo da carta) */}
-    <div className="absolute bottom-0 left-0 w-full p-4 flex flex-col items-center justify-end z-10 transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
-      
-      {/* Título da Caixa */}
-      <h3 className="text-sm font-black uppercase text-white tracking-widest mb-3 drop-shadow-lg text-center">
-        {caixa.nome}
-      </h3>
-      
-      {/* Botão que acende quando o rato passa */}
-      <div className="w-full flex items-center justify-center gap-2 py-2.5 bg-white/5 backdrop-blur-sm border border-white/20 text-zinc-300 font-black text-[10px] uppercase tracking-widest rounded-lg transition-all duration-300 group-hover:bg-emerald-500 group-hover:border-emerald-500 group-hover:text-black group-hover:shadow-[0_0_15px_rgba(16,185,129,0.5)]">
-        Inspecionar
-      </div>
+                      <div className="w-full flex flex-col items-center px-2 pb-2 z-10 mt-2">
+                        <span className="text-zinc-400 text-[10px] sm:text-[11px] font-medium truncate w-full text-center group-hover:text-white transition-colors">{c.nome}</span>
+                        <div className="w-4 h-[2px] bg-yellow-500/50 group-hover:bg-yellow-400 transition-colors my-1.5 rounded-full"></div>
+                      </div>
 
-    </div>
-  </div>
-))}
+                      <div className="w-full bg-[#131317] py-2 flex items-center justify-center gap-1 border-t border-white/5 mt-auto z-10">
+                        <div className="flex items-center justify-center gap-1.5">
+                          <div className="w-3.5 h-3.5 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center text-[#131317] text-[8px] font-black shadow-sm">€</div>
+                          <span className="text-zinc-100 font-bold text-[11px] sm:text-[12px] group-hover:text-yellow-400 transition-colors">
+                            {Number(c.preco).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
+
+              {/* ================================================================================= */}
+              {/* 3. RESTO DA LOJA */}
+              {/* ================================================================================= */}
+              {caixasNormais.length > 0 && (
+                <>
+                  <div className="flex items-center gap-4 mb-6">
+                    <h2 className="text-2xl md:text-3xl font-black italic uppercase tracking-tighter text-zinc-300">Todas as Caixas</h2>
+                    <div className="h-px flex-1 bg-white/5"></div>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4">
+                    {caixasNormais.map((c: any, i: number) => (
+                      <div 
+                        key={c.id || i} 
+                        onClick={() => { setCaixaSelecionada(c); setView('opening'); }}
+                        className="relative bg-[#1a1a21] border border-white/5 rounded flex flex-col group hover:-translate-y-1 hover:border-indigo-500/40 hover:shadow-[0_8px_20px_rgba(0,0,0,0.6)] transition-all duration-300 cursor-pointer overflow-hidden"
+                      >
+                        <div className="w-full flex-1 flex items-center justify-center p-2 relative mt-4 min-h-[100px]">
+                          <div className="absolute inset-0 bg-indigo-500/10 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                          <img src={c.imagem} alt={c.nome} className="max-h-[75px] sm:max-h-[85px] object-contain relative z-10 drop-shadow-[0_5px_15px_rgba(0,0,0,0.5)] group-hover:scale-110 transition-transform duration-300" />
+                        </div>
+
+                        <div className="w-full flex flex-col items-center px-2 pb-2 z-10 mt-2">
+                          <span className="text-zinc-400 text-[10px] sm:text-[11px] font-medium truncate w-full text-center group-hover:text-white transition-colors">{c.nome}</span>
+                          <div className="w-4 h-[2px] bg-indigo-500/40 group-hover:bg-indigo-400 transition-colors my-1.5 rounded-full"></div>
+                        </div>
+
+                        <div className="w-full bg-[#131317] py-2 flex items-center justify-center gap-1 border-t border-white/5 mt-auto z-10">
+                          <div className="flex items-center justify-center gap-1.5">
+                            <div className="w-3.5 h-3.5 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center text-[#131317] text-[8px] font-black shadow-sm">€</div>
+                            <span className="text-zinc-100 font-bold text-[11px] sm:text-[12px] group-hover:text-white transition-colors">
+                              {Number(c.preco).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+
             </div>
           )}
 
@@ -141,16 +200,8 @@ export default function Home() {
             <CaseOpening caixaSelecionada={caixaSelecionada} saldo={saldo} setSaldo={setSaldo} setXp={setXp} setView={setView} setInventario={setInventario} userId={userId} addDropToFeed={() => {}} />
           )}
           
-          {/*  AGORA SIM, O UPGRADER ESTÁ PROTEGIDO E A RECEBER O USERID CORRETO */}
           {view === 'upgrader' && (
-            <Upgrader 
-              userId={userId} 
-              inventario={inventario} 
-              setSaldo={setSaldo} 
-              setInventario={setInventario} 
-              setView={setView} 
-              atualizarTudo={atualizarTudo}  
-            />
+            <Upgrader userId={userId} inventario={inventario} setSaldo={setSaldo} setInventario={setInventario} setView={setView} atualizarTudo={atualizarTudo} />
           )}
 
           {view === 'daily' && (
@@ -164,24 +215,11 @@ export default function Home() {
           {view === 'admin' && ( <Admin userId={userId} /> )}
 
           {view === 'battles' && (
-            <CaseBattles 
-              userId={userId} 
-              user={{ id: userId, nome: userData?.nome || "Jogador", avatar: userData?.avatar || "/skins/glock.png" }}
-              saldo={saldo}
-              caixas={caixasDaLoja}
-              setView={setView}
-              atualizarTudo={atualizarTudo} 
-            />
+            <CaseBattles userId={userId} user={{ id: userId, nome: userData?.nome || "Jogador", avatar: userData?.avatar || "/skins/glock.png" }} saldo={saldo} caixas={caixasDaLoja} setView={setView} atualizarTudo={atualizarTudo} />
           )}
 
           {view === 'coinflip' && (
-            <Coinflip 
-              userId={userId} 
-              user={{ id: userId, nome: userData?.nome || "Jogador", avatar: userData?.avatar || "/skins/glock.png" }}
-              saldo={saldo}
-              inventario={inventario || []}
-              atualizarTudo={atualizarTudo} 
-            />
+            <Coinflip userId={userId} user={{ id: userId, nome: userData?.nome || "Jogador", avatar: userData?.avatar || "/skins/glock.png" }} saldo={saldo} inventario={inventario || []} atualizarTudo={atualizarTudo} />
           )}
 
         </section>

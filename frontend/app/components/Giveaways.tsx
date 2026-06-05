@@ -55,7 +55,7 @@ export default function Giveaways({ userId, setView }: any) {
     const fim = new Date(dataFim).getTime();
     const diferenca = fim - agora;
 
-    if (diferenca <= 0) return 'A TERMINAR...';
+    if (diferenca <= 0) return 'À ESPERA DE JOGADORES..';
 
     const dias = Math.floor(diferenca / (1000 * 60 * 60 * 24));
     const horas = Math.floor((diferenca % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));

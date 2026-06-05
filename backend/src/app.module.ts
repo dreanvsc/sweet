@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { PrismaService } from './prisma.service';
-// 🔥 Importa os teus novos guardiões do sistema
+// 🔥 Importa os teus guardiões do sistema
 import { UsersService } from './users.service';
 import { CaixasService } from './caixas.service';
 import { UpgraderService } from './upgrader.service';
@@ -13,14 +13,22 @@ import { CoinflipGateway } from './coinflip.gateway';
 import { ChatGateway } from './chat.gateway';
 import { ScheduleModule } from '@nestjs/schedule';
 
+// 🔥 OS NOVOS FICHEIROS DOS GIVEAWAYS:
+import { GiveawaysController } from './giveaways.controller';
+import { GiveawaysService } from './giveaways.service';
+
 @Module({
   imports: [
-    // 🔥 MÓDULOS: O Relógio do Servidor entra AQUI!
+    // 🔥 MÓDULOS: O Relógio do Servidor
     ScheduleModule.forRoot(),
   ],
-  controllers: [AppController],
+  controllers: [
+    AppController,
+    // 🔥 ADICIONADO AQUI:
+    GiveawaysController 
+  ],
   providers: [
-    // 🔥 SERVIÇOS E GATEWAYS: Ficam AQUI!
+    // 🔥 SERVIÇOS E GATEWAYS
     PrismaService, 
     UsersService, 
     CaixasService, 
@@ -31,7 +39,9 @@ import { ScheduleModule } from '@nestjs/schedule';
     SessionSerializer,
     BattlesGateway,
     CoinflipGateway,
-    ChatGateway
+    ChatGateway,
+    // 🔥 ADICIONADO AQUI:
+    GiveawaysService
   ],
 })
 export class AppModule {}

@@ -1,4 +1,4 @@
-'use client';
+`'use client';
 
 import { useState, useEffect } from 'react';
 import LiveDrops from './components/LiveDrops';
@@ -9,9 +9,10 @@ import Profile from './components/profile/Profile';
 import Admin from './components/admin/Admin';
 import CaseBattles from './components/battles/CaseBattles';
 import Coinflip from './components/coinflip/Coinflip'; 
+import Giveaways from './components/Giveaways';
 
 export default function Home() {
-  const [view, setView] = useState<'store' | 'opening' | 'upgrader' | 'daily' | 'profile'| 'admin' | 'battles' | 'coinflip'>('store');
+  const [view, setView] = useState<'store' | 'opening' | 'upgrader' | 'daily' | 'profile'| 'admin' | 'battles' | 'coinflip' | 'giveaways'>('store');
   const [saldo, setSaldo] = useState(0.0); 
   const [xp, setXp] = useState(0);
   const [inventario, setInventario] = useState<any[]>([]); 
@@ -238,8 +239,10 @@ export default function Home() {
             <Coinflip userId={userId} user={{ id: userId, nome: userData?.nome || "Jogador", avatar: userData?.avatar || "/skins/glock.png" }} saldo={saldo} inventario={inventario || []} atualizarTudo={atualizarTudo} />
           )}
 
+          {view === 'giveaways' && <Giveaways userId={userId} setView={setView} />}
+
         </section>
       </div>
     </main>
   );
-}
+}`

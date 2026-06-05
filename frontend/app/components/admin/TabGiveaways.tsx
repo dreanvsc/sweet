@@ -6,8 +6,7 @@ interface Skin {
   id: number;
   nome: string;
   imagem: string;
-  valor: number;
-  // outros campos que existirem...
+  preco: number;
 }
 
 interface Giveaway {
@@ -18,18 +17,14 @@ interface Giveaway {
   depositoMinimo: number;
   diasDeposito: number;
   terminaEm: string;
-  status: 'ATIVO' | 'TERMINADO';
+  status: string;
   _count?: { participantes: number };
 }
 
 export default function TabGiveaways() {
-  const [giveaways, setGiveaways] = useState<Giveaway[]>([]);
   const [skins, setSkins] = useState<Skin[]>([]);
-  const [loadingSkins, setLoadingSkins] = useState(true);
-  const [loadingGiveaways, setLoadingGiveaways] = useState(true);
-  const [manualMode, setManualMode] = useState(false); // Modo manual ativado?
+  const [selectedSkinId, setSelectedSkinId] = useState<string>('');
   const [formData, setFormData] = useState({
-    skinId: '',           // ID da skin selecionada (modo automático)
     premioNome: '',
     premioImagem: '',
     valor: 0,
@@ -38,70 +33,61 @@ export default function TabGiveaways() {
     terminaEm: '',
   });
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [giveaways, setGiveaways] = useState<Giveaway[]>([]);
 
-  // Buscar lista de skins disponíveis
-  const fetchSkins = async () => {
-    try {
-      setLoadingSkins(true);
-      const response = await fetch('https://sweet-7ifa.onrender.com/items'); // Ajusta o endpoint se necessário
-      if (!response.ok) throw new Error('Erro ao carregar skins');
-      const data = await response.json();
-      setSkins(data);
-    } catch (error) {
-      console.error('Erro ao carregar skins:', error);
-      setMessage({ type: 'error', text: 'Falha ao carregar lista de skins. Usa o modo manual.' });
-      setManualMode(true);
-    } finally {
-      setLoadingSkins(false);
-    }
-  };
+  // Carregar skins disponíveis
+  useEffect(() => {
+    fetch('https://sweet-7ifa.onrender.com/skins-disponiveis')
+      .then(res => {
+        if (!res.ok) throw new Error('Erro ao carregar skins');
+        return res.json();
+      })
+      .then(data => setSkins(data))
+      .catch(err => {
+        console.error(err);
+        setMessage({ type: 'error', text: 'Não consegui carregar as skins da base de dados.' });
+      });
+  }, []);
 
-  // Buscar sorteios ativos
+  // Carregar sorteios ativos (igual ao que já tinhas)
   const fetchGiveaways = async () => {
     try {
-      setLoadingGiveaways(true);
-      const response = await fetch('https://sweet-7ifa.onrender.com/giveaways/ativos');
-      if (!response.ok) throw new Error('Erro ao carregar sorteios');
-      const data = await response.json();
+      const res = await fetch('https://sweet-7ifa.onrender.com/giveaways/ativos');
+      const data = await res.json();
       setGiveaways(data);
-    } catch (error) {
-      console.error('Erro ao carregar sorteios:', error);
-      setMessage({ type: 'error', text: 'Falha ao carregar sorteios ativos.' });
-    } finally {
-      setLoadingGiveaways(false);
+    } catch (err) {
+      console.error(err);
     }
   };
 
   useEffect(() => {
-    fetchSkins();
     fetchGiveaways();
   }, []);
 
-  // Quando uma skin é selecionada, preenche os campos automaticamente
-  const handleSkinSelect = (skinId: string) => {
-    const selectedSkin = skins.find(skin => skin.id.toString() === skinId);
-    if (selectedSkin) {
+  // Quando seleciona uma skin, preenche o formulário automaticamente
+  const handleSkinChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const skinId = Number(e.target.value);
+    const skin = skins.find(s => s.id === skinId);
+    if (skin) {
       setFormData({
         ...formData,
-        skinId,
-        premioNome: selectedSkin.nome,
-        premioImagem: selectedSkin.imagem,
-        valor: selectedSkin.valor,   // opcional: usar valor da skin
+        premioNome: skin.nome,
+        premioImagem: skin.imagem,
+        valor: skin.preco,
       });
+      setSelectedSkinId(e.target.value);
     }
   };
 
-  // Criar sorteio
   const handleCreateGiveaway = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
+    setLoading(true);
     setMessage(null);
 
-    // Validação
     if (!formData.premioNome || !formData.premioImagem || formData.valor <= 0 || !formData.terminaEm) {
-      setMessage({ type: 'error', text: 'Preenche todos os campos obrigatórios corretamente.' });
-      setIsSubmitting(false);
+      setMessage({ type: 'error', text: 'Preenche todos os campos obrigatórios.' });
+      setLoading(false);
       return;
     }
 
@@ -125,7 +111,6 @@ export default function TabGiveaways() {
       setMessage({ type: 'success', text: `Sorteio "${formData.premioNome}" criado!` });
       // Limpar formulário
       setFormData({
-        skinId: '',
         premioNome: '',
         premioImagem: '',
         valor: 0,
@@ -133,31 +118,27 @@ export default function TabGiveaways() {
         diasDeposito: 0,
         terminaEm: '',
       });
-      setManualMode(false);
-      fetchGiveaways(); // recarregar lista
+      setSelectedSkinId('');
+      fetchGiveaways();
     } catch (error: any) {
-      setMessage({ type: 'error', text: error.message || 'Erro ao criar sorteio.' });
+      setMessage({ type: 'error', text: error.message });
     } finally {
-      setIsSubmitting(false);
+      setLoading(false);
     }
   };
 
-  // Forçar finalização
   const handleFinalizeGiveaway = async (id: number, nome: string) => {
-    if (!confirm(`Tens a certeza que queres finalizar o sorteio "${nome}" agora?`)) return;
-
+    if (!confirm(`Finalizar sorteio "${nome}"?`)) return;
     try {
-      const response = await fetch(`https://sweet-7ifa.onrender.com/giveaways/admin/finalizar/${id}`, {
+      const res = await fetch(`https://sweet-7ifa.onrender.com/giveaways/admin/finalizar/${id}`, {
         method: 'POST',
       });
-
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || 'Erro ao finalizar sorteio');
-
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
       setMessage({ type: 'success', text: `Sorteio "${nome}" finalizado!` });
       fetchGiveaways();
     } catch (error: any) {
-      setMessage({ type: 'error', text: error.message || 'Erro ao finalizar sorteio.' });
+      setMessage({ type: 'error', text: error.message });
     }
   };
 
@@ -176,84 +157,36 @@ export default function TabGiveaways() {
 
       {/* Formulário de criação */}
       <div className="bg-[#1E1E24] rounded-xl border border-white/5 p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-xl font-semibold text-white">📦 Criar Novo Sorteio</h3>
-          <button
-            type="button"
-            onClick={() => setManualMode(!manualMode)}
-            className="text-xs text-amber-400 hover:text-amber-300 underline"
-          >
-            {manualMode ? '← Voltar à seleção automática' : '✍️ Inserir manualmente'}
-          </button>
-        </div>
-
+        <h3 className="text-xl font-semibold text-white mb-4">📦 Criar Novo Sorteio</h3>
         <form onSubmit={handleCreateGiveaway} className="space-y-4">
-          {!manualMode ? (
-            // MODO AUTOMÁTICO: selecionar skin do catálogo
-            <>
-              <div>
-                <label className="block text-sm font-medium text-zinc-400 mb-1">Escolher Skin *</label>
-                {loadingSkins ? (
-                  <div className="text-zinc-400">A carregar skins...</div>
-                ) : (
-                  <select
-                    value={formData.skinId}
-                    onChange={(e) => handleSkinSelect(e.target.value)}
-                    className="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-amber-500"
-                    required
-                  >
-                    <option value="">-- Seleciona uma skin --</option>
-                    {skins.map((skin) => (
-                      <option key={skin.id} value={skin.id}>
-                        {skin.nome} - {skin.valor}€
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </div>
+          <div>
+            <label className="block text-sm font-medium text-zinc-400 mb-1">Escolher Skin *</label>
+            <select
+              value={selectedSkinId}
+              onChange={handleSkinChange}
+              className="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-amber-500"
+              required
+            >
+              <option value="">-- Seleciona uma skin --</option>
+              {skins.map((skin) => (
+                <option key={skin.id} value={skin.id}>
+                  {skin.nome} - {skin.preco}€
+                </option>
+              ))}
+            </select>
+          </div>
 
-              {/* Pré-visualização da skin selecionada */}
-              {formData.skinId && formData.premioImagem && (
-                <div className="flex items-center gap-4 p-3 bg-black/30 rounded-lg border border-white/5">
-                  <img src={formData.premioImagem} alt={formData.premioNome} className="w-12 h-12 rounded object-cover" />
-                  <div>
-                    <p className="text-white font-bold">{formData.premioNome}</p>
-                    <p className="text-amber-400 text-sm">{formData.valor}€</p>
-                  </div>
-                </div>
-              )}
-            </>
-          ) : (
-            // MODO MANUAL: campos de texto tradicionais
-            <>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-zinc-400 mb-1">Nome do Prémio *</label>
-                  <input
-                    type="text"
-                    value={formData.premioNome}
-                    onChange={(e) => setFormData({ ...formData, premioNome: e.target.value })}
-                    className="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-white"
-                    placeholder="Ex: Dragon Lore AWP"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-zinc-400 mb-1">URL da Imagem *</label>
-                  <input
-                    type="text"
-                    value={formData.premioImagem}
-                    onChange={(e) => setFormData({ ...formData, premioImagem: e.target.value })}
-                    className="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-white"
-                    placeholder="https://exemplo.com/imagem.png"
-                    required
-                  />
-                </div>
+          {/* Pré-visualização da skin selecionada */}
+          {selectedSkinId && formData.premioImagem && (
+            <div className="flex items-center gap-4 p-3 bg-black/30 rounded-lg border border-white/5">
+              <img src={formData.premioImagem} alt={formData.premioNome} className="w-12 h-12 rounded object-cover" />
+              <div>
+                <p className="text-white font-bold">{formData.premioNome}</p>
+                <p className="text-amber-400 text-sm">{formData.valor}€</p>
               </div>
-            </>
+            </div>
           )}
 
-          {/* Campos comuns */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-zinc-400 mb-1">Valor (€) *</label>
@@ -263,7 +196,6 @@ export default function TabGiveaways() {
                 value={formData.valor}
                 onChange={(e) => setFormData({ ...formData, valor: parseFloat(e.target.value) })}
                 className="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-white"
-                placeholder="Ex: 250.00"
                 required
               />
             </div>
@@ -275,7 +207,6 @@ export default function TabGiveaways() {
                 value={formData.depositoMinimo}
                 onChange={(e) => setFormData({ ...formData, depositoMinimo: parseFloat(e.target.value) })}
                 className="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-white"
-                placeholder="Ex: 10.00"
               />
             </div>
             <div>
@@ -285,7 +216,6 @@ export default function TabGiveaways() {
                 value={formData.diasDeposito}
                 onChange={(e) => setFormData({ ...formData, diasDeposito: parseInt(e.target.value) })}
                 className="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-white"
-                placeholder="Ex: 7"
               />
             </div>
             <div>
@@ -302,10 +232,10 @@ export default function TabGiveaways() {
 
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={loading}
             className="w-full bg-gradient-to-r from-amber-600 to-amber-500 text-white font-bold py-3 rounded-lg hover:from-amber-500 hover:to-amber-400 transition-all disabled:opacity-50"
           >
-            {isSubmitting ? 'A Criar...' : '🎲 Criar Sorteio'}
+            {loading ? 'A Criar...' : '🎲 Criar Sorteio'}
           </button>
         </form>
       </div>
@@ -313,9 +243,7 @@ export default function TabGiveaways() {
       {/* Lista de sorteios ativos */}
       <div className="bg-[#1E1E24] rounded-xl border border-white/5 p-6">
         <h3 className="text-xl font-semibold text-white mb-4">⚔️ Sorteios Ativos</h3>
-        {loadingGiveaways ? (
-          <div className="text-center text-zinc-400 py-8">A carregar sorteios...</div>
-        ) : giveaways.length === 0 ? (
+        {giveaways.length === 0 ? (
           <div className="text-center text-zinc-500 py-8">Nenhum sorteio ativo no momento.</div>
         ) : (
           <div className="space-y-4">

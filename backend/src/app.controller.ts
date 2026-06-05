@@ -648,4 +648,17 @@ export class AppController {
     }
     return "OK";
   }
+
+  @Get('skins-disponiveis')
+  async obterSkins() {
+    return this.prisma.item.findMany({
+      select: {
+        id: true,
+        nome: true,
+        imagem: true,
+        preco: true,
+      },
+      orderBy: { nome: 'asc' },
+    });
+  }
 }

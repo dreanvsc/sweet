@@ -104,7 +104,6 @@ export default function TabFabrica() {
     } catch (e) { toast.error("❌ Erro de Sintaxe JSON."); }
   };
 
-  // 🔥 Função para alternar o status de evento (frontend + chamada API)
   const toggleEvento = async (caixaId: number, currentStatus: boolean) => {
     setTogglingId(caixaId);
     try {
@@ -114,7 +113,6 @@ export default function TabFabrica() {
       });
       if (!res.ok) throw new Error('Erro ao alternar');
       const updated = await res.json();
-      // Atualiza o estado local
       setCaixasCriadas(prev => prev.map(c => c.id === caixaId ? { ...c, isEvento: updated.isEvento } : c));
       toast.success(updated.isEvento ? '⭐ Caixa promovida a EVENTO!' : '📦 Caixa removida do evento');
     } catch (error) {
@@ -144,7 +142,7 @@ export default function TabFabrica() {
           imagem: imagemCaixa, 
           itens: itensCaixa, 
           ordem: parseInt(ordemCaixa) || 0,
-          isEvento: isEventoCaixa   // 🔥 ENVIA O CAMPO EVENTO
+          isEvento: isEventoCaixa
         })
       });
       if (res.ok) {
@@ -162,7 +160,7 @@ export default function TabFabrica() {
     setPrecoCaixa(caixa.preco.toString());
     setImagemCaixa(caixa.imagem);
     setOrdemCaixa(caixa.ordem?.toString() || '0');
-    setIsEventoCaixa(caixa.isEvento || false);   // 🔥 Preenche o checkbox
+    setIsEventoCaixa(caixa.isEvento || false);
     try {
       const itensParseados = JSON.parse(caixa.itens);
       const itensComProb = itensParseados.map((i: any) => ({...i, imagem: getImagemSegura(i.imagem || i.image), probabilidade: i.probabilidade || 0}));
@@ -178,7 +176,7 @@ export default function TabFabrica() {
     setImagemCaixa('');
     setOrdemCaixa('');
     setItensCaixa([]);
-    setIsEventoCaixa(false);  // 🔥 Reset do checkbox
+    setIsEventoCaixa(false);
   };
 
   const apagarCaixa = async (id: number) => {
@@ -195,27 +193,27 @@ export default function TabFabrica() {
     } catch(e) { toast.error('Erro ao apagar', { id: toastId }); }
   };
 
-  const itensFiltrados = todosItens.filter(i => i.nome.toLowerCase().includes(pesquisa.toLowerCase())).slice(0, 12);
-
   const handleUploadImagem = async (e: React.ChangeEvent<HTMLInputElement>) => {
-  const file = e.target.files?.[0];
-  if (!file) return;
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-  setUploadingImage(true);
-  const toastId = toast.loading('A carregar imagem...');
-  const formData = new FormData();
-  formData.append('image', file);
+    setUploadingImage(true);
+    const toastId = toast.loading('A carregar imagem...');
+    const formData = new FormData();
+    formData.append('image', file);
 
-  try {
-    const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, { method: 'POST', body: formData });
-    const data = await res.json();
-    if (data.success) {
-      setImagemCaixa(data.data.url); // Enche automaticamente o input do URL!
-      toast.success('Upload concluído!', { id: toastId });
-    } else toast.error('Erro no upload.', { id: toastId });
-  } catch (error) { toast.error('Falha de ligação.', { id: toastId }); } 
-  finally { setUploadingImage(false); }
-};
+    try {
+      const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, { method: 'POST', body: formData });
+      const data = await res.json();
+      if (data.success) {
+        setImagemCaixa(data.data.url);
+        toast.success('Upload concluído!', { id: toastId });
+      } else toast.error('Erro no upload.', { id: toastId });
+    } catch (error) { toast.error('Falha de ligação.', { id: toastId }); } 
+    finally { setUploadingImage(false); }
+  };
+
+  const itensFiltrados = todosItens.filter(i => i.nome.toLowerCase().includes(pesquisa.toLowerCase())).slice(0, 12);
 
   return (
     <div className="animate-in fade-in grid grid-cols-1 xl:grid-cols-2 gap-8">
@@ -256,22 +254,22 @@ export default function TabFabrica() {
                <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2 block ml-1">Posição</label>
                <input type="number" placeholder="1" value={ordemCaixa} onChange={e => setOrdemCaixa(e.target.value)} className="w-full bg-black/40 border border-white/5 focus:border-emerald-500/50 rounded-xl p-4 text-sm text-white outline-none transition-colors" />
              </div>
+             
+             {/* 🔥 O BLOCO DO UPLOAD DA IMAGEM ESTÁ AQUI */}
              <div>
                <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2 block ml-1">Imagem da Caixa</label>
                <div className="relative w-full h-[52px] bg-black/40 border border-dashed border-white/20 hover:border-emerald-500 rounded-xl flex items-center justify-center overflow-hidden transition-colors cursor-pointer">
                  <input type="file" accept="image/*" onChange={handleUploadImagem} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
                  <span className="text-[10px] text-zinc-400 font-black uppercase tracking-widest flex items-center gap-2">
                    {uploadingImage ? (
-                     <><span className="animate-spin border-2 border-emerald-500 border-t-transparent rounded-full w-3 h-3"></span> A CARREGAR...</>
+                     <><span className="animate-spin border-2 border-emerald-500 border-t-transparent rounded-full w-3 h-3"></span> UPLOAD...</>
                    ) : '📁 UPLOAD DO PC'}
                  </span>
                </div>
-               {/* Input escondido para ver/editar o link gerado pelo ImgBB */}
-               <input type="text" placeholder="Ou cola o link da imagem aqui..." value={imagemCaixa} onChange={e => setImagemCaixa(e.target.value)} className="w-full mt-2 bg-transparent border-b border-white/5 p-1 text-[9px] text-zinc-600 outline-none focus:text-zinc-400 focus:border-white/20 transition-all" />
+               <input type="text" placeholder="Ou cola o link..." value={imagemCaixa} onChange={e => setImagemCaixa(e.target.value)} className="w-full mt-2 bg-transparent border-b border-white/5 p-1 text-[9px] text-zinc-600 outline-none focus:text-zinc-400 focus:border-white/20 transition-all" />
              </div>
            </div>
 
-           {/* 🔥 NOVO: CHECKBOX PARA EVENTO */}
            <div className="flex items-center gap-3 mt-2 bg-white/5 p-4 rounded-xl">
              <input
                type="checkbox"
@@ -354,7 +352,7 @@ export default function TabFabrica() {
            )}
         </div>
 
-        {/* BLOCO: CATÁLOGO DE CAIXAS COM INTERRUPTOR DE EVENTO */}
+        {/* BLOCO: CATÁLOGO DE CAIXAS */}
         <div className="bg-[#121215]/80 backdrop-blur-sm border border-white/5 rounded-3xl p-6 md:p-8 shadow-xl">
            <h4 className="text-sm font-black uppercase text-white tracking-widest flex items-center gap-2 mb-6">
              <span className="text-blue-500">📚</span> O Teu Catálogo
@@ -365,14 +363,11 @@ export default function TabFabrica() {
                Ainda não tens caixas ativas.
              </div>
            ) : (
-             
              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 overflow-y-auto max-h-[350px] pb-4 pt-2 pr-2 custom-scrollbar">
                {caixasCriadas.map(caixa => (
                  <div key={caixa.id} className="bg-white/[0.02] border border-white/5 p-4 rounded-2xl flex flex-col w-full relative group hover:bg-white/[0.05] hover:border-emerald-500/30 transition-all hover:-translate-y-1">
                    
-                   {/* 🔥 BOTÕES: TOGGLE EVENTO + EDITAR + APAGAR */}
                    <div className="absolute -top-3 -right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-20">
-                     {/* Botão Evento */}
                      <button
                        onClick={(e) => { e.stopPropagation(); toggleEvento(caixa.id, caixa.isEvento); }}
                        disabled={togglingId === caixa.id}
@@ -385,9 +380,7 @@ export default function TabFabrica() {
                      >
                        {togglingId === caixa.id ? '⏳' : (caixa.isEvento ? '⭐' : '📌')}
                      </button>
-                     {/* Botão Editar */}
                      <button onClick={() => iniciarEdicaoCaixa(caixa)} className="bg-amber-500 hover:bg-amber-400 w-8 h-8 rounded-full flex items-center justify-center text-black font-black shadow-lg transition-colors border-2 border-[#121215]" title="Editar">✏️</button>
-                     {/* Botão Apagar */}
                      <button onClick={() => apagarCaixa(caixa.id)} className="bg-red-500 hover:bg-red-400 w-8 h-8 rounded-full flex items-center justify-center text-white font-black shadow-lg transition-colors border-2 border-[#121215]" title="Apagar">✕</button>
                    </div>
                    
@@ -407,7 +400,6 @@ export default function TabFabrica() {
              </div>
            )}
         </div>
-        
 
       </div>
     </div>

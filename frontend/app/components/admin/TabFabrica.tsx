@@ -255,7 +255,10 @@ export default function TabFabrica() {
                <input type="number" placeholder="1" value={ordemCaixa} onChange={e => setOrdemCaixa(e.target.value)} className="w-full bg-black/40 border border-white/5 focus:border-emerald-500/50 rounded-xl p-4 text-sm text-white outline-none transition-colors" />
              </div>
              
-             {/* 🔥 O BLOCO DO UPLOAD DA IMAGEM ESTÁ AQUI */}
+             
+           </div>
+
+            {/* 🔥 O BLOCO DO UPLOAD DA IMAGEM ESTÁ AQUI */}
              <div>
                <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2 block ml-1">Imagem da Caixa</label>
                <div className="relative w-full h-[52px] bg-black/40 border border-dashed border-white/20 hover:border-emerald-500 rounded-xl flex items-center justify-center overflow-hidden transition-colors cursor-pointer">
@@ -268,7 +271,6 @@ export default function TabFabrica() {
                </div>
                <input type="text" placeholder="Ou cola o link..." value={imagemCaixa} onChange={e => setImagemCaixa(e.target.value)} className="w-full mt-2 bg-transparent border-b border-white/5 p-1 text-[9px] text-zinc-600 outline-none focus:text-zinc-400 focus:border-white/20 transition-all" />
              </div>
-           </div>
 
            <div className="flex items-center gap-3 mt-2 bg-white/5 p-4 rounded-xl">
              <input

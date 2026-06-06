@@ -138,7 +138,7 @@ export default function Admin({ userId }: any) {
 
           <button 
             onClick={() => setActiveTab('banner')} 
-            className={`flex items-center gap-3 p-4 rounded-xl text-left transition-all duration-300 ${activeTab === 'banner' ? 'bg-gradient-to-r from-amber-500/20 to-transparent border-l-4 border-amber-500 text-white shadow-[0_0_15px_rgba(245,158,11,0.1)] translate-x-2' : 'bg-transparent text-zinc-400 hover:text-white hover:bg-white/5 hover:translate-x-1'}`}
+            className="flex items-center gap-3 p-4 rounded-xl text-left transition-all duration-300 text-zinc-400 hover:text-white hover:bg-white/5 hover:translate-x-1"
           >
             <span className="text-lg w-6 text-center drop-shadow-md">🎨</span> 
             <span className="text-xs font-bold uppercase tracking-widest">Banner da Loja</span>

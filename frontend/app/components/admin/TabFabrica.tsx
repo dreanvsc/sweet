@@ -334,45 +334,49 @@ export default function TabFabrica() {
                Ainda não tens caixas ativas.
              </div>
            ) : (
-             <div className="flex gap-4 overflow-x-auto pb-4 pt-2 custom-scrollbar">
+             {/* 🔥 A MUDANÇA ESTÁ AQUI: GRID (Grelha) COM SCROLL VERTICAL */}
+             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 overflow-y-auto max-h-[350px] pb-4 pt-2 pr-2 custom-scrollbar">
                {caixasCriadas.map(caixa => (
-                 <div key={caixa.id} className="flex-shrink-0 bg-white/[0.02] border border-white/5 p-4 rounded-2xl flex flex-col w-36 relative group hover:bg-white/[0.05] hover:border-emerald-500/30 transition-all hover:-translate-y-1">
-                    {/* 🔥 BOTÕES: TOGGLE EVENTO + EDITAR + APAGAR */}
-                    <div className="absolute -top-3 -right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-20">
-                      {/* Botão Evento (Estrela / Pin) */}
-                      <button
-                        onClick={(e) => { e.stopPropagation(); toggleEvento(caixa.id, caixa.isEvento); }}
-                        disabled={togglingId === caixa.id}
-                        className={`w-8 h-8 rounded-full flex items-center justify-center font-black shadow-lg transition-colors border-2 border-[#121215] ${
-                          caixa.isEvento
-                            ? 'bg-yellow-500 text-black hover:bg-yellow-400'
-                            : 'bg-gray-600 text-white hover:bg-gray-500'
-                        }`}
-                        title={caixa.isEvento ? 'Remover do evento' : 'Tornar evento'}
-                      >
-                        {togglingId === caixa.id ? '⏳' : (caixa.isEvento ? '⭐' : '📌')}
-                      </button>
-                      {/* Botão Editar */}
-                      <button onClick={() => iniciarEdicaoCaixa(caixa)} className="bg-amber-500 hover:bg-amber-400 w-8 h-8 rounded-full flex items-center justify-center text-black font-black shadow-lg transition-colors border-2 border-[#121215]" title="Editar">✏️</button>
-                      {/* Botão Apagar */}
-                      <button onClick={() => apagarCaixa(caixa.id)} className="bg-red-500 hover:bg-red-400 w-8 h-8 rounded-full flex items-center justify-center text-white font-black shadow-lg transition-colors border-2 border-[#121215]" title="Apagar">✕</button>
-                    </div>
-                    <div className="flex flex-col items-center text-center">
-                      <div className="w-20 h-20 relative mb-3">
-                         <div className="absolute inset-0 bg-emerald-500/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                         <img src={caixa.imagem} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 drop-shadow-xl relative z-10" alt={caixa.nome} />
-                      </div>
-                      <span className="text-[10px] font-black uppercase text-zinc-300 truncate w-full tracking-widest">{caixa.nome}</span>
-                      <span className="text-xs text-emerald-400 font-mono font-black mt-1 drop-shadow-md">{caixa.preco}€</span>
-                      {caixa.isEvento && (
-                        <span className="mt-2 text-[8px] font-black bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded-full">EVENTO</span>
-                      )}
-                    </div>
+                 <div key={caixa.id} className="bg-white/[0.02] border border-white/5 p-4 rounded-2xl flex flex-col w-full relative group hover:bg-white/[0.05] hover:border-emerald-500/30 transition-all hover:-translate-y-1">
+                   
+                   {/* 🔥 BOTÕES: TOGGLE EVENTO + EDITAR + APAGAR */}
+                   <div className="absolute -top-3 -right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-20">
+                     {/* Botão Evento */}
+                     <button
+                       onClick={(e) => { e.stopPropagation(); toggleEvento(caixa.id, caixa.isEvento); }}
+                       disabled={togglingId === caixa.id}
+                       className={`w-8 h-8 rounded-full flex items-center justify-center font-black shadow-lg transition-colors border-2 border-[#121215] ${
+                         caixa.isEvento
+                           ? 'bg-yellow-500 text-black hover:bg-yellow-400'
+                           : 'bg-gray-600 text-white hover:bg-gray-500'
+                       }`}
+                       title={caixa.isEvento ? 'Remover do evento' : 'Tornar evento'}
+                     >
+                       {togglingId === caixa.id ? '⏳' : (caixa.isEvento ? '⭐' : '📌')}
+                     </button>
+                     {/* Botão Editar */}
+                     <button onClick={() => iniciarEdicaoCaixa(caixa)} className="bg-amber-500 hover:bg-amber-400 w-8 h-8 rounded-full flex items-center justify-center text-black font-black shadow-lg transition-colors border-2 border-[#121215]" title="Editar">✏️</button>
+                     {/* Botão Apagar */}
+                     <button onClick={() => apagarCaixa(caixa.id)} className="bg-red-500 hover:bg-red-400 w-8 h-8 rounded-full flex items-center justify-center text-white font-black shadow-lg transition-colors border-2 border-[#121215]" title="Apagar">✕</button>
+                   </div>
+                   
+                   <div className="flex flex-col items-center text-center">
+                     <div className="w-20 h-20 relative mb-3">
+                        <div className="absolute inset-0 bg-emerald-500/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                        <img src={caixa.imagem} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 drop-shadow-xl relative z-10" alt={caixa.nome} />
+                     </div>
+                     <span className="text-[10px] font-black uppercase text-zinc-300 truncate w-full tracking-widest">{caixa.nome}</span>
+                     <span className="text-xs text-emerald-400 font-mono font-black mt-1 drop-shadow-md">{caixa.preco}€</span>
+                     {caixa.isEvento && (
+                       <span className="mt-2 text-[8px] font-black bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded-full">EVENTO</span>
+                     )}
+                   </div>
                  </div>
                ))}
              </div>
            )}
         </div>
+        
 
       </div>
     </div>

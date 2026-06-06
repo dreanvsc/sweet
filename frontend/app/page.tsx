@@ -10,6 +10,7 @@ import AdminMissoes from './components/admin/AdminMissoes';
 import AdminLevantamentos from './components/admin/AdminLevantamentos';
 import AdminVerificacoes from './components/admin/AdminVerificacoes';
 import TabGiveaways from './components/admin/TabGiveaways';
+import TabBanner from './components/admin/TabBanner';
 
 export default function Admin({ userId }: any) {
   // 🔥 ESTADO CORRIGIDO (O 'banner' já está aqui no fim da lista)

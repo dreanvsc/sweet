@@ -334,7 +334,7 @@ export default function TabFabrica() {
                Ainda não tens caixas ativas.
              </div>
            ) : (
-             {/* 🔥 A MUDANÇA ESTÁ AQUI: GRID (Grelha) COM SCROLL VERTICAL */}
+             
              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 overflow-y-auto max-h-[350px] pb-4 pt-2 pr-2 custom-scrollbar">
                {caixasCriadas.map(caixa => (
                  <div key={caixa.id} className="bg-white/[0.02] border border-white/5 p-4 rounded-2xl flex flex-col w-full relative group hover:bg-white/[0.05] hover:border-emerald-500/30 transition-all hover:-translate-y-1">

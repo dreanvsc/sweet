@@ -1,16 +1,15 @@
 'use client';
-
 import React, { useState } from 'react';
-import TabEstatisticas from './TabEstatisticas';
-import TabSistema from './TabSistema';
-import TabClientes from './TabClientes';
-import TabFabrica from './TabFabrica';
-import AdminTickets from './AdminTickets';
-import AdminLiveChat from './AdminLiveChat';
-import AdminMissoes from './AdminMissoes'; 
-import AdminLevantamentos from './AdminLevantamentos';
-import AdminVerificacoes from './AdminVerificacoes';
-import TabGiveaways from './TabGiveaways';
+import TabEstatisticas from './components/admin/TabEstatisticas';
+import TabSistema from './components/admin/TabSistema';
+import TabClientes from './components/admin/TabClientes';
+import TabFabrica from './components/admin/TabFabrica';
+import AdminTickets from './components/admin/AdminTickets';
+import AdminLiveChat from './components/admin/AdminLiveChat';
+import AdminMissoes from './components/admin/AdminMissoes';
+import AdminLevantamentos from './components/admin/AdminLevantamentos';
+import AdminVerificacoes from './components/admin/AdminVerificacoes';
+import TabGiveaways from './components/admin/TabGiveaways';
 
 export default function Admin({ userId }: any) {
   // 🔥 ESTADO CORRIGIDO (O 'banner' já está aqui no fim da lista)

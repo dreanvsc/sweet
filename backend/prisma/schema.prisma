@@ -206,3 +206,11 @@ model ParticipanteGiveaway {
   // O Cadeado de Segurança: O mesmo jogador só pode ter 1 registo por Giveaway
   @@unique([giveawayId, userId]) 
 }
+
+model BannerEvento {
+  id        Int      @id @default(1)
+  imagem    String   @default("https://link-da-imagem-padrao.jpg")
+  titulo    String   @default("HIGH RISK ZONE")
+  descricao String   @default("Abre as caixas exclusivas deste evento...")
+  ativo     Boolean  @default(true)
+}

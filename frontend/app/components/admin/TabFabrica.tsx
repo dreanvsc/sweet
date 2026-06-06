@@ -13,7 +13,9 @@ export default function TabFabrica() {
   const [itensCaixa, setItensCaixa] = useState<any[]>([]); 
   const [caixasCriadas, setCaixasCriadas] = useState<any[]>([]);
   const [caixaEmEdicaoId, setCaixaEmEdicaoId] = useState<number | null>(null);
-  const [isEventoCaixa, setIsEventoCaixa] = useState(false); // 🔥 NOVO
+  const [isEventoCaixa, setIsEventoCaixa] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const IMGBB_API_KEY = 'f34e1a15059fa969cecc59e5f3990f3d';
 
   // ESTADOS MODO IMPORTAÇÃO
   const [mostrarImportacao, setMostrarImportacao] = useState(false);
@@ -195,6 +197,26 @@ export default function TabFabrica() {
 
   const itensFiltrados = todosItens.filter(i => i.nome.toLowerCase().includes(pesquisa.toLowerCase())).slice(0, 12);
 
+  const handleUploadImagem = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+
+  setUploadingImage(true);
+  const toastId = toast.loading('A carregar imagem...');
+  const formData = new FormData();
+  formData.append('image', file);
+
+  try {
+    const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, { method: 'POST', body: formData });
+    const data = await res.json();
+    if (data.success) {
+      setImagemCaixa(data.data.url); // Enche automaticamente o input do URL!
+      toast.success('Upload concluído!', { id: toastId });
+    } else toast.error('Erro no upload.', { id: toastId });
+  } catch (error) { toast.error('Falha de ligação.', { id: toastId }); } 
+  finally { setUploadingImage(false); }
+};
+
   return (
     <div className="animate-in fade-in grid grid-cols-1 xl:grid-cols-2 gap-8">
       
@@ -235,8 +257,17 @@ export default function TabFabrica() {
                <input type="number" placeholder="1" value={ordemCaixa} onChange={e => setOrdemCaixa(e.target.value)} className="w-full bg-black/40 border border-white/5 focus:border-emerald-500/50 rounded-xl p-4 text-sm text-white outline-none transition-colors" />
              </div>
              <div>
-               <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2 block ml-1">URL Imagem</label>
-               <input type="text" placeholder="https://..." value={imagemCaixa} onChange={e => setImagemCaixa(e.target.value)} className="w-full bg-black/40 border border-white/5 focus:border-emerald-500/50 rounded-xl p-4 text-sm text-zinc-400 outline-none transition-colors" />
+               <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2 block ml-1">Imagem da Caixa</label>
+               <div className="relative w-full h-[52px] bg-black/40 border border-dashed border-white/20 hover:border-emerald-500 rounded-xl flex items-center justify-center overflow-hidden transition-colors cursor-pointer">
+                 <input type="file" accept="image/*" onChange={handleUploadImagem} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+                 <span className="text-[10px] text-zinc-400 font-black uppercase tracking-widest flex items-center gap-2">
+                   {uploadingImage ? (
+                     <><span className="animate-spin border-2 border-emerald-500 border-t-transparent rounded-full w-3 h-3"></span> A CARREGAR...</>
+                   ) : '📁 UPLOAD DO PC'}
+                 </span>
+               </div>
+               {/* Input escondido para ver/editar o link gerado pelo ImgBB */}
+               <input type="text" placeholder="Ou cola o link da imagem aqui..." value={imagemCaixa} onChange={e => setImagemCaixa(e.target.value)} className="w-full mt-2 bg-transparent border-b border-white/5 p-1 text-[9px] text-zinc-600 outline-none focus:text-zinc-400 focus:border-white/20 transition-all" />
              </div>
            </div>
 

@@ -30,6 +30,7 @@ export default function AdminVerificacoes() {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     carregarPedidos();
   }, []);
 

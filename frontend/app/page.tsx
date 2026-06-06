@@ -11,7 +11,6 @@ import AdminMissoes from './AdminMissoes';
 import AdminLevantamentos from './AdminLevantamentos';
 import AdminVerificacoes from './AdminVerificacoes';
 import TabGiveaways from './TabGiveaways';
-import TabBanner from './TabBanner'; // 🔥 O TEU NOVO SEPARADOR AQUI
 
 export default function Admin({ userId }: any) {
   // 🔥 ESTADO CORRIGIDO (O 'banner' já está aqui no fim da lista)

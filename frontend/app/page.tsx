@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';  // 🔥 NOVO
 import LiveDrops from './components/LiveDrops';
 import Sidebar from './components/Sidebar';
 import CaseOpening from './components/case-opening/CaseOpening';
@@ -25,8 +26,24 @@ export default function Home() {
   const [userData, setUserData] = useState<any>(null); 
   const [caixasDaLoja, setCaixasDaLoja] = useState<any[]>([]);
 
+  // 🔥 NOVO: Ferramentas de navegação
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   const nivel = Math.floor(xp / 100) + 1;
   const progressoNivel = xp % 100;
+
+  // 🔥 NOVO: Lê o parâmetro "caixa" na URL e abre automaticamente se existir
+  useEffect(() => {
+    const caixaIdNoLink = searchParams.get('caixa');
+    if (caixaIdNoLink && caixasDaLoja.length > 0) {
+      const caixaParaAbrir = caixasDaLoja.find((c: any) => c.id === Number(caixaIdNoLink));
+      if (caixaParaAbrir) {
+        setCaixaSelecionada(caixaParaAbrir);
+        setView('opening');
+      }
+    }
+  }, [searchParams, caixasDaLoja]);
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -77,6 +94,7 @@ export default function Home() {
   // Divisão das caixas para o Layout (Evento vs Normais)
   const caixasEvento = caixasDaLoja.filter((c: any) => c.isEvento === true);
   const caixasNormais = caixasDaLoja.filter((c: any) => c.isEvento !== true);
+  
   return (
     <main className="min-h-screen bg-[#0b0b0d] text-zinc-200 font-sans flex flex-col overflow-x-hidden w-full max-w-[100vw]">
       <LiveDrops drops={liveDrops} />
@@ -122,15 +140,18 @@ export default function Home() {
                   {caixasEvento.map((c: any, i: number) => (
                     <div 
                       key={c.id || i} 
-                      onClick={() => { setCaixaSelecionada(c); setView('opening'); }}
-                      // 🔥 Caixa com altura fixa (h-48) para a imagem preencher na perfeição
+                      onClick={() => {
+                        // 🔥 ADICIONA O PARÂMETRO "caixa" À URL
+                        router.push(`/?caixa=${c.id}`, { scroll: false });
+                        setCaixaSelecionada(c);
+                        setView('opening');
+                      }}
                       className="relative h-40 sm:h-48 md:h-56 bg-[#1a1a21] border border-yellow-500/40 rounded-xl group hover:-translate-y-1 hover:border-yellow-400 hover:shadow-[0_8px_25px_rgba(234,179,8,0.3)] transition-all duration-300 cursor-pointer overflow-hidden flex flex-col justify-end"
                     >
                       <div className="absolute top-0 left-0 bg-yellow-500 text-black text-[9px] font-black px-2 py-1 rounded-br-lg uppercase z-20">
                         EVENTO
                       </div>
 
-                      {/* 🔥 IMAGEM A OCUPAR O FUNDO TODO */}
                       {c.imagem && (
                         <img 
                           src={c.imagem} 
@@ -139,10 +160,8 @@ export default function Home() {
                         />
                       )}
 
-                      {/* Degrade escuro por cima da imagem para lermos o preço */}
                       <div className="absolute inset-0 bg-gradient-to-t from-[#0b0b0d] via-[#0b0b0d]/50 to-transparent z-10"></div>
 
-                      {/* 🔥 ÁREA DO NOME E PREÇO */}
                       <div className="relative z-20 w-full p-3 flex flex-col items-center">
                         <span className="text-zinc-100 text-[11px] sm:text-xs font-black uppercase tracking-widest truncate w-full text-center drop-shadow-md">
                           {c.nome}
@@ -175,10 +194,14 @@ export default function Home() {
                     {caixasNormais.map((c: any, i: number) => (
                       <div 
                         key={c.id || i} 
-                        onClick={() => { setCaixaSelecionada(c); setView('opening'); }}
+                        onClick={() => {
+                          // 🔥 ADICIONA O PARÂMETRO "caixa" À URL
+                          router.push(`/?caixa=${c.id}`, { scroll: false });
+                          setCaixaSelecionada(c);
+                          setView('opening');
+                        }}
                         className="relative h-40 sm:h-48 md:h-56 bg-[#1a1a21] border border-white/10 rounded-xl group hover:-translate-y-1 hover:border-emerald-500/50 hover:shadow-[0_8px_25px_rgba(16,185,129,0.2)] transition-all duration-300 cursor-pointer overflow-hidden flex flex-col justify-end"
                       >
-                        {/* IMAGEM A OCUPAR O FUNDO TODO */}
                         {c.imagem && (
                           <img 
                             src={c.imagem} 
@@ -189,7 +212,6 @@ export default function Home() {
 
                         <div className="absolute inset-0 bg-gradient-to-t from-[#0b0b0d] via-[#0b0b0d]/50 to-transparent z-10"></div>
 
-                        {/* NOME E PREÇO */}
                         <div className="relative z-20 w-full p-3 flex flex-col items-center">
                           <span className="text-zinc-100 text-[11px] sm:text-xs font-black uppercase tracking-widest truncate w-full text-center drop-shadow-md">
                             {c.nome}
@@ -213,7 +235,16 @@ export default function Home() {
           )}
 
           {view === 'opening' && (
-            <CaseOpening caixaSelecionada={caixaSelecionada} saldo={saldo} setSaldo={setSaldo} setXp={setXp} setView={setView} setInventario={setInventario} userId={userId} addDropToFeed={() => {}} />
+            <CaseOpening 
+              caixaSelecionada={caixaSelecionada} 
+              saldo={saldo} 
+              setSaldo={setSaldo} 
+              setXp={setXp} 
+              setView={setView} 
+              setInventario={setInventario} 
+              userId={userId} 
+              addDropToFeed={() => {}} 
+            />
           )}
           
           {view === 'upgrader' && (

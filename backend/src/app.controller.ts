@@ -669,4 +669,20 @@ export class AppController {
       data: { isEvento: body.isEvento }
     });
   }
+
+  @Post('admin/caixa/toggle-evento/:id')
+  async toggleEventoCaixa(@Param('id') id: string) {
+    const caixa = await this.prisma.caixa.findUnique({
+      where: { id: Number(id) }
+    });
+
+    if (!caixa) throw new NotFoundException('Caixa não encontrada');
+
+    const caixaAtualizada = await this.prisma.caixa.update({
+      where: { id: Number(id) },
+      data: { isEvento: !caixa.isEvento }
+    });
+
+    return caixaAtualizada;
+  }
 }

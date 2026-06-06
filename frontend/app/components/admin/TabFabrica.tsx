@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { toast } from 'react-hot-toast'; // 🔥 Import adicionado
+import { toast } from 'react-hot-toast';
 
 export default function TabFabrica() {
   const [todosItens, setTodosItens] = useState<any[]>([]);
@@ -13,10 +13,14 @@ export default function TabFabrica() {
   const [itensCaixa, setItensCaixa] = useState<any[]>([]); 
   const [caixasCriadas, setCaixasCriadas] = useState<any[]>([]);
   const [caixaEmEdicaoId, setCaixaEmEdicaoId] = useState<number | null>(null);
+  const [isEventoCaixa, setIsEventoCaixa] = useState(false); // 🔥 NOVO
 
   // ESTADOS MODO IMPORTAÇÃO
   const [mostrarImportacao, setMostrarImportacao] = useState(false);
   const [jsonInput, setJsonInput] = useState('');
+
+  // Estado para loading do toggle
+  const [togglingId, setTogglingId] = useState<number | null>(null);
 
   useEffect(() => {
     fetch('https://sweet-7ifa.onrender.com/itens').then(res => res.json()).then(setTodosItens).catch(console.error);
@@ -25,7 +29,6 @@ export default function TabFabrica() {
 
   const carregarCaixas = () => fetch('https://sweet-7ifa.onrender.com/caixas').then(res => res.json()).then(setCaixasCriadas);
 
-  // 🔥 ESCUDO ANTI-BLOQUEIO DE IMAGENS 🔥
   const getImagemSegura = (url?: string) => {
     if (!url || url.includes('URL_IMAGEM')) return '/skins/glock.png';
     if (url.includes('steam') && !url.includes('wsrv.nl')) {
@@ -34,7 +37,6 @@ export default function TabFabrica() {
     return url;
   };
 
-  // Normaliza nomes para conseguir encontrar skins mesmo com ★, StatTrak™, desgaste, etc.
   const normalizarNomeSkin = (nome?: string) => {
     return (nome || '')
       .toLowerCase()
@@ -51,7 +53,6 @@ export default function TabFabrica() {
 
   const encontrarSkinOficial = (nome: string) => {
     const nomeNormalizado = normalizarNomeSkin(nome);
-
     return (
       todosItens.find(dbItem => normalizarNomeSkin(dbItem.nome) === nomeNormalizado) ||
       todosItens.find(dbItem => normalizarNomeSkin(dbItem.nome).includes(nomeNormalizado)) ||
@@ -73,7 +74,6 @@ export default function TabFabrica() {
 
   const somaProbabilidades = itensCaixa.reduce((acc, item) => acc + (parseFloat(item.probabilidade) || 0), 0);
 
-  // 🔥 MOTOR DE IMPORTAÇÃO INTELIGENTE 🔥
   const importarJSON = () => {
     try {
       const dadosParseados = JSON.parse(jsonInput);
@@ -82,8 +82,6 @@ export default function TabFabrica() {
       const itensMapeados = dadosParseados.map((item, index) => {
         const nomeItem = item.nome || item.name || '';
         const skinOficial = encontrarSkinOficial(nomeItem);
-
-        // Prioridade: imagem da tua BD/API oficial. Só usa a imagem do JSON se for um URL real.
         const imagemDoJson = item.imagem || item.image || '';
         const imagemCrua = skinOficial?.imagem || (imagemDoJson.startsWith('http') ? imagemDoJson : '/skins/glock.png');
 
@@ -100,37 +98,69 @@ export default function TabFabrica() {
       setItensCaixa(prev => [...prev, ...itensMapeados]);
       setJsonInput('');
       setMostrarImportacao(false);
-      toast.success("✅ Caixa Importada com Sucesso!"); // 🔥
-    } catch (e) { toast.error("❌ Erro de Sintaxe JSON."); } // 🔥
+      toast.success("✅ Caixa Importada com Sucesso!");
+    } catch (e) { toast.error("❌ Erro de Sintaxe JSON."); }
+  };
+
+  // 🔥 Função para alternar o status de evento (frontend + chamada API)
+  const toggleEvento = async (caixaId: number, currentStatus: boolean) => {
+    setTogglingId(caixaId);
+    try {
+      const res = await fetch(`https://sweet-7ifa.onrender.com/admin/caixa/toggle-evento/${caixaId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (!res.ok) throw new Error('Erro ao alternar');
+      const updated = await res.json();
+      // Atualiza o estado local
+      setCaixasCriadas(prev => prev.map(c => c.id === caixaId ? { ...c, isEvento: updated.isEvento } : c));
+      toast.success(updated.isEvento ? '⭐ Caixa promovida a EVENTO!' : '📦 Caixa removida do evento');
+    } catch (error) {
+      toast.error('Não foi possível alternar o status');
+    } finally {
+      setTogglingId(null);
+    }
   };
 
   const handleGuardarCaixa = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (itensCaixa.length === 0) return toast.error("A caixa precisa de ter armas!"); // 🔥
+    if (itensCaixa.length === 0) return toast.error("A caixa precisa de ter armas!");
     if (Math.abs(somaProbabilidades - 100) > 0.1) {
       if(!window.confirm(`Atenção: As probabilidades somam ${somaProbabilidades.toFixed(3)}%. Gravar na mesma?`)) return;
     }
     
-    const toastId = toast.loading("A guardar caixa..."); // 🔥
+    const toastId = toast.loading("A guardar caixa...");
     const url = caixaEmEdicaoId ? `https://sweet-7ifa.onrender.com/admin/caixa/${caixaEmEdicaoId}` : 'https://sweet-7ifa.onrender.com/admin/caixa';
     const metodo = caixaEmEdicaoId ? 'PUT' : 'POST';
 
     try {
       const res = await fetch(url, {
         method: metodo, headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nome: nomeCaixa, preco: parseFloat(precoCaixa), imagem: imagemCaixa, itens: itensCaixa, ordem: parseInt(ordemCaixa) || 0 })
+        body: JSON.stringify({ 
+          nome: nomeCaixa, 
+          preco: parseFloat(precoCaixa), 
+          imagem: imagemCaixa, 
+          itens: itensCaixa, 
+          ordem: parseInt(ordemCaixa) || 0,
+          isEvento: isEventoCaixa   // 🔥 ENVIA O CAMPO EVENTO
+        })
       });
       if (res.ok) {
-        toast.success(caixaEmEdicaoId ? '📦 Caixa Atualizada!' : '📦 Caixa Fabricada!', { id: toastId }); // 🔥
+        toast.success(caixaEmEdicaoId ? '📦 Caixa Atualizada!' : '📦 Caixa Fabricada!', { id: toastId });
         cancelarEdicao(); carregarCaixas();
       } else {
-        toast.error('❌ Falha ao processar a caixa.', { id: toastId }); // 🔥
+        toast.error('❌ Falha ao processar a caixa.', { id: toastId });
       }
-    } catch (e) { toast.error('❌ Erro de ligação ao guardar caixa.', { id: toastId }); } // 🔥
+    } catch (e) { toast.error('❌ Erro de ligação ao guardar caixa.', { id: toastId }); }
   };
 
   const iniciarEdicaoCaixa = (caixa: any) => {
-    setCaixaEmEdicaoId(caixa.id); setNomeCaixa(caixa.nome); setPrecoCaixa(caixa.preco.toString()); setImagemCaixa(caixa.imagem); setOrdemCaixa(caixa.ordem?.toString() || '0');
+    setCaixaEmEdicaoId(caixa.id);
+    setNomeCaixa(caixa.nome);
+    setPrecoCaixa(caixa.preco.toString());
+    setImagemCaixa(caixa.imagem);
+    setOrdemCaixa(caixa.ordem?.toString() || '0');
+    setIsEventoCaixa(caixa.isEvento || false);   // 🔥 Preenche o checkbox
     try {
       const itensParseados = JSON.parse(caixa.itens);
       const itensComProb = itensParseados.map((i: any) => ({...i, imagem: getImagemSegura(i.imagem || i.image), probabilidade: i.probabilidade || 0}));
@@ -140,7 +170,13 @@ export default function TabFabrica() {
   };
 
   const cancelarEdicao = () => {
-    setCaixaEmEdicaoId(null); setNomeCaixa(''); setPrecoCaixa(''); setImagemCaixa(''); setOrdemCaixa(''); setItensCaixa([]);
+    setCaixaEmEdicaoId(null);
+    setNomeCaixa('');
+    setPrecoCaixa('');
+    setImagemCaixa('');
+    setOrdemCaixa('');
+    setItensCaixa([]);
+    setIsEventoCaixa(false);  // 🔥 Reset do checkbox
   };
 
   const apagarCaixa = async (id: number) => {
@@ -202,6 +238,20 @@ export default function TabFabrica() {
                <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2 block ml-1">URL Imagem</label>
                <input type="text" placeholder="https://..." value={imagemCaixa} onChange={e => setImagemCaixa(e.target.value)} className="w-full bg-black/40 border border-white/5 focus:border-emerald-500/50 rounded-xl p-4 text-sm text-zinc-400 outline-none transition-colors" />
              </div>
+           </div>
+
+           {/* 🔥 NOVO: CHECKBOX PARA EVENTO */}
+           <div className="flex items-center gap-3 mt-2 bg-white/5 p-4 rounded-xl">
+             <input
+               type="checkbox"
+               id="isEvento"
+               checked={isEventoCaixa}
+               onChange={(e) => setIsEventoCaixa(e.target.checked)}
+               className="w-5 h-5 rounded border-white/20 bg-black/40 text-yellow-500 focus:ring-yellow-500 focus:ring-1"
+             />
+             <label htmlFor="isEvento" className="text-xs font-black text-zinc-300 uppercase tracking-widest cursor-pointer">
+               Marcar como CAIXA DE EVENTO (aparece na zona amarela da loja)
+             </label>
            </div>
            
            <div className="pt-6 mt-6 border-t border-white/5">
@@ -273,7 +323,7 @@ export default function TabFabrica() {
            )}
         </div>
 
-        {/* BLOCO: CATÁLOGO DE CAIXAS (O MEU IMPÉRIO) */}
+        {/* BLOCO: CATÁLOGO DE CAIXAS COM INTERRUPTOR DE EVENTO */}
         <div className="bg-[#121215]/80 backdrop-blur-sm border border-white/5 rounded-3xl p-6 md:p-8 shadow-xl">
            <h4 className="text-sm font-black uppercase text-white tracking-widest flex items-center gap-2 mb-6">
              <span className="text-blue-500">📚</span> O Teu Catálogo
@@ -287,8 +337,24 @@ export default function TabFabrica() {
              <div className="flex gap-4 overflow-x-auto pb-4 pt-2 custom-scrollbar">
                {caixasCriadas.map(caixa => (
                  <div key={caixa.id} className="flex-shrink-0 bg-white/[0.02] border border-white/5 p-4 rounded-2xl flex flex-col w-36 relative group hover:bg-white/[0.05] hover:border-emerald-500/30 transition-all hover:-translate-y-1">
+                    {/* 🔥 BOTÕES: TOGGLE EVENTO + EDITAR + APAGAR */}
                     <div className="absolute -top-3 -right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-20">
+                      {/* Botão Evento (Estrela / Pin) */}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); toggleEvento(caixa.id, caixa.isEvento); }}
+                        disabled={togglingId === caixa.id}
+                        className={`w-8 h-8 rounded-full flex items-center justify-center font-black shadow-lg transition-colors border-2 border-[#121215] ${
+                          caixa.isEvento
+                            ? 'bg-yellow-500 text-black hover:bg-yellow-400'
+                            : 'bg-gray-600 text-white hover:bg-gray-500'
+                        }`}
+                        title={caixa.isEvento ? 'Remover do evento' : 'Tornar evento'}
+                      >
+                        {togglingId === caixa.id ? '⏳' : (caixa.isEvento ? '⭐' : '📌')}
+                      </button>
+                      {/* Botão Editar */}
                       <button onClick={() => iniciarEdicaoCaixa(caixa)} className="bg-amber-500 hover:bg-amber-400 w-8 h-8 rounded-full flex items-center justify-center text-black font-black shadow-lg transition-colors border-2 border-[#121215]" title="Editar">✏️</button>
+                      {/* Botão Apagar */}
                       <button onClick={() => apagarCaixa(caixa.id)} className="bg-red-500 hover:bg-red-400 w-8 h-8 rounded-full flex items-center justify-center text-white font-black shadow-lg transition-colors border-2 border-[#121215]" title="Apagar">✕</button>
                     </div>
                     <div className="flex flex-col items-center text-center">
@@ -298,6 +364,9 @@ export default function TabFabrica() {
                       </div>
                       <span className="text-[10px] font-black uppercase text-zinc-300 truncate w-full tracking-widest">{caixa.nome}</span>
                       <span className="text-xs text-emerald-400 font-mono font-black mt-1 drop-shadow-md">{caixa.preco}€</span>
+                      {caixa.isEvento && (
+                        <span className="mt-2 text-[8px] font-black bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded-full">EVENTO</span>
+                      )}
                     </div>
                  </div>
                ))}

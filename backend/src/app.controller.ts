@@ -661,4 +661,12 @@ export class AppController {
       orderBy: { nome: 'asc' },
     });
   }
+
+  @Put('caixas/:id/evento')
+  async alternarEventoCaixa(@Param('id') id: string, @Body() body: { isEvento: boolean }) {
+    return await this.prisma.caixa.update({
+      where: { id: Number(id) },
+      data: { isEvento: body.isEvento }
+    });
+  }
 }

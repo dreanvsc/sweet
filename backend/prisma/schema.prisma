@@ -66,6 +66,7 @@ model Caixa {
   ordem   Int     @default(0)
   imagem  String
   itens   String   // Vai guardar um "pacote" (JSON) com as skins
+  isEvento  Boolean  @default(false)
 }
 
 model PromoCode {

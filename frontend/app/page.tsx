@@ -75,9 +75,8 @@ export default function Home() {
   }, []);
 
   // Divisão das caixas para o Layout (Evento vs Normais)
-  const caixasEvento = caixasDaLoja.slice(0, 6);
-  const caixasNormais = caixasDaLoja.slice(6);
-
+  const caixasEvento = caixasDaLoja.filter((c: any) => c.isEvento === true);
+  const caixasNormais = caixasDaLoja.filter((c: any) => c.isEvento !== true);
   return (
     <main className="min-h-screen bg-[#0b0b0d] text-zinc-200 font-sans flex flex-col overflow-x-hidden w-full max-w-[100vw]">
       <LiveDrops drops={liveDrops} />

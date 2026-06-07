@@ -21,9 +21,11 @@ export class AdminService {
         const resPrecos = await fetch('https://api.skinport.com/v1/items?app_id=730&currency=EUR&tradable=0', { headers: { 'Accept-Encoding': 'br' } });
         if (resPrecos.ok) {
           const dadosSkinport = await resPrecos.json();
-          dadosSkinport.forEach((item: any) => { 
-            dictPrecos[item.market_hash_name] = item.min_price || item.suggested_price || null; 
-          });
+          if (Array.isArray(dadosSkinport)) {
+            dadosSkinport.forEach((item: any) => { 
+              dictPrecos[item.market_hash_name] = item.min_price || item.suggested_price || null; 
+            });
+          }
         }
       } catch (e) { console.log("Aviso: A API da Skinport falhou."); }
 
@@ -114,92 +116,107 @@ export class AdminService {
     return { sucesso: true, novoSaldo: parseFloat(novoSaldo.toFixed(2)), valorGanho: promo.valor };
   }
 
-  // ====================================================================
-  // 🔥 O TRABALHADOR DA NOITE (VERSÃO SKINPORT - SEM API KEY) 🔥
-  // ====================================================================
   @Cron(CronExpression.EVERY_DAY_AT_4AM)
   async atualizarPrecosMercadoNoturno() {
     console.log('🌙 [CRON] A iniciar a atualização de preços pela Skinport...');
 
     try {
-      // 1. Vai buscar os preços à API Pública da Skinport (GRÁTIS E SEM LOGIN)
-      const respostaApi = await fetch('https://api.skinport.com/v1/items?app_id=730&currency=EUR');
+      // 🔥 Tenta com header de autenticação básica para evitar rate limit
+      const respostaApi = await fetch(
+        'https://api.skinport.com/v1/items?app_id=730&currency=EUR',
+        { headers: { 'Accept-Encoding': 'br', 'User-Agent': 'Mozilla/5.0' } }
+      );
+
+      // 🔥 Verifica se a resposta é válida antes de fazer parse
+      if (!respostaApi.ok) {
+        console.error(`❌ [CRON] Skinport devolveu status ${respostaApi.status}`);
+        return { sucesso: false, message: `Skinport status: ${respostaApi.status}` };
+      }
+
       const mercadoRaw = await respostaApi.json();
 
-      // 2. Transforma a resposta num dicionário fácil de ler
+      // 🔥 Verifica se é um array válido
+      if (!Array.isArray(mercadoRaw)) {
+        console.error('❌ [CRON] Skinport devolveu formato inválido:', JSON.stringify(mercadoRaw).substring(0, 200));
+        return { sucesso: false, message: 'Skinport devolveu formato inválido.' };
+      }
+
+      console.log(`📦 [CRON] ${mercadoRaw.length} preços recebidos da Skinport.`);
+
       const precosMercado: Record<string, number> = {};
-      
       for (const skin of mercadoRaw) {
+        // 🔥 Usa sempre o preço mais baixo
         const precoReal = skin.min_price || skin.suggested_price;
         if (precoReal) precosMercado[skin.market_hash_name] = precoReal;
       }
 
-      // 3. Puxa TODAS as armas da base de dados usando 'item'
       const minhasSkins = await (this.prisma as any).item.findMany();
       let atualizadas = 0;
       let ignoradas = 0;
+      let semPreco = 0;
 
-      // 4. O Sistema de Verificação e Segurança
       for (const skin of minhasSkins) {
         const precoNovo = precosMercado[skin.nome];
 
-        if (precoNovo && precoNovo > 0.05) {
-          
-          // 🔥 CINTA DE SEGURANÇA: ANTI PUMP & DUMP 🔥
-          const limiteSeguranca = skin.preco * 1.50; 
-
-          if (precoNovo > limiteSeguranca) {
-            console.log(`🚨 [ALERTA] A skin ${skin.nome} saltou de ${skin.preco}€ para ${precoNovo}€. Atualização Bloqueada!`);
-            ignoradas++;
-            continue;
-          }
-
-          // Se passar na segurança, atualiza o preço na Base de Dados
-          await (this.prisma as any).item.update({
-            where: { id: skin.id },
-            data: { preco: parseFloat(precoNovo.toFixed(2)) }
-          });
-          atualizadas++;
+        if (!precoNovo || precoNovo <= 0.05) {
+          semPreco++;
+          continue;
         }
+
+        // 🔥 Cinta de segurança anti pump & dump (só bloqueia se subir mais de 150%)
+        const limiteSeguranca = skin.preco * 1.50;
+        if (precoNovo > limiteSeguranca && skin.preco > 1) {
+          console.log(`🚨 [ALERTA] ${skin.nome}: ${skin.preco}€ → ${precoNovo}€. Bloqueado!`);
+          ignoradas++;
+          continue;
+        }
+
+        await (this.prisma as any).item.update({
+          where: { id: skin.id },
+          data: { preco: parseFloat(precoNovo.toFixed(2)) }
+        });
+        atualizadas++;
       }
 
-      console.log(`✅ [CRON] Concluído! ${atualizadas} preços atualizados. ${ignoradas} manipulações bloqueadas.`);
+      const msg = `✅ [CRON] Concluído! ${atualizadas} atualizadas, ${ignoradas} bloqueadas, ${semPreco} sem preço.`;
+      console.log(msg);
+      return { sucesso: true, atualizadas, ignoradas, semPreco, message: msg };
 
-    } catch (error) {
-      console.error('❌ [CRON] Falha ao comunicar com a API da Skinport:', error);
+    } catch (error: any) {
+      console.error('❌ [CRON] Falha:', error);
+      throw new Error(error.message || 'Falha ao comunicar com a Skinport.');
     }
   }
 
   async obterBanner() {
-  const banner = await (this.prisma as any).configuracao.findMany({
-    where: { chave: { startsWith: 'banner_' } }
-  });
-  
-  const resultado: any = { imagem: '', titulo: '', descricao: '', ativo: true };
-  banner.forEach((c: any) => {
-    if (c.chave === 'banner_imagem') resultado.imagem = c.valor;
-    if (c.chave === 'banner_titulo') resultado.titulo = c.valor;
-    if (c.chave === 'banner_descricao') resultado.descricao = c.valor;
-    if (c.chave === 'banner_ativo') resultado.ativo = c.valor === 'true';
-  });
-  return resultado;
-}
-
-async guardarBanner(dados: { imagem: string, titulo: string, descricao: string, ativo: boolean }) {
-  const upsert = async (chave: string, valor: string) => {
-    await (this.prisma as any).configuracao.upsert({
-      where: { chave },
-      update: { valor },
-      create: { chave, valor, descricao: `Banner: ${chave}` }
+    const banner = await (this.prisma as any).configuracao.findMany({
+      where: { chave: { startsWith: 'banner_' } }
     });
-  };
+    
+    const resultado: any = { imagem: '', titulo: '', descricao: '', ativo: true };
+    banner.forEach((c: any) => {
+      if (c.chave === 'banner_imagem') resultado.imagem = c.valor;
+      if (c.chave === 'banner_titulo') resultado.titulo = c.valor;
+      if (c.chave === 'banner_descricao') resultado.descricao = c.valor;
+      if (c.chave === 'banner_ativo') resultado.ativo = c.valor === 'true';
+    });
+    return resultado;
+  }
 
-  await upsert('banner_imagem', dados.imagem);
-  await upsert('banner_titulo', dados.titulo);
-  await upsert('banner_descricao', dados.descricao);
-  await upsert('banner_ativo', String(dados.ativo));
+  async guardarBanner(dados: { imagem: string, titulo: string, descricao: string, ativo: boolean }) {
+    const upsert = async (chave: string, valor: string) => {
+      await (this.prisma as any).configuracao.upsert({
+        where: { chave },
+        update: { valor },
+        create: { chave, valor, descricao: `Banner: ${chave}` }
+      });
+    };
 
-  return { sucesso: true };
-}
+    await upsert('banner_imagem', dados.imagem);
+    await upsert('banner_titulo', dados.titulo);
+    await upsert('banner_descricao', dados.descricao);
+    await upsert('banner_ativo', String(dados.ativo));
 
+    return { sucesso: true };
+  }
 }

@@ -58,7 +58,19 @@ function HomeContent() {
         setView('opening');
       }
     }
-  }, [searchParams, caixasDaLoja]);
+  },
+   [searchParams, caixasDaLoja]);
+
+  useEffect(() => {
+    if (view !== 'opening') {
+      const url = new URL(window.location.href);
+      if (url.searchParams.has('caixa')) {
+        url.searchParams.delete('caixa');
+        window.history.replaceState({}, document.title, url.toString());
+      }
+    }
+  }, [view]); 
+
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);

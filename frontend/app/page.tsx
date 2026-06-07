@@ -15,6 +15,7 @@ import Giveaways from './components/Giveaways';
 
 export default function Home() {
   const [view, setView] = useState<'store' | 'opening' | 'upgrader' | 'daily' | 'profile'| 'admin' | 'battles' | 'coinflip' | 'giveaways'>('store');
+  console.log("A VIEW ATUAL É:", view);
   const [saldo, setSaldo] = useState(0.0); 
   const [xp, setXp] = useState(0);
   const [inventario, setInventario] = useState<any[]>([]); 

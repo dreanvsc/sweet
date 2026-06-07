@@ -701,16 +701,17 @@ export class AppController {
   async buscarInventarioSkins(@Param('userId') userId: string, @Query('tradeUrl') tradeUrl: string) {
     const WAXPEER_API_KEY = '41e5a899f0d2ad7ca905429d5f421d669f3caa02';
     
-    // 🔥 Busca o Steam ID real do utilizador na BD
     const user = await this.prisma.user.findUnique({ where: { id: Number(userId) } });
-    if (!user) return { items: [] };
+    if (!user) return { items: [], erro: 'user not found' };
     
-    const steamId = user.username; // O username é o Steam ID (76561199...)
+    const steamId = user.username;
     
-    const res = await fetch(`https://api.waxpeer.com/v1/user/inventory?steam_id=${steamId}&game=csgo&api=${WAXPEER_API_KEY}`);
+    // 🔥 Tenta endpoint correto da Waxpeer
+    const res = await fetch(`https://api.waxpeer.com/v1/fetch-my-inventory?game=csgo&skip=0&api=${WAXPEER_API_KEY}`);
     const data = await res.json();
-    console.log('Waxpeer response:', JSON.stringify(data).substring(0, 200));
-    return { items: data.items || data.data || [] };
+    
+    // 🔥 Devolve tudo para debug
+    return data;
   }
 
   // Criar troca Waxpeer

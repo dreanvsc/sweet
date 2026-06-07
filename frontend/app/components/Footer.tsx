@@ -56,14 +56,33 @@ export default function Footer() {
         </div>
 
         {/* COLUNA 2: SERVIÇO AO CLIENTE */}
-        <div className="flex flex-col gap-4">
-          <h4 className="text-white font-black text-sm uppercase tracking-widest mb-2">Serviço ao Cliente</h4>
-          <Link href="/provably-fair" className="text-zinc-400 hover:text-emerald-400 text-xs font-semibold transition-colors">⚖️ Comprovadamente Justo</Link>
-          <Link href="/tos" className="text-zinc-400 hover:text-white text-xs font-semibold transition-colors">📄 Termos de Serviço (TOS)</Link>
-          <Link href="/aml" className="text-zinc-400 hover:text-white text-xs font-semibold transition-colors">🛡️ Política AML</Link>
-          <Link href="/privacidade" className="text-zinc-400 hover:text-white text-xs font-semibold transition-colors">🔒 Política de Privacidade</Link>
-          <Link href="/faq" className="text-zinc-400 hover:text-white text-xs font-semibold transition-colors">❓ Perguntas Frequentes</Link>
-        </div>
+        <ul className="space-y-3 mt-4">
+  <li>
+    <Link href="/fairness" className="text-zinc-400 hover:text-emerald-400 transition-colors text-xs font-bold flex items-center gap-2">
+      ⚖️ Comprovadamente Justo
+    </Link>
+  </li>
+  <li>
+    <Link href="/tos" className="text-zinc-400 hover:text-emerald-400 transition-colors text-xs font-bold flex items-center gap-2">
+      📄 Termos de Serviço (TOS)
+    </Link>
+  </li>
+  <li>
+    <Link href="/aml" className="text-zinc-400 hover:text-emerald-400 transition-colors text-xs font-bold flex items-center gap-2">
+      🛡️ Política AML
+    </Link>
+  </li>
+  <li>
+    <Link href="/privacy" className="text-zinc-400 hover:text-emerald-400 transition-colors text-xs font-bold flex items-center gap-2">
+      🔒 Política de Privacidade
+    </Link>
+  </li>
+  <li>
+    <Link href="/faq" className="text-zinc-400 hover:text-emerald-400 transition-colors text-xs font-bold flex items-center gap-2">
+      ❓ Perguntas Frequentes
+    </Link>
+  </li>
+</ul>
 
         {/* COLUNA 3: A MINHA CONTA */}
         <div className="flex flex-col gap-4">

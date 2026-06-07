@@ -1,8 +1,8 @@
 // @ts-nocheck
 'use client';
 /* eslint-disable */
-import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';  // 🔥 NOVO
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import LiveDrops from './components/LiveDrops';
 import Sidebar from './components/Sidebar';
 import CaseOpening from './components/case-opening/CaseOpening';
@@ -13,9 +13,8 @@ import CaseBattles from './components/battles/CaseBattles';
 import Coinflip from './components/coinflip/Coinflip'; 
 import Giveaways from './components/Giveaways';
 
-export default function Home() {
+function HomeContent() {
   const [view, setView] = useState<'store' | 'opening' | 'upgrader' | 'daily' | 'profile'| 'admin' | 'battles' | 'coinflip' | 'giveaways'>('store');
-  console.log("A VIEW ATUAL É:", view);
   const [saldo, setSaldo] = useState(0.0); 
   const [xp, setXp] = useState(0);
   const [inventario, setInventario] = useState<any[]>([]); 
@@ -28,14 +27,13 @@ export default function Home() {
   const [userData, setUserData] = useState<any>(null); 
   const [caixasDaLoja, setCaixasDaLoja] = useState<any[]>([]);
 
-  // 🔥 NOVO: Ferramentas de navegação
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const nivel = Math.floor(xp / 100) + 1;
   const progressoNivel = xp % 100;
 
-  // 🔥 NOVO: Lê o parâmetro "caixa" na URL e abre automaticamente se existir
+  // Lê o parâmetro "caixa" na URL e abre automaticamente se existir
   useEffect(() => {
     const caixaIdNoLink = searchParams.get('caixa');
     if (caixaIdNoLink && caixasDaLoja.length > 0) {
@@ -93,10 +91,9 @@ export default function Home() {
       .catch(err => console.error(err));
   }, []);
 
-  // Divisão das caixas para o Layout (Evento vs Normais)
   const caixasEvento = caixasDaLoja.filter((c: any) => c.isEvento === true);
   const caixasNormais = caixasDaLoja.filter((c: any) => c.isEvento !== true);
-  console.log('🔍 View atual:', view);
+
   return (
     <main className="min-h-screen bg-[#0b0b0d] text-zinc-200 font-sans flex flex-col overflow-x-hidden w-full max-w-[100vw]">
       <LiveDrops drops={liveDrops} />
@@ -109,18 +106,14 @@ export default function Home() {
           {view === 'store' && (
             <div className="w-full max-w-[1500px] mx-auto animate-in fade-in pb-16">
               
-              {/* ================================================================================= */}
-              {/* 1. BANNER DO EVENTO */}
-              {/* ================================================================================= */}
+              {/* BANNER DO EVENTO */}
               <div className="w-full relative rounded-2xl overflow-hidden mb-10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] group border border-white/5 cursor-pointer mt-2">
                 <img 
                   src="https://cdn.cloudflare.steamstatic.com/apps/csgo/images/csgo_react/social/cs2.jpg" 
                   alt="Banner Evento" 
                   className="w-full h-[200px] md:h-[300px] lg:h-[350px] object-cover group-hover:scale-105 transition-transform duration-700" 
                 />
-                
                 <div className="absolute inset-0 bg-gradient-to-t from-[#0b0b0d] via-black/40 to-transparent"></div>
-                
                 <div className="absolute bottom-6 left-6 md:bottom-10 md:left-10 z-10">
                   <div className="bg-yellow-500 text-black text-[10px] md:text-xs font-black px-2 py-1 rounded-sm uppercase tracking-widest w-max mb-3">
                     Evento Limitado
@@ -134,16 +127,13 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* ================================================================================= */}
-              {/* 2. CAIXAS DO EVENTO (Grelha 6 Colunas - Imagem a ocupar tudo) */}
-              {/* ================================================================================= */}
+              {/* CAIXAS DO EVENTO */}
               <div className="mb-16">
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4">
                   {caixasEvento.map((c: any, i: number) => (
                     <div 
                       key={c.id || i} 
                       onClick={() => {
-                        // 🔥 ADICIONA O PARÂMETRO "caixa" À URL
                         router.push(`/?caixa=${c.id}`, { scroll: false });
                         setCaixaSelecionada(c);
                         setView('opening');
@@ -153,7 +143,6 @@ export default function Home() {
                       <div className="absolute top-0 left-0 bg-yellow-500 text-black text-[9px] font-black px-2 py-1 rounded-br-lg uppercase z-20">
                         EVENTO
                       </div>
-
                       {c.imagem && (
                         <img 
                           src={c.imagem} 
@@ -161,15 +150,12 @@ export default function Home() {
                           className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 z-0" 
                         />
                       )}
-
                       <div className="absolute inset-0 bg-gradient-to-t from-[#0b0b0d] via-[#0b0b0d]/50 to-transparent z-10"></div>
-
                       <div className="relative z-20 w-full p-3 flex flex-col items-center">
                         <span className="text-zinc-100 text-[11px] sm:text-xs font-black uppercase tracking-widest truncate w-full text-center drop-shadow-md">
                           {c.nome}
                         </span>
                         <div className="w-6 h-[2px] bg-yellow-500/80 my-2 rounded-full"></div>
-                        
                         <div className="bg-black/60 backdrop-blur-sm border border-white/10 px-3 py-1 rounded-md flex items-center justify-center gap-1.5 w-max">
                           <span className="text-yellow-500 text-[10px] font-black">€</span>
                           <span className="text-white font-bold text-xs sm:text-sm">
@@ -182,22 +168,18 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* ================================================================================= */}
-              {/* 3. RESTO DA LOJA */}
-              {/* ================================================================================= */}
+              {/* RESTO DA LOJA */}
               {caixasNormais.length > 0 && (
                 <>
                   <div className="flex items-center gap-4 mb-6">
                     <h2 className="text-2xl md:text-3xl font-black italic uppercase tracking-tighter text-zinc-300">Todas as Caixas</h2>
                     <div className="h-px flex-1 bg-white/5"></div>
                   </div>
-
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4">
                     {caixasNormais.map((c: any, i: number) => (
                       <div 
                         key={c.id || i} 
                         onClick={() => {
-                          // 🔥 ADICIONA O PARÂMETRO "caixa" À URL
                           router.push(`/?caixa=${c.id}`, { scroll: false });
                           setCaixaSelecionada(c);
                           setView('opening');
@@ -211,15 +193,12 @@ export default function Home() {
                             className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 z-0" 
                           />
                         )}
-
                         <div className="absolute inset-0 bg-gradient-to-t from-[#0b0b0d] via-[#0b0b0d]/50 to-transparent z-10"></div>
-
                         <div className="relative z-20 w-full p-3 flex flex-col items-center">
                           <span className="text-zinc-100 text-[11px] sm:text-xs font-black uppercase tracking-widest truncate w-full text-center drop-shadow-md">
                             {c.nome}
                           </span>
                           <div className="w-6 h-[2px] bg-emerald-500/80 my-2 rounded-full"></div>
-                          
                           <div className="bg-black/60 backdrop-blur-sm border border-white/10 px-3 py-1 rounded-md flex items-center justify-center gap-1.5 w-max group-hover:bg-emerald-500/10 transition-colors">
                             <span className="text-emerald-500 text-[10px] font-black">€</span>
                             <span className="text-white font-bold text-xs sm:text-sm">
@@ -232,7 +211,6 @@ export default function Home() {
                   </div>
                 </>
               )}
-
             </div>
           )}
 
@@ -254,14 +232,16 @@ export default function Home() {
           )}
 
           {view === 'daily' && (
-             <div className="max-w-4xl mx-auto w-full text-center">
-                 <h2 className="text-4xl font-black italic uppercase">Bónus Diário</h2>
-             </div>
+            <div className="max-w-4xl mx-auto w-full text-center">
+              <h2 className="text-4xl font-black italic uppercase">Bónus Diário</h2>
+            </div>
           )}
+
           {view === 'profile' && (
             <Profile user={userData} nome={userData?.nome || userData?.username || "Patrão"} avatar={userData?.avatar || userData?.imagem || "/skins/glock.png"} inventario={inventario} saldo={saldo} setSaldo={setSaldo} nivel={nivel} xp={xp} setInventario={setInventario} userId={userId} setView={setView} />
           )}
-          {view === 'admin' && ( <Admin userId={userId} /> )}
+
+          {view === 'admin' && <Admin userId={userId} />}
 
           {view === 'battles' && (
             <CaseBattles userId={userId} user={{ id: userId, nome: userData?.nome || "Jogador", avatar: userData?.avatar || "/skins/glock.png" }} saldo={saldo} caixas={caixasDaLoja} setView={setView} atualizarTudo={atualizarTudo} />
@@ -276,5 +256,13 @@ export default function Home() {
         </section>
       </div>
     </main>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={null}>
+      <HomeContent />
+    </Suspense>
   );
 }

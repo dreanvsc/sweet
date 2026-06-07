@@ -6,13 +6,15 @@ import CaseRoulettes from './CaseRoulettes';
 import CaseContents from './CaseContents';
 import CaseVictoryModal from './CaseVictoryModal';
 import { toast } from 'react-hot-toast';
+import { useRouter } from 'next/navigation'; // 🔥 NOVO
 
 export default function CaseOpening({ 
   caixaSelecionada, saldo, setSaldo, setXp, setView, setInventario, userId, addDropToFeed 
 }: any) {
   
+  const router = useRouter(); // 🔥 NOVO
   const [isSpinning, setIsSpinning] = useState(false);
-  const [isFetching, setIsFetching] = useState(false); // 🔥 NOVA STATE
+  const [isFetching, setIsFetching] = useState(false);
   const [itemSorteado, setItemSorteado] = useState<any>(null);
   const [roletas, setRoletas] = useState<any[][]>([]);
   const [fastOpen, setFastOpen] = useState(false);
@@ -41,7 +43,7 @@ export default function CaseOpening({
     const precoTotal = caixaSelecionada.preco * quantidade;
     if (saldo < precoTotal) return toast.error(`Saldo insuficiente! Precisas de ${precoTotal.toFixed(2)}€`);
 
-    setIsFetching(true); // 🔥 Bloqueia o botão enquanto fala com o servidor
+    setIsFetching(true);
     setItemSorteado(null); 
 
     try {
@@ -57,7 +59,6 @@ export default function CaseOpening({
         return;
       }
 
-      // 🔥 1. Primeiro injetamos os vencedores na posição 40 da roleta
       setRoletas(prev => {
         const novas = [...prev];
         v.itensSorteados.forEach((ganho: any, i: number) => {
@@ -69,7 +70,6 @@ export default function CaseOpening({
         return novas;
       });
 
-      // 🔥 2. SÓ AGORA damos ordem à roleta para começar a rodar! (Tempos perfeitamente sincronizados)
       setIsSpinning(true);
       setIsFetching(false);
 
@@ -109,7 +109,11 @@ export default function CaseOpening({
   return (
     <div className="flex flex-col items-center justify-center animate-in fade-in pb-20 w-full max-w-full px-2 sm:px-0">
       
-      <button onClick={() => setView('store')} className="mb-8 self-start text-zinc-500 hover:text-white flex items-center gap-2 font-bold tracking-widest text-xs uppercase ml-2 sm:ml-0 transition-colors">
+      {/* 🔥 BOTÃO VOLTAR — limpa o ?caixa= do URL */}
+      <button 
+        onClick={() => { router.push('/', { scroll: false }); setView('store'); }} 
+        className="mb-8 self-start text-zinc-500 hover:text-white flex items-center gap-2 font-bold tracking-widest text-xs uppercase ml-2 sm:ml-0 transition-colors"
+      >
         <span>←</span> Voltar à Loja
       </button>
 
@@ -118,7 +122,6 @@ export default function CaseOpening({
         {(caixaSelecionada.preco * quantidade).toFixed(2)}€
       </p>
 
-      {/* Controlos de Fast Open e Quantidade */}
       <div className="flex flex-wrap items-center justify-center gap-4 mb-8">
         <div className="bg-black/50 p-1 rounded-xl border border-white/10 flex gap-1 shadow-inner">
           {[1, 2, 3, 4, 5].map(num => (

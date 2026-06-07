@@ -1,6 +1,9 @@
 import React from 'react';
+import { useRouter } from 'next/navigation'; // 🔥 NOVO
 
 export default function CaseVictoryModal({ itemSorteado, setItemSorteado, setView }: any) {
+  const router = useRouter(); // 🔥 NOVO
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in p-4">
        <div className={`bg-[#161619] border border-emerald-500/30 p-6 sm:p-10 rounded-3xl flex flex-col items-center text-center w-full shadow-[0_0_50px_rgba(16,185,129,0.1)] transform animate-in zoom-in-95 ${itemSorteado.itensSorteados.length > 2 ? 'max-w-4xl' : 'max-w-xl'}`}>
@@ -27,8 +30,19 @@ export default function CaseVictoryModal({ itemSorteado, setItemSorteado, setVie
          )}
          
          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full max-w-md mx-auto">
-            <button onClick={() => setItemSorteado(null)} className="flex-1 py-3 sm:py-4 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-xl transition-colors text-xs sm:text-sm uppercase tracking-widest">GIRAR OUTRA VEZ</button>
-            <button onClick={() => setView('profile')} className="flex-1 py-3 sm:py-4 bg-emerald-500 hover:bg-emerald-400 text-black font-black uppercase tracking-widest rounded-xl transition-colors shadow-lg text-xs sm:text-sm">IR PARA PERFIL</button>
+            <button 
+              onClick={() => setItemSorteado(null)} 
+              className="flex-1 py-3 sm:py-4 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-xl transition-colors text-xs sm:text-sm uppercase tracking-widest"
+            >
+              GIRAR OUTRA VEZ
+            </button>
+            {/* 🔥 IR PARA PERFIL — limpa o ?caixa= do URL */}
+            <button 
+              onClick={() => { router.push('/', { scroll: false }); setView('profile'); }} 
+              className="flex-1 py-3 sm:py-4 bg-emerald-500 hover:bg-emerald-400 text-black font-black uppercase tracking-widest rounded-xl transition-colors shadow-lg text-xs sm:text-sm"
+            >
+              IR PARA PERFIL
+            </button>
          </div>
        </div>
     </div>

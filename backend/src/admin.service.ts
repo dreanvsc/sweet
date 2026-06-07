@@ -168,4 +168,36 @@ export class AdminService {
     }
   }
 
+  async obterBanner() {
+  const banner = await (this.prisma as any).configuracao.findMany({
+    where: { chave: { startsWith: 'banner_' } }
+  });
+  
+  const resultado: any = { imagem: '', titulo: '', descricao: '', ativo: true };
+  banner.forEach((c: any) => {
+    if (c.chave === 'banner_imagem') resultado.imagem = c.valor;
+    if (c.chave === 'banner_titulo') resultado.titulo = c.valor;
+    if (c.chave === 'banner_descricao') resultado.descricao = c.valor;
+    if (c.chave === 'banner_ativo') resultado.ativo = c.valor === 'true';
+  });
+  return resultado;
+}
+
+async guardarBanner(dados: { imagem: string, titulo: string, descricao: string, ativo: boolean }) {
+  const upsert = async (chave: string, valor: string) => {
+    await (this.prisma as any).configuracao.upsert({
+      where: { chave },
+      update: { valor },
+      create: { chave, valor, descricao: `Banner: ${chave}` }
+    });
+  };
+
+  await upsert('banner_imagem', dados.imagem);
+  await upsert('banner_titulo', dados.titulo);
+  await upsert('banner_descricao', dados.descricao);
+  await upsert('banner_ativo', String(dados.ativo));
+
+  return { sucesso: true };
+}
+
 }

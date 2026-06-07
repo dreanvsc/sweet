@@ -685,4 +685,14 @@ export class AppController {
 
     return caixaAtualizada;
   }
+
+  @Get('admin/banner')
+  async obterBanner() {
+    return await this.adminService.obterBanner();
+  }
+
+  @Post('admin/banner')
+  async guardarBanner(@Body() body: { imagem: string, titulo: string, descricao: string, ativo: boolean }) {
+    return await this.adminService.guardarBanner(body);
+  }
 }

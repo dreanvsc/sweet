@@ -824,8 +824,8 @@ async buscarInventarioSkins(@Param('userId') userId: string, @Query('tradeUrl') 
   }
 
   @Post('admin/atualizar-precos')
-async atualizarPrecos() {
-  return await this.adminService.atualizarPrecosMercadoNoturno();
-}
+  async atualizarPrecos() {
+    return await this.adminService.atualizarPrecosMercadoNoturno();
+  }
 
 }

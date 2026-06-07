@@ -5,6 +5,7 @@ import { toast } from 'react-hot-toast';
 
 export default function TabSistema() {
   const [syncLoading, setSyncLoading] = useState(false);
+  const [atualizandoPrecos, setAtualizandoPrecos] = useState(false);
   
   // CONFIGURAÇÕES DE RECOMPENSAS
   const [configSocial, setConfigSocial] = useState('');
@@ -16,13 +17,12 @@ export default function TabSistema() {
   const [promoValor, setPromoValor] = useState('');
   const [promoLimite, setPromoLimite] = useState('');
 
-  // 🔥 NOVOS ESTADOS: EDIÇÃO DE PREÇOS DE SKINS 🔥
+  // EDIÇÃO DE PREÇOS DE SKINS
   const [pesquisaSkin, setPesquisaSkin] = useState('');
   const [skinsEncontradas, setSkinsEncontradas] = useState<any[]>([]);
   const [skinSelecionada, setSkinSelecionada] = useState<any>(null);
   const [novoPrecoSkin, setNovoPrecoSkin] = useState('');
 
-  // Carregar os valores das configurações ao abrir
   useEffect(() => {
     fetch('https://sweet-7ifa.onrender.com/config')
       .then(res => res.json())
@@ -36,7 +36,6 @@ export default function TabSistema() {
       .catch(() => toast.error('Erro ao carregar configurações globais.'));
   }, []);
 
-  // Procurar skin para editar preço
   useEffect(() => {
     if (pesquisaSkin.trim().length < 2) {
       setSkinsEncontradas([]);
@@ -46,14 +45,10 @@ export default function TabSistema() {
       fetch(`https://sweet-7ifa.onrender.com/itens?search=${encodeURIComponent(pesquisaSkin)}`)
         .then(res => res.json())
         .then(data => {
-          if (Array.isArray(data)) {
-            // Filtrar localmente por precaução para mostrar apenas as mais relevantes
-            setSkinsEncontradas(data.slice(0, 5));
-          }
+          if (Array.isArray(data)) setSkinsEncontradas(data.slice(0, 5));
         })
         .catch(() => console.error('Erro ao pesquisar skin.'));
     }, 300);
-
     return () => clearTimeout(delayDebounce);
   }, [pesquisaSkin]);
 
@@ -72,11 +67,9 @@ export default function TabSistema() {
     } catch (e) { toast.error("Erro ao ligar ao servidor.", { id: toastId }); }
   };
 
-  // 🔥 FUNÇÃO PARA GUARDAR O NOVO PREÇO DA SKIN 🔥
   const handleGuardarPrecoSkin = async () => {
     if (!skinSelecionada || !novoPrecoSkin) return toast.error("Seleciona uma skin e insere o preço!");
     const toastId = toast.loading("A atualizar preço da skin...");
-    
     try {
       const res = await fetch(`https://sweet-7ifa.onrender.com/admin/item/preco`, {
         method: 'PUT',
@@ -84,7 +77,6 @@ export default function TabSistema() {
         body: JSON.stringify({ itemId: skinSelecionada.id, preco: parseFloat(novoPrecoSkin) })
       });
       const data = await res.json();
-      
       if (res.ok || data.sucesso) {
         toast.success(`Preço de "${skinSelecionada.nome}" alterado para ${parseFloat(novoPrecoSkin).toFixed(2)}€!`, { id: toastId });
         setSkinSelecionada(null);
@@ -98,32 +90,25 @@ export default function TabSistema() {
     }
   };
 
-  // 🔥 FUNÇÃO BLINDADA COM AUTO-REPETIÇÃO E CAPTURA DE ERRO REAL 🔥
   const handleSincronizar = async (offset = 0) => {
     setSyncLoading(true);
     const toastId = toast.loading(`A processar lote (a partir da arma ${offset})...`);
-    
     try {
       const res = await fetch('https://sweet-7ifa.onrender.com/sincronizar-arsenal', { 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ offset: offset })
       });
-
-      // Capturar erro HTML caso o servidor estoure
       if (!res.ok) {
         const erroTexto = await res.text();
         throw new Error(`Servidor (${res.status}): ${erroTexto.substring(0, 60)}`);
       }
-
       const data = await res.json();
-      
       if (data.finalizado || (data.sucesso && data.message.includes("Todas as skins"))) {
         toast.success("✅ Arsenal completo! Todas as skins carregadas.", { id: toastId, duration: 5000 });
         setSyncLoading(false);
       } else if (data.sucesso) {
         toast.success(data.message, { id: toastId });
-        // Chama o próximo lote automaticamente
         handleSincronizar(data.proximoOffset);
       } else {
         toast.error("❌ " + data.message, { id: toastId, duration: 8000 });
@@ -133,6 +118,26 @@ export default function TabSistema() {
       toast.error('❌ Falha: ' + e.message, { id: toastId, duration: 8000 }); 
       setSyncLoading(false);
     }
+  };
+
+  // 🔥 NOVA FUNÇÃO: ATUALIZAR PREÇOS VIA SKINPORT
+  const atualizarPrecos = async () => {
+    setAtualizandoPrecos(true);
+    const toastId = toast.loading('A atualizar preços via Skinport...');
+    try {
+      const res = await fetch('https://sweet-7ifa.onrender.com/admin/atualizar-precos', {
+        method: 'POST'
+      });
+      const data = await res.json();
+      if (data.sucesso || data.message?.includes('Concluído') || data.message?.includes('preços')) {
+        toast.success(`✅ Preços atualizados com sucesso!`, { id: toastId, duration: 5000 });
+      } else {
+        toast.error('Erro ao atualizar preços.', { id: toastId });
+      }
+    } catch (e) {
+      toast.error('Erro ao ligar ao servidor.', { id: toastId });
+    }
+    setAtualizandoPrecos(false);
   };
 
   const gerarPromo = async () => {
@@ -154,7 +159,7 @@ export default function TabSistema() {
   return (
     <div className="animate-in fade-in space-y-8">
       
-      {/* 🔥 NOVO BLOCO PREMIUM: MODERADOR DE PREÇOS DE SKINS 🔥 */}
+      {/* MODERADOR DE PREÇOS DE SKINS */}
       <div className="bg-[#121215]/80 backdrop-blur-sm border border-emerald-500/20 p-8 rounded-3xl relative overflow-hidden shadow-xl hover:border-emerald-500/40 transition-colors duration-500">
         <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 blur-3xl rounded-full pointer-events-none"></div>
         <h3 className="text-xl font-black uppercase mb-2 text-emerald-400 flex items-center gap-2 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]">
@@ -163,7 +168,6 @@ export default function TabSistema() {
         <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest mb-6">Procura qualquer skin no teu sistema e define um preço personalizado.</p>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
-          {/* Lado Esquerdo: Pesquisa */}
           <div className="flex flex-col gap-3">
             <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">1. Procurar Arma</label>
             <input 
@@ -173,8 +177,6 @@ export default function TabSistema() {
               onChange={(e) => setPesquisaSkin(e.target.value)}
               className="w-full bg-black/60 border border-white/10 rounded-xl p-4 text-xs text-white outline-none focus:border-emerald-500 transition-colors shadow-inner"
             />
-            
-            {/* Resultados Rápidos */}
             {skinsEncontradas.length > 0 && (
               <div className="bg-black/80 border border-white/10 rounded-xl overflow-hidden divide-y divide-white/5 animate-in fade-in duration-200">
                 {skinsEncontradas.map(skin => (
@@ -194,7 +196,6 @@ export default function TabSistema() {
             )}
           </div>
 
-          {/* Lado Direito: Editor de Preço */}
           <div className="bg-black/30 p-5 rounded-2xl border border-white/5 flex flex-col justify-between min-h-[140px]">
             {skinSelecionada ? (
               <div className="space-y-4 animate-in zoom-in-95 duration-200">
@@ -240,40 +241,23 @@ export default function TabSistema() {
           <span className="text-2xl">⚙️</span> Configurações de Recompensas
         </h3>
         <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest mb-6">Altera os valores pagos aos jogadores nas missões.</p>
-        
         <div className="grid grid-cols-1 gap-4 relative z-10">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 bg-black/40 p-5 rounded-2xl border border-white/5 hover:bg-white/[0.02] transition-colors">
-            <div className="flex-1">
-              <h4 className="text-white font-black text-sm uppercase">Vídeos Sociais (TikTok, Insta, YT)</h4>
-              <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest mt-1">Pago ao aprovar o link</p>
+          {[
+            { label: 'Vídeos Sociais (TikTok, Insta, YT)', desc: 'Pago ao aprovar o link', chave: 'recompensa_social', valor: configSocial, set: setConfigSocial },
+            { label: 'Entrada no Discord', desc: 'Pago ao ligar a conta', chave: 'recompensa_discord', valor: configDiscord, set: setConfigDiscord },
+            { label: 'Validação de E-mail', desc: 'Pago ao verificar o e-mail', chave: 'recompensa_email', valor: configEmail, set: setConfigEmail },
+          ].map(cfg => (
+            <div key={cfg.chave} className="flex flex-col sm:flex-row items-start sm:items-center gap-4 bg-black/40 p-5 rounded-2xl border border-white/5 hover:bg-white/[0.02] transition-colors">
+              <div className="flex-1">
+                <h4 className="text-white font-black text-sm uppercase">{cfg.label}</h4>
+                <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest mt-1">{cfg.desc}</p>
+              </div>
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <input type="number" step="0.01" value={cfg.valor} onChange={(e) => cfg.set(e.target.value)} className="w-24 bg-black border border-white/10 rounded-xl p-3 text-emerald-400 font-mono font-black text-center focus:outline-none focus:border-amber-500 transition-colors shadow-inner" />
+                <button onClick={() => atualizarConfiguracao(cfg.chave, cfg.valor)} className="flex-1 sm:flex-none bg-gradient-to-r from-amber-500 to-amber-600 text-black font-black text-[10px] uppercase tracking-widest px-6 py-3.5 rounded-xl transition-all">Guardar</button>
+              </div>
             </div>
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <input type="number" step="0.01" value={configSocial} onChange={(e) => setConfigSocial(e.target.value)} className="w-24 bg-black border border-white/10 rounded-xl p-3 text-emerald-400 font-mono font-black text-center focus:outline-none focus:border-amber-500 transition-colors shadow-inner" />
-              <button onClick={() => atualizarConfiguracao('recompensa_social', configSocial)} className="flex-1 sm:flex-none bg-gradient-to-r from-amber-500 to-amber-600 text-black font-black text-[10px] uppercase tracking-widest px-6 py-3.5 rounded-xl transition-all">Guardar</button>
-            </div>
-          </div>
-
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 bg-black/40 p-5 rounded-2xl border border-white/5 hover:bg-white/[0.02] transition-colors">
-            <div className="flex-1">
-              <h4 className="text-white font-black text-sm uppercase">Entrada no Discord</h4>
-              <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest mt-1">Pago ao ligar a conta</p>
-            </div>
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <input type="number" step="0.01" value={configDiscord} onChange={(e) => setConfigDiscord(e.target.value)} className="w-24 bg-black border border-white/10 rounded-xl p-3 text-emerald-400 font-mono font-black text-center focus:outline-none focus:border-amber-500 transition-colors shadow-inner" />
-              <button onClick={() => atualizarConfiguracao('recompensa_discord', configDiscord)} className="flex-1 sm:flex-none bg-gradient-to-r from-amber-500 to-amber-600 text-black font-black text-[10px] uppercase tracking-widest px-6 py-3.5 rounded-xl transition-all">Guardar</button>
-            </div>
-          </div>
-
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 bg-black/40 p-5 rounded-2xl border border-white/5 hover:bg-white/[0.02] transition-colors">
-            <div className="flex-1">
-              <h4 className="text-white font-black text-sm uppercase">Validação de E-mail</h4>
-              <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest mt-1">Pago ao verificar o e-mail</p>
-            </div>
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <input type="number" step="0.01" value={configEmail} onChange={(e) => setConfigEmail(e.target.value)} className="w-24 bg-black border border-white/10 rounded-xl p-3 text-emerald-400 font-mono font-black text-center focus:outline-none focus:border-amber-500 transition-colors shadow-inner" />
-              <button onClick={() => atualizarConfiguracao('recompensa_email', configEmail)} className="flex-1 sm:flex-none bg-gradient-to-r from-amber-500 to-amber-600 text-black font-black text-[10px] uppercase tracking-widest px-6 py-3.5 rounded-xl transition-all">Guardar</button>
-            </div>
-          </div>
+          ))}
         </div>
       </div>
 
@@ -292,10 +276,26 @@ export default function TabSistema() {
       </div>
 
       {/* ARSENAL */}
-      <div className="bg-[#121215]/80 backdrop-blur-sm border border-white/5 p-8 rounded-3xl relative overflow-hidden shadow-xl">
-        <h4 className="font-black text-white mb-4 uppercase tracking-widest text-sm flex items-center gap-2"><span>🌍</span> Arsenal Global</h4>
-        {/* 🔥 A CORREÇÃO DO CLIQUE ESTÁ AQUI ABAIXO 🔥 */}
-        <button onClick={() => handleSincronizar(0)} disabled={syncLoading} className="w-full py-4 bg-zinc-800 text-white font-black uppercase rounded-xl transition-all border border-white/5 hover:bg-zinc-700">{syncLoading ? 'A SINCRONIZAR ARSENAL (NÃO FECHES A PÁGINA)...' : '⬇️ Sincronizar Base de Dados de Skins'}</button>
+      <div className="bg-[#121215]/80 backdrop-blur-sm border border-white/5 p-8 rounded-3xl relative overflow-hidden shadow-xl space-y-4">
+        <h4 className="font-black text-white uppercase tracking-widest text-sm flex items-center gap-2"><span>🌍</span> Arsenal Global</h4>
+        
+        {/* Sincronizar skins */}
+        <button 
+          onClick={() => handleSincronizar(0)} 
+          disabled={syncLoading} 
+          className="w-full py-4 bg-zinc-800 text-white font-black uppercase rounded-xl transition-all border border-white/5 hover:bg-zinc-700 disabled:opacity-50"
+        >
+          {syncLoading ? 'A SINCRONIZAR ARSENAL (NÃO FECHES A PÁGINA)...' : '⬇️ Sincronizar Base de Dados de Skins'}
+        </button>
+
+        {/* 🔥 NOVO: Atualizar preços */}
+        <button 
+          onClick={atualizarPrecos}
+          disabled={atualizandoPrecos}
+          className="w-full py-4 bg-zinc-800 text-white font-black uppercase rounded-xl transition-all border border-emerald-500/20 hover:bg-emerald-500/10 hover:border-emerald-500/40 disabled:opacity-50"
+        >
+          {atualizandoPrecos ? 'A ATUALIZAR PREÇOS (AGUARDA)...' : '💰 Atualizar Preços de Mercado (Skinport)'}
+        </button>
       </div>
 
     </div>

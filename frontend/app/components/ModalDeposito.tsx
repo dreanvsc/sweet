@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast'; 
 
 export default function ModalDeposito({ onClose, userId }: { onClose: () => void, userId: string }) {
@@ -16,6 +16,18 @@ export default function ModalDeposito({ onClose, userId }: { onClose: () => void
   const [skinsSelecionadas, setSkinsSelecionadas] = useState<any[]>([]);
   const [loadingInventario, setLoadingInventario] = useState(false);
   const [depositando, setDepositando] = useState(false);
+
+  // 🔥 Pré-preenche o Trade URL com o que está guardado no perfil
+  useEffect(() => {
+    if (userId) {
+      fetch(`https://sweet-7ifa.onrender.com/utilizador/${userId}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data?.tradeUrl) setTradeUrl(data.tradeUrl);
+        })
+        .catch(() => {});
+    }
+  }, [userId]);
 
   const handlePagar = async () => {
     if (!userId) return toast.error("Erro de sessão.");
@@ -47,9 +59,8 @@ export default function ModalDeposito({ onClose, userId }: { onClose: () => void
     setLoading(false);
   };
 
-  // 🔥 BUSCAR INVENTÁRIO STEAM VIA WAXPEER
+  // 🔥 BUSCAR INVENTÁRIO STEAM
   const buscarInventario = async () => {
-    if (!tradeUrl) return toast.error("Insere o teu Trade URL primeiro!");
     setLoadingInventario(true);
     setSkinsSelecionadas([]);
     try {
@@ -68,6 +79,13 @@ export default function ModalDeposito({ onClose, userId }: { onClose: () => void
     setLoadingInventario(false);
   };
 
+  // 🔥 Carrega inventário automaticamente quando muda para skins e já tem trade URL
+  useEffect(() => {
+    if (metodo === 'skins' && tradeUrl && inventario.length === 0) {
+      buscarInventario();
+    }
+  }, [metodo, tradeUrl]);
+
   const toggleSkin = (skin: any) => {
     setSkinsSelecionadas(prev => {
       const existe = prev.find(s => s.item_id === skin.item_id);
@@ -76,13 +94,18 @@ export default function ModalDeposito({ onClose, userId }: { onClose: () => void
     });
   };
 
-  const valorTotalSkins = skinsSelecionadas.reduce((acc, s) => acc + (s.price / 1000), 0);
+  // 🔥 Preço em euros (o backend já devolve em cents/1000)
+  const getPreco = (skin: any) => {
+    if (!skin.price || skin.price === 0) return 0;
+    return skin.price / 1000;
+  };
 
-  // 🔥 DEPOSITAR SKINS VIA WAXPEER
+  const valorTotalSkins = skinsSelecionadas.reduce((acc, s) => acc + getPreco(s), 0);
+
+  // 🔥 DEPOSITAR SKINS
   const depositarSkins = async () => {
     if (skinsSelecionadas.length === 0) return toast.error("Seleciona pelo menos uma skin!");
-    if (!tradeUrl) return toast.error("Insere o teu Trade URL!");
-    if (valorTotalSkins < 1) return toast.error("Valor mínimo de depósito é 1€.");
+    if (valorTotalSkins < 0.5) return toast.error("Valor mínimo de depósito é 0.50€.");
 
     setDepositando(true);
     try {
@@ -92,7 +115,7 @@ export default function ModalDeposito({ onClose, userId }: { onClose: () => void
         body: JSON.stringify({
           userId,
           tradeUrl,
-          items: skinsSelecionadas.map(s => ({ item_id: s.item_id, price: s.price }))
+          items: skinsSelecionadas.map(s => ({ item_id: s.item_id, price: s.price, name: s.name }))
         })
       });
       const data = await res.json();
@@ -137,7 +160,6 @@ export default function ModalDeposito({ onClose, userId }: { onClose: () => void
                 <button onClick={() => setMetodo('crypto')} className={`p-3 rounded-xl border flex flex-col items-center gap-1.5 transition-all duration-300 ${metodo === 'crypto' ? 'bg-amber-500/10 border-amber-500 text-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.2)] scale-105' : 'bg-black/40 border-white/5 text-zinc-500 hover:border-white/20 hover:bg-black/60'}`}>
                   <span className="text-xl">₿</span><span className="text-[9px] font-black uppercase">Crypto</span>
                 </button>
-                {/* 🔥 NOVO: SKINS */}
                 <button onClick={() => setMetodo('skins')} className={`p-3 rounded-xl border flex flex-col items-center gap-1.5 transition-all duration-300 ${metodo === 'skins' ? 'bg-orange-500/10 border-orange-500 text-orange-400 shadow-[0_0_15px_rgba(249,115,22,0.2)] scale-105' : 'bg-black/40 border-white/5 text-zinc-500 hover:border-white/20 hover:bg-black/60'}`}>
                   <span className="text-xl">🔫</span><span className="text-[9px] font-black uppercase">Skins</span>
                 </button>
@@ -148,43 +170,55 @@ export default function ModalDeposito({ onClose, userId }: { onClose: () => void
                 <div className="animate-in fade-in slide-in-from-bottom-2">
                   <div className="bg-orange-500/10 border border-orange-500/20 rounded-xl p-4 mb-4">
                     <p className="text-[10px] text-orange-400 font-black uppercase tracking-widest mb-1">💡 Como funciona</p>
-                    <p className="text-[10px] text-zinc-400">Seleciona as tuas skins CS2 e o bot da Waxpeer envia-te uma proposta de troca. Após aceites, o saldo é creditado automaticamente.</p>
+                    <p className="text-[10px] text-zinc-400">Seleciona as tuas skins CS2 e recebe o saldo equivalente automaticamente.</p>
                   </div>
 
-                  {/* Trade URL */}
-                  <div className="mb-4">
-                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2 block">O teu Trade URL</label>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={tradeUrl}
-                        onChange={e => setTradeUrl(e.target.value)}
-                        placeholder="https://steamcommunity.com/tradeoffer/new/?partner=..."
-                        className="flex-1 bg-black/60 border border-white/10 rounded-xl p-3 text-white text-[11px] outline-none focus:border-orange-500 transition-colors"
-                      />
-                      <button
-                        onClick={buscarInventario}
-                        disabled={loadingInventario}
-                        className="px-4 py-2 bg-orange-500 hover:bg-orange-400 text-black font-black text-[10px] uppercase rounded-xl transition-all disabled:opacity-50 shrink-0"
-                      >
-                        {loadingInventario ? '...' : 'CARREGAR'}
-                      </button>
+                  {/* Trade URL — só mostra se não tiver */}
+                  {!tradeUrl ? (
+                    <div className="mb-4">
+                      <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2 block">O teu Trade URL</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={tradeUrl}
+                          onChange={e => setTradeUrl(e.target.value)}
+                          placeholder="https://steamcommunity.com/tradeoffer/new/?partner=..."
+                          className="flex-1 bg-black/60 border border-white/10 rounded-xl p-3 text-white text-[11px] outline-none focus:border-orange-500 transition-colors"
+                        />
+                        <button
+                          onClick={buscarInventario}
+                          disabled={loadingInventario}
+                          className="px-4 py-2 bg-orange-500 hover:bg-orange-400 text-black font-black text-[10px] uppercase rounded-xl transition-all disabled:opacity-50 shrink-0"
+                        >
+                          {loadingInventario ? '...' : 'CARREGAR'}
+                        </button>
+                      </div>
+                      <a href="https://steamcommunity.com/my/tradeoffers/privacy" target="_blank" className="text-[9px] text-orange-400 hover:text-orange-300 mt-1 block">
+                        Onde encontrar o meu Trade URL? →
+                      </a>
                     </div>
-                    <a href="https://steamcommunity.com/my/tradeoffers/privacy" target="_blank" className="text-[9px] text-orange-400 hover:text-orange-300 mt-1 block">
-                      Onde encontrar o meu Trade URL? →
-                    </a>
-                  </div>
+                  ) : loadingInventario ? (
+                    <div className="flex items-center justify-center py-8 gap-3">
+                      <span className="w-5 h-5 border-2 border-orange-500 border-t-transparent rounded-full animate-spin"></span>
+                      <span className="text-[11px] text-zinc-400 font-black uppercase">A carregar inventário...</span>
+                    </div>
+                  ) : null}
 
                   {/* Inventário */}
                   {inventario.length > 0 && (
                     <div>
                       <div className="flex justify-between items-center mb-2">
-                        <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Seleciona as Skins</label>
-                        <span className="text-[10px] text-orange-400 font-black">{skinsSelecionadas.length} selecionadas · {valorTotalSkins.toFixed(2)}€</span>
+                        <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">
+                          {inventario.length} skins disponíveis
+                        </label>
+                        <span className="text-[10px] text-orange-400 font-black">
+                          {skinsSelecionadas.length} selecionadas · {valorTotalSkins.toFixed(2)}€
+                        </span>
                       </div>
-                      <div className="grid grid-cols-4 gap-2 max-h-48 overflow-y-auto pr-1 custom-scrollbar mb-4">
+                      <div className="grid grid-cols-4 gap-2 max-h-52 overflow-y-auto pr-1 custom-scrollbar mb-4">
                         {inventario.map((skin: any) => {
                           const selecionada = skinsSelecionadas.find(s => s.item_id === skin.item_id);
+                          const preco = getPreco(skin);
                           return (
                             <div
                               key={skin.item_id}
@@ -203,7 +237,9 @@ export default function ModalDeposito({ onClose, userId }: { onClose: () => void
                                 onError={(e: any) => { e.currentTarget.src = '/skins/glock.png'; }}
                               />
                               <span className="text-[8px] text-zinc-300 font-bold text-center truncate w-full mt-1">{skin.name}</span>
-                              <span className="text-[9px] text-emerald-400 font-black">{(skin.price / 1000).toFixed(2)}€</span>
+                              <span className={`text-[9px] font-black ${preco > 0 ? 'text-emerald-400' : 'text-zinc-600'}`}>
+                                {preco > 0 ? `${preco.toFixed(2)}€` : 'Sem preço'}
+                              </span>
                             </div>
                           );
                         })}
@@ -211,17 +247,16 @@ export default function ModalDeposito({ onClose, userId }: { onClose: () => void
 
                       <button
                         onClick={depositarSkins}
-                        disabled={depositando || skinsSelecionadas.length === 0}
+                        disabled={depositando || skinsSelecionadas.length === 0 || valorTotalSkins < 0.5}
                         className="w-full py-4 bg-gradient-to-r from-orange-500 to-orange-400 hover:from-orange-400 hover:to-orange-300 text-black font-black uppercase tracking-widest rounded-xl transition-all shadow-[0_0_20px_rgba(249,115,22,0.3)] disabled:opacity-50"
                       >
-                        {depositando ? 'A ENVIAR TROCA...' : `DEPOSITAR ${valorTotalSkins.toFixed(2)}€ EM SKINS`}
+                        {depositando ? 'A ENVIAR TROCA...' : skinsSelecionadas.length === 0 ? 'SELECIONA SKINS' : `DEPOSITAR ${valorTotalSkins.toFixed(2)}€ EM SKINS`}
                       </button>
                     </div>
                   )}
                 </div>
               ) : (
                 <>
-                  {/* Escolher Valor */}
                   <h3 className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-3">2. Montante (€)</h3>
                   <div className="flex gap-2 mb-6">
                     {[5, 10, 25, 50, 100].map(v => (
@@ -251,7 +286,7 @@ export default function ModalDeposito({ onClose, userId }: { onClose: () => void
             </>
           ) : (
             <div className="text-center py-8 animate-in fade-in zoom-in-95">
-              <span className="text-6xl block mb-6 animate-bounce drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]">
+              <span className="text-6xl block mb-6 animate-bounce">
                 {infoPagamento.metodo === 'mbway' ? '📱' : infoPagamento.metodo === 'skins' ? '🔫' : '💳'}
               </span>
               <h2 className="text-2xl font-black text-white mb-2">

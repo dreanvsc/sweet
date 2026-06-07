@@ -698,36 +698,63 @@ export class AppController {
   
   // Buscar inventário Steam via Waxpeer
   @Get('deposito-skins/inventario/:userId')
-  async buscarInventarioSkins(@Param('userId') userId: string, @Query('tradeUrl') tradeUrl: string) {
-    const user = await this.prisma.user.findUnique({ where: { id: Number(userId) } });
-    if (!user) return { items: [] };
-    
-    const steamId = user.username; // Steam ID real
-    
-    // 🔥 API pública do Steam — não precisa de key
-    const res = await fetch(
-      `https://steamcommunity.com/inventory/${steamId}/730/2?l=english&count=100`
+async buscarInventarioSkins(@Param('userId') userId: string, @Query('tradeUrl') tradeUrl: string) {
+  const WAXPEER_API_KEY = '156774db12463dacfbe3c2a6a9e183bf8462ae60c55de988fe36806950450c8a';
+  
+  const user = await this.prisma.user.findUnique({ where: { id: Number(userId) } });
+  if (!user) return { items: [] };
+  
+  const steamId = user.username;
+  
+  // 1️⃣ Busca inventário Steam
+  const resInv = await fetch(
+    `https://steamcommunity.com/inventory/${steamId}/730/2?l=english&count=100`
+  );
+  const dataInv = await resInv.json();
+  
+  if (!dataInv || !dataInv.assets) return { items: [] };
+
+  // 2️⃣ Monta lista de items tradeable
+  const items = dataInv.assets.map((asset: any) => {
+    const desc = dataInv.descriptions.find(
+      (d: any) => d.classid === asset.classid && d.instanceid === asset.instanceid
     );
-    const data = await res.json();
+    return {
+      item_id: asset.assetid,
+      name: desc?.market_hash_name || 'Unknown',
+      image: desc?.icon_url || '',
+      price: 0,
+      tradable: desc?.tradable === 1
+    };
+  }).filter((i: any) => i.tradable && i.name !== 'Unknown');
+
+  // 3️⃣ Busca preços à Waxpeer
+  try {
+    const resPrecos = await fetch(
+      `https://api.waxpeer.com/v1/prices?game=csgo&api=${WAXPEER_API_KEY}`
+    );
+    const dataPrecos = await resPrecos.json();
     
-    if (!data || !data.assets) return { items: [] };
+    if (dataPrecos.success && dataPrecos.items) {
+      const dictPrecos: Record<string, number> = {};
+      dataPrecos.items.forEach((p: any) => {
+        dictPrecos[p.name] = p.min || 0;
+      });
 
-    // Junta assets com descriptions para ter nome e imagem
-    const items = data.assets.map((asset: any) => {
-      const desc = data.descriptions.find(
-        (d: any) => d.classid === asset.classid && d.instanceid === asset.instanceid
-      );
-      return {
-        item_id: asset.assetid,
-        name: desc?.market_hash_name || 'Unknown',
-        image: desc?.icon_url || '',
-        price: 0, // vais buscar o preço à Waxpeer depois
-        tradable: desc?.tradable === 1
-      };
-    }).filter((i: any) => i.tradable); // só skins tradeable
+      // Adiciona preço a cada item (em cents × 1000 para consistência)
+      const itemsComPreco = items.map((item: any) => ({
+        ...item,
+        price: dictPrecos[item.name] ? Math.round(dictPrecos[item.name] * 10) : 0
+      }));
 
-    return { items };
+      return { items: itemsComPreco };
+    }
+  } catch (e) {
+    console.error('Erro ao buscar preços Waxpeer:', e);
   }
+
+  return { items };
+}
 
   // Criar troca Waxpeer
   @Post('deposito-skins/criar')

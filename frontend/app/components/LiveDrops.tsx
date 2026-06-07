@@ -23,8 +23,12 @@ const DROPS_BOTS_BASE = [
   { nome: 'Butterfly Knife | Fade', raridade: 'Lendário', valor: 2100.00 },
 ];
 
-const getAvatar = (nome: string) =>
-  `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(nome)}&backgroundColor=0b0b0d`;
+const getAvatar = (nome: string) => {
+  const seed = nome.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+  const id = (seed % 70) + 1; // números de 1 a 70
+  const genero = seed % 2 === 0 ? 'men' : 'women';
+  return `https://randomuser.me/api/portraits/${genero}/${id}.jpg`;
+};
 
 const gerarDropBot = (skins: any[]) => {
   const nome = NOMES_BOTS[Math.floor(Math.random() * NOMES_BOTS.length)];

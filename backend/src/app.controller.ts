@@ -747,4 +747,53 @@ export class AppController {
     }
     return { sucesso: false, mensagem: data.msg };
   }
+
+  @Post('admin/injetar-saldo')
+  async injetarSaldo(@Body() body: { adminId: string, alvoId: string, valor: number }) {
+    const { adminId, alvoId, valor } = body;
+
+    // 1. Validação de segurança básica
+    if (!adminId || !alvoId || !valor || valor <= 0) {
+      return { sucesso: false, erro: 'Dados inválidos ou valor zero.' };
+    }
+
+    try {
+      // 2. CONVERSÃO PARA NÚMERO: Converter os IDs recebidos do Frontend
+      const idAdminNum = Number(adminId);
+      const idAlvoNum = Number(alvoId);
+
+      if (isNaN(idAdminNum) || isNaN(idAlvoNum)) {
+        return { sucesso: false, erro: 'Os IDs fornecidos têm de ser números válidos.' };
+      }
+
+      // 3. SEGURANÇA: Verificar se quem está a pedir é mesmo o Admin/Patrão
+      // 🔥 Ajustado para 'this.prisma.user'
+      const admin = await this.prisma.user.findUnique({
+        where: { id: idAdminNum }
+      });
+
+      if (!admin || (admin.role !== 'admin' && admin.role !== 'ADMIN' && idAdminNum !== 1)) {
+        return { sucesso: false, erro: 'Acesso negado! Não és um Administrador.' };
+      }
+
+      // 4. O COFRE: Injetar o dinheiro na conta do jogador (Incremento numérico)
+      // 🔥 Ajustado para 'this.prisma.user'
+      await this.prisma.user.update({
+        where: { id: idAlvoNum },
+        data: {
+          saldo: {
+            increment: parseFloat(valor.toString())
+          }
+        }
+      });
+
+      console.log(`🏦 BANCO: Admin #${idAdminNum} injetou ${valor}€ na conta #${idAlvoNum}`);
+      return { sucesso: true, mensagem: `Injeção de ${valor}€ concluída com sucesso!` };
+
+    } catch (error) {
+      console.error("Erro no Banco Central:", error);
+      return { sucesso: false, erro: 'Erro ao injetar. O ID do jogador existe na Base de Dados?' };
+    }
+  }
+
 }

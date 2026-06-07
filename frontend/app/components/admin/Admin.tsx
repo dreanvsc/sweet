@@ -12,10 +12,11 @@ import AdminLevantamentos from './AdminLevantamentos';
 import AdminVerificacoes from './AdminVerificacoes';
 import TabGiveaways from './TabGiveaways';
 import TabBanner from './TabBanner';
+import TabBanco from './TabBanco';
 
 export default function Admin({ userId }: any) {
   // 🔥 Adicionado 'verificacoes' e 'giveaways' ao estado
-  const [activeTab, setActiveTab] = useState<'users' | 'boxes' | 'stats' | 'system' | 'staff' | 'tickets' | 'livechat' | 'missoes' | 'withdraws' | 'verificacoes'| 'giveaways' | 'banner'>('boxes');
+  const [activeTab, setActiveTab] = useState<'users' | 'boxes' | 'stats' | 'system' | 'staff' | 'tickets' | 'livechat' | 'missoes' | 'withdraws' | 'verificacoes'| 'giveaways' | 'banner'| 'banco'>('boxes');
 
   // =========================================================================
   // 🔥 ESTADOS PARA A EQUIPA (PROMOVER E REMOVER)
@@ -155,6 +156,14 @@ export default function Admin({ userId }: any) {
 
         <div className="w-full h-px bg-white/5 my-2"></div>
 
+        <button 
+            onClick={() => setActiveTab('banco')} 
+            className={`flex items-center gap-3 p-4 rounded-xl text-left transition-all duration-300 mt-2 ${activeTab === 'banco' ? 'bg-gradient-to-r from-emerald-500/20 to-transparent border-l-4 border-emerald-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.15)] translate-x-2' : 'bg-transparent text-zinc-400 hover:text-white hover:bg-white/5 hover:translate-x-1'}`}
+          >
+            <span className="text-lg w-6 text-center drop-shadow-md">🏦</span> 
+            <span className="text-xs font-bold uppercase tracking-widest text-emerald-400">Banco Central</span>
+          </button>
+
         {/* SUPORTE E SEGURANÇA */}
         <div className="flex flex-col gap-1.5 mt-2 mb-4">
           <p className="text-zinc-600 text-[10px] font-black uppercase tracking-widest px-4 mb-2">Suporte & Segurança</p>
@@ -221,6 +230,7 @@ export default function Admin({ userId }: any) {
           {activeTab === 'livechat' && <AdminLiveChat />}
           {activeTab === 'missoes' && <AdminMissoes />}
           {activeTab === 'banner' && <TabBanner />}
+          {activeTab === 'banco' && <TabBanco />}
         
           
           {/* 🔥 ABA DAS VERIFICAÇÕES */}

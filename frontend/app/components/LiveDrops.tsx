@@ -75,7 +75,6 @@ function DropCard({ drop }: { drop: any }) {
         />
       </div>
       <div className="flex flex-col overflow-hidden max-w-[110px]">
-        <span className="text-[9px] font-bold text-zinc-400 truncate">{drop.userNome || 'Jogador'}</span>
         <span className="text-[10px] font-black text-white truncate uppercase">{drop.nome}</span>
         <span className="text-[10px] font-mono font-black text-emerald-500">{Number(drop.valor).toFixed(2)}€</span>
       </div>

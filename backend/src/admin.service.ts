@@ -21,7 +21,9 @@ export class AdminService {
         const resPrecos = await fetch('https://api.skinport.com/v1/items?app_id=730&currency=EUR&tradable=0', { headers: { 'Accept-Encoding': 'br' } });
         if (resPrecos.ok) {
           const dadosSkinport = await resPrecos.json();
-          dadosSkinport.forEach((item: any) => { dictPrecos[item.market_hash_name] = item.suggested_price || item.min_price || item.market_price || null; });
+          dadosSkinport.forEach((item: any) => { 
+            dictPrecos[item.market_hash_name] = item.min_price || item.suggested_price || null; 
+          });
         }
       } catch (e) { console.log("Aviso: A API da Skinport falhou."); }
 
@@ -128,7 +130,7 @@ export class AdminService {
       const precosMercado: Record<string, number> = {};
       
       for (const skin of mercadoRaw) {
-        const precoReal = skin.suggested_price || skin.min_price;
+        const precoReal = skin.min_price || skin.suggested_price;
         if (precoReal) precosMercado[skin.market_hash_name] = precoReal;
       }
 

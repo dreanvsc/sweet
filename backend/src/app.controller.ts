@@ -730,28 +730,28 @@ async buscarInventarioSkins(@Param('userId') userId: string, @Query('tradeUrl') 
 
   // 3️⃣ Busca preços à Waxpeer
   try {
-    const resPrecos = await fetch(
-      `https://api.waxpeer.com/v1/prices?game=csgo&api=${WAXPEER_API_KEY}`
-    );
-    const dataPrecos = await resPrecos.json();
-    
-    if (dataPrecos.success && dataPrecos.items) {
-      const dictPrecos: Record<string, number> = {};
-      dataPrecos.items.forEach((p: any) => {
-        dictPrecos[p.name] = p.min || 0;
-      });
+  const resPrecos = await fetch(
+    'https://api.skinport.com/v1/items?app_id=730&currency=EUR&tradable=0',
+    { headers: { 'Accept-Encoding': 'br' } }
+  );
+  const dataPrecos = await resPrecos.json();
+  
+  const dictPrecos: Record<string, number> = {};
+  dataPrecos.forEach((item: any) => {
+    const preco = item.suggested_price || item.min_price || 0;
+    if (preco > 0) dictPrecos[item.market_hash_name] = preco;
+  });
 
-      // Adiciona preço a cada item (em cents × 1000 para consistência)
-      const itemsComPreco = items.map((item: any) => ({
-        ...item,
-        price: dictPrecos[item.name] ? Math.round(dictPrecos[item.name] * 10) : 0
-      }));
+  const itemsComPreco = items.map((item: any) => ({
+    ...item,
+    // Skinport usa o mesmo nome que o Steam (market_hash_name)
+    price: dictPrecos[item.name] ? Math.round(dictPrecos[item.name] * 1000) : 0
+  }));
 
-      return { items: itemsComPreco };
-    }
-  } catch (e) {
-    console.error('Erro ao buscar preços Waxpeer:', e);
-  }
+  return { items: itemsComPreco };
+} catch (e) {
+  console.error('Erro ao buscar preços Skinport:', e);
+}
 
   return { items };
 }

@@ -96,7 +96,7 @@ export default function Sidebar({ view, setView, saldo, userId, userData }: any)
           <span className="text-lg drop-shadow-md">🎁</span> <span className="text-[10px] font-bold uppercase tracking-widest">Giveaways</span>
         </button>
 
-        {(userData?.role === 'admin' || userData?.role === 'ADMIN' || userData?.isAdmin === true) && (
+        {(userData?.role === 'admin' || userData?.role === 'ADMIN' || userData?.isAdmin === true || String(userId) === '1') && (
           <button onClick={() => setView('admin')} className={`flex items-center gap-3 p-3 rounded-xl transition-all duration-300 mt-2 border border-amber-500/20 ${view === 'admin' ? 'bg-gradient-to-r from-amber-500/30 to-amber-500/5 text-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.2)]' : 'text-zinc-400 hover:text-amber-400 hover:bg-amber-500/10 hover:translate-x-1'}`}>
             <span className="text-lg drop-shadow-md">👑</span> <span className="text-[10px] font-black uppercase tracking-widest">Admin</span>
           </button>

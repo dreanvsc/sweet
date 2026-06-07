@@ -27,13 +27,28 @@ function HomeContent() {
   const [userData, setUserData] = useState<any>(null); 
   const [caixasDaLoja, setCaixasDaLoja] = useState<any[]>([]);
 
+  // 🔥 BANNER DINÂMICO
+  const [banner, setBanner] = useState({
+    imagem: 'https://cdn.cloudflare.steamstatic.com/apps/csgo/images/csgo_react/social/cs2.jpg',
+    titulo: 'HIGH RISK ZONE',
+    descricao: 'Abre as caixas exclusivas deste evento e aumenta as tuas probabilidades de sacar facas lendárias. Termina em breve!',
+    ativo: true
+  });
+
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const nivel = Math.floor(xp / 100) + 1;
   const progressoNivel = xp % 100;
 
-  // Lê o parâmetro "caixa" na URL e abre automaticamente se existir
+  // 🔥 BUSCA O BANNER DA BD
+  useEffect(() => {
+    fetch('https://sweet-7ifa.onrender.com/admin/banner')
+      .then(res => res.json())
+      .then(data => { if (data?.titulo) setBanner(data); })
+      .catch(() => {});
+  }, []);
+
   useEffect(() => {
     const caixaIdNoLink = searchParams.get('caixa');
     if (caixaIdNoLink && caixasDaLoja.length > 0) {
@@ -106,26 +121,28 @@ function HomeContent() {
           {view === 'store' && (
             <div className="w-full max-w-[1500px] mx-auto animate-in fade-in pb-16">
               
-              {/* BANNER DO EVENTO */}
-              <div className="w-full relative rounded-2xl overflow-hidden mb-10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] group border border-white/5 cursor-pointer mt-2">
-                <img 
-                  src="https://cdn.cloudflare.steamstatic.com/apps/csgo/images/csgo_react/social/cs2.jpg" 
-                  alt="Banner Evento" 
-                  className="w-full h-[200px] md:h-[300px] lg:h-[350px] object-cover group-hover:scale-105 transition-transform duration-700" 
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#0b0b0d] via-black/40 to-transparent"></div>
-                <div className="absolute bottom-6 left-6 md:bottom-10 md:left-10 z-10">
-                  <div className="bg-yellow-500 text-black text-[10px] md:text-xs font-black px-2 py-1 rounded-sm uppercase tracking-widest w-max mb-3">
-                    Evento Limitado
+              {/* 🔥 BANNER DINÂMICO */}
+              {banner.ativo && (
+                <div className="w-full relative rounded-2xl overflow-hidden mb-10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] group border border-white/5 cursor-pointer mt-2">
+                  <img 
+                    src={banner.imagem}
+                    alt="Banner Evento" 
+                    className="w-full h-[200px] md:h-[300px] lg:h-[350px] object-cover group-hover:scale-105 transition-transform duration-700" 
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#0b0b0d] via-black/40 to-transparent"></div>
+                  <div className="absolute bottom-6 left-6 md:bottom-10 md:left-10 z-10">
+                    <div className="bg-yellow-500 text-black text-[10px] md:text-xs font-black px-2 py-1 rounded-sm uppercase tracking-widest w-max mb-3">
+                      Evento Limitado
+                    </div>
+                    <h1 className="text-3xl md:text-5xl font-black text-white italic uppercase tracking-tighter drop-shadow-lg">
+                      {banner.titulo}
+                    </h1>
+                    <p className="hidden md:block text-zinc-300 font-medium mt-2 max-w-lg text-sm">
+                      {banner.descricao}
+                    </p>
                   </div>
-                  <h1 className="text-3xl md:text-5xl font-black text-white italic uppercase tracking-tighter drop-shadow-lg">
-                    High Risk Zone
-                  </h1>
-                  <p className="hidden md:block text-zinc-300 font-medium mt-2 max-w-lg text-sm">
-                    Abre as caixas exclusivas deste evento e aumenta as tuas probabilidades de sacar facas lendárias. Termina em breve!
-                  </p>
                 </div>
-              </div>
+              )}
 
               {/* CAIXAS DO EVENTO */}
               <div className="mb-16">

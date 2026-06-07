@@ -699,19 +699,34 @@ export class AppController {
   // Buscar inventário Steam via Waxpeer
   @Get('deposito-skins/inventario/:userId')
   async buscarInventarioSkins(@Param('userId') userId: string, @Query('tradeUrl') tradeUrl: string) {
-    const WAXPEER_API_KEY = '41e5a899f0d2ad7ca905429d5f421d669f3caa02';
-    
     const user = await this.prisma.user.findUnique({ where: { id: Number(userId) } });
-    if (!user) return { items: [], erro: 'user not found' };
+    if (!user) return { items: [] };
     
-    const steamId = user.username;
+    const steamId = user.username; // Steam ID real
     
-    // 🔥 Tenta endpoint correto da Waxpeer
-    const res = await fetch(`https://api.waxpeer.com/v1/fetch-my-inventory?game=csgo&skip=0&api=${WAXPEER_API_KEY}`);
+    // 🔥 API pública do Steam — não precisa de key
+    const res = await fetch(
+      `https://steamcommunity.com/inventory/${steamId}/730/2?l=english&count=100`
+    );
     const data = await res.json();
     
-    // 🔥 Devolve tudo para debug
-    return data;
+    if (!data || !data.assets) return { items: [] };
+
+    // Junta assets com descriptions para ter nome e imagem
+    const items = data.assets.map((asset: any) => {
+      const desc = data.descriptions.find(
+        (d: any) => d.classid === asset.classid && d.instanceid === asset.instanceid
+      );
+      return {
+        item_id: asset.assetid,
+        name: desc?.market_hash_name || 'Unknown',
+        image: desc?.icon_url || '',
+        price: 0, // vais buscar o preço à Waxpeer depois
+        tradable: desc?.tradable === 1
+      };
+    }).filter((i: any) => i.tradable); // só skins tradeable
+
+    return { items };
   }
 
   // Criar troca Waxpeer

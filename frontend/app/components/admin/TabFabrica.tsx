@@ -25,6 +25,17 @@ export default function TabFabrica() {
   // Estado para loading do toggle
   const [togglingId, setTogglingId] = useState<number | null>(null);
 
+  // ✅ FUNÇÃO QUE ESTAVA EM FALTA
+  const carregarCaixas = () => {
+    fetch('https://sweet-7ifa.onrender.com/caixas')
+      .then(res => res.json())
+      .then(data => {
+        const caixasProntas = Array.isArray(data) ? data : [];
+        setCaixasCriadas(caixasProntas);
+      })
+      .catch(err => console.error('Erro ao carregar caixas:', err));
+  };
+
   useEffect(() => {
     fetch('https://sweet-7ifa.onrender.com/itens').then(res => res.json()).then(setTodosItens).catch(console.error);
     carregarCaixas();
@@ -253,8 +264,6 @@ export default function TabFabrica() {
                <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2 block ml-1">Posição</label>
                <input type="number" placeholder="1" value={ordemCaixa} onChange={e => setOrdemCaixa(e.target.value)} className="w-full bg-black/40 border border-white/5 focus:border-emerald-500/50 rounded-xl p-4 text-sm text-white outline-none transition-colors" />
              </div>
-             
-             {/* 🔥 O BLOCO DO UPLOAD DA IMAGEM ESTÁ AQUI */}
              <div>
                <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2 block ml-1">Imagem da Caixa</label>
                <div className="relative w-full h-[52px] bg-black/40 border border-dashed border-white/20 hover:border-emerald-500 rounded-xl flex items-center justify-center overflow-hidden transition-colors cursor-pointer">

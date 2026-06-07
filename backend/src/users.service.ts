@@ -284,4 +284,29 @@ export class UsersService {
       throw new BadRequestException("Erro ao processar o levantamento. A skin pode já ter sido movida.");
     }
   }
+
+  async adicionarSaldo(userId: number, valor: number) {
+  const user = await (this.prisma as any).user.findUnique({ where: { id: userId } });
+  if (!user) throw new BadRequestException('Utilizador não encontrado.');
+
+  const novoSaldo = parseFloat((user.saldo + valor).toFixed(2));
+  const novoTotal = parseFloat(((user.totalDepositado || 0) + valor).toFixed(2));
+
+  await (this.prisma as any).user.update({
+    where: { id: userId },
+    data: { saldo: novoSaldo, totalDepositado: novoTotal }
+  });
+
+  await (this.prisma as any).historicoJogo.create({
+    data: {
+      userId,
+      acao: 'Depósito de Skins',
+      detalhe: `Depositou skins no valor de ${valor.toFixed(2)}€`,
+      valor,
+      tipo: 'GANHO'
+    }
+  });
+
+  return { sucesso: true, novoSaldo };
+}
 }

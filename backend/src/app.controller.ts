@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, UseGuards, Req, Res, Param, Put, Delete, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards, Req, Res, Param, Put, Delete, BadRequestException, NotFoundException, Query } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 
 import { UsersService } from './users.service';
@@ -694,5 +694,33 @@ export class AppController {
   @Post('admin/banner')
   async guardarBanner(@Body() body: { imagem: string, titulo: string, descricao: string, ativo: boolean }) {
     return await this.adminService.guardarBanner(body);
+  }
+  
+  // Buscar inventário Steam via Waxpeer
+  @Get('deposito-skins/inventario/:userId')
+  async buscarInventarioSkins(@Param('userId') userId: string, @Query('tradeUrl') tradeUrl: string) {
+    const WAXPEER_API_KEY = 'SUA_API_KEY_AQUI'; // 41e5a899f0d...
+    const res = await fetch(`https://api.waxpeer.com/v1/steam-inventory?steam_id=${userId}&api=${WAXPEER_API_KEY}`);
+    const data = await res.json();
+    return { items: data.items || [] };
+  }
+
+  // Criar troca Waxpeer
+  @Post('deposito-skins/criar')
+  async criarDepositoSkins(@Body() body: { userId: string, tradeUrl: string, items: any[] }) {
+    const WAXPEER_API_KEY = 'SUA_API_KEY_AQUI';
+    const res = await fetch('https://api.waxpeer.com/v1/merchant/deposit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ api: WAXPEER_API_KEY, trade_url: body.tradeUrl, items: body.items })
+    });
+    const data = await res.json();
+    if (data.success) {
+      // Credita saldo após confirmação
+      const valorTotal = body.items.reduce((acc, i) => acc + (i.price / 1000), 0);
+      await this.usersService.adicionarSaldo(Number(body.userId), valorTotal);
+      return { sucesso: true };
+    }
+    return { sucesso: false, mensagem: data.msg };
   }
 }

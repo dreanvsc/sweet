@@ -4,11 +4,18 @@ import React, { useState } from 'react';
 import { toast } from 'react-hot-toast'; 
 
 export default function ModalDeposito({ onClose, userId }: { onClose: () => void, userId: string }) {
-  const [metodo, setMetodo] = useState<'mbway' | 'cartao' | 'crypto'>('mbway');
+  const [metodo, setMetodo] = useState<'mbway' | 'cartao' | 'crypto' | 'skins'>('mbway');
   const [valor, setValor] = useState<string>('10');
   const [telemovel, setTelemovel] = useState('');
   const [loading, setLoading] = useState(false);
   const [infoPagamento, setInfoPagamento] = useState<any>(null);
+
+  // 🎮 SKINS
+  const [tradeUrl, setTradeUrl] = useState('');
+  const [inventario, setInventario] = useState<any[]>([]);
+  const [skinsSelecionadas, setSkinsSelecionadas] = useState<any[]>([]);
+  const [loadingInventario, setLoadingInventario] = useState(false);
+  const [depositando, setDepositando] = useState(false);
 
   const handlePagar = async () => {
     if (!userId) return toast.error("Erro de sessão.");
@@ -24,16 +31,11 @@ export default function ModalDeposito({ onClose, userId }: { onClose: () => void
       const data = await res.json();
       
       if (res.ok) {
-        // 🔥 A MÁGICA ACONTECE AQUI!
         if (data.metodo === 'crypto' && data.url) {
           toast.success("Redirecionando para a Gateway...");
-          setTimeout(() => {
-            window.location.href = data.url; // 🚀 Atira o jogador direto pro NOWPayments
-          }, 800);
-          return; // Para a execução aqui para não abrir o ecrã de sucesso falso
+          setTimeout(() => { window.location.href = data.url; }, 800);
+          return;
         }
-        
-        // Se for MBWAY ou Cartão, faz o processo normal
         setInfoPagamento(data); 
         toast.success("Pedido de depósito gerado com sucesso!");
       } else {
@@ -43,6 +45,69 @@ export default function ModalDeposito({ onClose, userId }: { onClose: () => void
       toast.error("Erro ao ligar ao servidor."); 
     }
     setLoading(false);
+  };
+
+  // 🔥 BUSCAR INVENTÁRIO STEAM VIA WAXPEER
+  const buscarInventario = async () => {
+    if (!tradeUrl) return toast.error("Insere o teu Trade URL primeiro!");
+    setLoadingInventario(true);
+    setSkinsSelecionadas([]);
+    try {
+      const res = await fetch(`https://sweet-7ifa.onrender.com/deposito-skins/inventario/${userId}?tradeUrl=${encodeURIComponent(tradeUrl)}`);
+      const data = await res.json();
+      if (data.items && data.items.length > 0) {
+        setInventario(data.items);
+        toast.success(`${data.items.length} skins encontradas!`);
+      } else {
+        setInventario([]);
+        toast.error("Nenhuma skin encontrada no inventário.");
+      }
+    } catch (e) {
+      toast.error("Erro ao carregar inventário.");
+    }
+    setLoadingInventario(false);
+  };
+
+  const toggleSkin = (skin: any) => {
+    setSkinsSelecionadas(prev => {
+      const existe = prev.find(s => s.item_id === skin.item_id);
+      if (existe) return prev.filter(s => s.item_id !== skin.item_id);
+      return [...prev, skin];
+    });
+  };
+
+  const valorTotalSkins = skinsSelecionadas.reduce((acc, s) => acc + (s.price / 1000), 0);
+
+  // 🔥 DEPOSITAR SKINS VIA WAXPEER
+  const depositarSkins = async () => {
+    if (skinsSelecionadas.length === 0) return toast.error("Seleciona pelo menos uma skin!");
+    if (!tradeUrl) return toast.error("Insere o teu Trade URL!");
+    if (valorTotalSkins < 1) return toast.error("Valor mínimo de depósito é 1€.");
+
+    setDepositando(true);
+    try {
+      const res = await fetch('https://sweet-7ifa.onrender.com/deposito-skins/criar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          tradeUrl,
+          items: skinsSelecionadas.map(s => ({ item_id: s.item_id, price: s.price }))
+        })
+      });
+      const data = await res.json();
+      if (data.sucesso) {
+        toast.success("✅ Oferta de troca enviada! Aceita no Steam.");
+        setInventario([]);
+        setSkinsSelecionadas([]);
+        setInfoPagamento({ metodo: 'skins', valor: valorTotalSkins.toFixed(2) });
+      } else {
+        toast.error(data.mensagem || "Erro ao criar troca.");
+      }
+    } catch (e) {
+      toast.error("Erro ao ligar ao servidor.");
+    }
+    setDepositando(false);
   };
 
   return (
@@ -62,54 +127,143 @@ export default function ModalDeposito({ onClose, userId }: { onClose: () => void
             <>
               {/* Escolher Método */}
               <h3 className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-3">1. Método de Pagamento</h3>
-              <div className="grid grid-cols-3 gap-3 mb-6">
-                <button onClick={() => setMetodo('mbway')} className={`p-4 rounded-xl border flex flex-col items-center gap-2 transition-all duration-300 ${metodo === 'mbway' ? 'bg-blue-500/10 border-blue-500 text-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.2)] scale-105' : 'bg-black/40 border-white/5 text-zinc-500 hover:border-white/20 hover:bg-black/60'}`}>
-                  <span className="text-2xl drop-shadow-md">📱</span><span className="text-[10px] font-black uppercase">MB Way</span>
+              <div className="grid grid-cols-4 gap-2 mb-6">
+                <button onClick={() => setMetodo('mbway')} className={`p-3 rounded-xl border flex flex-col items-center gap-1.5 transition-all duration-300 ${metodo === 'mbway' ? 'bg-blue-500/10 border-blue-500 text-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.2)] scale-105' : 'bg-black/40 border-white/5 text-zinc-500 hover:border-white/20 hover:bg-black/60'}`}>
+                  <span className="text-xl">📱</span><span className="text-[9px] font-black uppercase">MB Way</span>
                 </button>
-                <button onClick={() => setMetodo('cartao')} className={`p-4 rounded-xl border flex flex-col items-center gap-2 transition-all duration-300 ${metodo === 'cartao' ? 'bg-purple-500/10 border-purple-500 text-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.2)] scale-105' : 'bg-black/40 border-white/5 text-zinc-500 hover:border-white/20 hover:bg-black/60'}`}>
-                  <span className="text-2xl drop-shadow-md">💳</span><span className="text-[10px] font-black uppercase">Cartão</span>
+                <button onClick={() => setMetodo('cartao')} className={`p-3 rounded-xl border flex flex-col items-center gap-1.5 transition-all duration-300 ${metodo === 'cartao' ? 'bg-purple-500/10 border-purple-500 text-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.2)] scale-105' : 'bg-black/40 border-white/5 text-zinc-500 hover:border-white/20 hover:bg-black/60'}`}>
+                  <span className="text-xl">💳</span><span className="text-[9px] font-black uppercase">Cartão</span>
                 </button>
-                <button onClick={() => setMetodo('crypto')} className={`p-4 rounded-xl border flex flex-col items-center gap-2 transition-all duration-300 ${metodo === 'crypto' ? 'bg-amber-500/10 border-amber-500 text-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.2)] scale-105' : 'bg-black/40 border-white/5 text-zinc-500 hover:border-white/20 hover:bg-black/60'}`}>
-                  <span className="text-2xl drop-shadow-md">₿</span><span className="text-[10px] font-black uppercase">Crypto</span>
+                <button onClick={() => setMetodo('crypto')} className={`p-3 rounded-xl border flex flex-col items-center gap-1.5 transition-all duration-300 ${metodo === 'crypto' ? 'bg-amber-500/10 border-amber-500 text-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.2)] scale-105' : 'bg-black/40 border-white/5 text-zinc-500 hover:border-white/20 hover:bg-black/60'}`}>
+                  <span className="text-xl">₿</span><span className="text-[9px] font-black uppercase">Crypto</span>
+                </button>
+                {/* 🔥 NOVO: SKINS */}
+                <button onClick={() => setMetodo('skins')} className={`p-3 rounded-xl border flex flex-col items-center gap-1.5 transition-all duration-300 ${metodo === 'skins' ? 'bg-orange-500/10 border-orange-500 text-orange-400 shadow-[0_0_15px_rgba(249,115,22,0.2)] scale-105' : 'bg-black/40 border-white/5 text-zinc-500 hover:border-white/20 hover:bg-black/60'}`}>
+                  <span className="text-xl">🔫</span><span className="text-[9px] font-black uppercase">Skins</span>
                 </button>
               </div>
 
-              {/* Escolher Valor */}
-              <h3 className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-3">2. Montante (€)</h3>
-              <div className="flex gap-2 mb-6">
-                {[5, 10, 25, 50, 100].map(v => (
-                  <button key={v} onClick={() => setValor(v.toString())} className={`flex-1 py-2 rounded-lg border text-xs font-black transition-all duration-300 ${valor === v.toString() ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.2)]' : 'bg-black/40 border-white/5 text-zinc-400 hover:border-white/20 hover:text-white'}`}>
-                    {v}€
-                  </button>
-                ))}
-              </div>
-              
-              <div className="relative mb-6">
-                <input type="number" value={valor} onChange={e => setValor(e.target.value)} className="w-full bg-black/60 border border-white/10 rounded-xl p-4 pl-12 text-white font-black text-xl outline-none focus:border-emerald-500 transition-colors shadow-inner" />
-                <span className="absolute left-5 top-1/2 -translate-y-1/2 text-emerald-500 font-black text-xl">€</span>
-              </div>
+              {/* MÉTODO SKINS */}
+              {metodo === 'skins' ? (
+                <div className="animate-in fade-in slide-in-from-bottom-2">
+                  <div className="bg-orange-500/10 border border-orange-500/20 rounded-xl p-4 mb-4">
+                    <p className="text-[10px] text-orange-400 font-black uppercase tracking-widest mb-1">💡 Como funciona</p>
+                    <p className="text-[10px] text-zinc-400">Seleciona as tuas skins CS2 e o bot da Waxpeer envia-te uma proposta de troca. Após aceites, o saldo é creditado automaticamente.</p>
+                  </div>
 
-              {/* Input Dinâmico (Telemóvel só para MB WAY) */}
-              {metodo === 'mbway' && (
-                <div className="mb-6 animate-in fade-in slide-in-from-bottom-2">
-                  <h3 className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-3">3. O teu telemóvel MB WAY</h3>
-                  <input type="tel" placeholder="Ex: 912345678" value={telemovel} onChange={e => setTelemovel(e.target.value)} maxLength={9} className="w-full bg-black/60 border border-white/10 rounded-xl p-4 text-white text-sm outline-none focus:border-blue-500 transition-colors shadow-inner" />
+                  {/* Trade URL */}
+                  <div className="mb-4">
+                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2 block">O teu Trade URL</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={tradeUrl}
+                        onChange={e => setTradeUrl(e.target.value)}
+                        placeholder="https://steamcommunity.com/tradeoffer/new/?partner=..."
+                        className="flex-1 bg-black/60 border border-white/10 rounded-xl p-3 text-white text-[11px] outline-none focus:border-orange-500 transition-colors"
+                      />
+                      <button
+                        onClick={buscarInventario}
+                        disabled={loadingInventario}
+                        className="px-4 py-2 bg-orange-500 hover:bg-orange-400 text-black font-black text-[10px] uppercase rounded-xl transition-all disabled:opacity-50 shrink-0"
+                      >
+                        {loadingInventario ? '...' : 'CARREGAR'}
+                      </button>
+                    </div>
+                    <a href="https://steamcommunity.com/my/tradeoffers/privacy" target="_blank" className="text-[9px] text-orange-400 hover:text-orange-300 mt-1 block">
+                      Onde encontrar o meu Trade URL? →
+                    </a>
+                  </div>
+
+                  {/* Inventário */}
+                  {inventario.length > 0 && (
+                    <div>
+                      <div className="flex justify-between items-center mb-2">
+                        <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Seleciona as Skins</label>
+                        <span className="text-[10px] text-orange-400 font-black">{skinsSelecionadas.length} selecionadas · {valorTotalSkins.toFixed(2)}€</span>
+                      </div>
+                      <div className="grid grid-cols-4 gap-2 max-h-48 overflow-y-auto pr-1 custom-scrollbar mb-4">
+                        {inventario.map((skin: any) => {
+                          const selecionada = skinsSelecionadas.find(s => s.item_id === skin.item_id);
+                          return (
+                            <div
+                              key={skin.item_id}
+                              onClick={() => toggleSkin(skin)}
+                              className={`relative bg-black/60 border rounded-xl p-2 cursor-pointer flex flex-col items-center transition-all ${selecionada ? 'border-orange-500 bg-orange-500/10' : 'border-white/5 hover:border-white/20'}`}
+                            >
+                              {selecionada && (
+                                <div className="absolute top-1 right-1 w-4 h-4 bg-orange-500 rounded-full flex items-center justify-center">
+                                  <span className="text-[8px] text-black font-black">✓</span>
+                                </div>
+                              )}
+                              <img
+                                src={`https://community.cloudflare.steamstatic.com/economy/image/${skin.image}`}
+                                className="w-12 h-12 object-contain"
+                                alt={skin.name}
+                                onError={(e: any) => { e.currentTarget.src = '/skins/glock.png'; }}
+                              />
+                              <span className="text-[8px] text-zinc-300 font-bold text-center truncate w-full mt-1">{skin.name}</span>
+                              <span className="text-[9px] text-emerald-400 font-black">{(skin.price / 1000).toFixed(2)}€</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      <button
+                        onClick={depositarSkins}
+                        disabled={depositando || skinsSelecionadas.length === 0}
+                        className="w-full py-4 bg-gradient-to-r from-orange-500 to-orange-400 hover:from-orange-400 hover:to-orange-300 text-black font-black uppercase tracking-widest rounded-xl transition-all shadow-[0_0_20px_rgba(249,115,22,0.3)] disabled:opacity-50"
+                      >
+                        {depositando ? 'A ENVIAR TROCA...' : `DEPOSITAR ${valorTotalSkins.toFixed(2)}€ EM SKINS`}
+                      </button>
+                    </div>
+                  )}
                 </div>
-              )}
+              ) : (
+                <>
+                  {/* Escolher Valor */}
+                  <h3 className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-3">2. Montante (€)</h3>
+                  <div className="flex gap-2 mb-6">
+                    {[5, 10, 25, 50, 100].map(v => (
+                      <button key={v} onClick={() => setValor(v.toString())} className={`flex-1 py-2 rounded-lg border text-xs font-black transition-all duration-300 ${valor === v.toString() ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.2)]' : 'bg-black/40 border-white/5 text-zinc-400 hover:border-white/20 hover:text-white'}`}>
+                        {v}€
+                      </button>
+                    ))}
+                  </div>
+                  
+                  <div className="relative mb-6">
+                    <input type="number" value={valor} onChange={e => setValor(e.target.value)} className="w-full bg-black/60 border border-white/10 rounded-xl p-4 pl-12 text-white font-black text-xl outline-none focus:border-emerald-500 transition-colors shadow-inner" />
+                    <span className="absolute left-5 top-1/2 -translate-y-1/2 text-emerald-500 font-black text-xl">€</span>
+                  </div>
 
-              {/* Botão Pagar */}
-              <button onClick={handlePagar} disabled={loading} className="w-full py-5 bg-gradient-to-r from-emerald-500 to-emerald-400 hover:from-emerald-400 hover:to-emerald-300 text-black font-black uppercase tracking-widest rounded-xl transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] hover:scale-[1.02] disabled:opacity-50 disabled:scale-100">
-                {loading ? 'A processar...' : `PAGAR ${valor}€ AGORA`}
-              </button>
+                  {metodo === 'mbway' && (
+                    <div className="mb-6 animate-in fade-in slide-in-from-bottom-2">
+                      <h3 className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-3">3. O teu telemóvel MB WAY</h3>
+                      <input type="tel" placeholder="Ex: 912345678" value={telemovel} onChange={e => setTelemovel(e.target.value)} maxLength={9} className="w-full bg-black/60 border border-white/10 rounded-xl p-4 text-white text-sm outline-none focus:border-blue-500 transition-colors shadow-inner" />
+                    </div>
+                  )}
+
+                  <button onClick={handlePagar} disabled={loading} className="w-full py-5 bg-gradient-to-r from-emerald-500 to-emerald-400 hover:from-emerald-400 hover:to-emerald-300 text-black font-black uppercase tracking-widest rounded-xl transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] hover:scale-[1.02] disabled:opacity-50 disabled:scale-100">
+                    {loading ? 'A processar...' : `PAGAR ${valor}€ AGORA`}
+                  </button>
+                </>
+              )}
             </>
           ) : (
-            /* ECRÃ DE SUCESSO APENAS PARA MBWAY E CARTÃO */
             <div className="text-center py-8 animate-in fade-in zoom-in-95">
-              <span className="text-6xl block mb-6 animate-bounce drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]">{infoPagamento.metodo === 'mbway' ? '📱' : '💳'}</span>
-              <h2 className="text-2xl font-black text-white mb-2">{infoPagamento.msg}</h2>
+              <span className="text-6xl block mb-6 animate-bounce drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]">
+                {infoPagamento.metodo === 'mbway' ? '📱' : infoPagamento.metodo === 'skins' ? '🔫' : '💳'}
+              </span>
+              <h2 className="text-2xl font-black text-white mb-2">
+                {infoPagamento.metodo === 'skins' ? 'Troca Enviada!' : infoPagamento.msg}
+              </h2>
               
+              {infoPagamento.metodo === 'skins' && (
+                <div className="bg-orange-500/10 border border-orange-500/20 rounded-xl p-4 mb-4">
+                  <p className="text-sm text-zinc-300">Aceita a proposta de troca no Steam.<br/>O teu saldo de <span className="text-orange-400 font-black">{infoPagamento.valor}€</span> será creditado automaticamente.</p>
+                </div>
+              )}
               {infoPagamento.metodo === 'mbway' && <p className="text-sm text-zinc-400 bg-white/5 p-4 rounded-xl border border-white/5">Abre a tua app do banco e confirma o pagamento.</p>}
-              
               {infoPagamento.metodo === 'cartao' && (
                 <a href={infoPagamento.url} target="_blank" className="mt-6 inline-block bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white px-8 py-4 rounded-xl font-black uppercase text-sm shadow-[0_0_20px_rgba(168,85,247,0.4)] hover:scale-105 transition-all">
                   Abrir Checkout Stripe

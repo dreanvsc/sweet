@@ -18,6 +18,19 @@ export default function TabFabrica() {
   const [uploadingImage, setUploadingImage] = useState(false);
   const IMGBB_API_KEY = 'f34e1a15059fa969cecc59e5f3990f3d';
 
+  useEffect(() => {
+    // Só calcula automaticamente se NÃO estivermos a editar uma caixa existente
+    if (!caixaEmEdicaoId) {
+      if (caixasCriadas && caixasCriadas.length > 0) {
+        // Procura o número maior na coluna 'ordem'
+        const maiorPosicao = Math.max(...caixasCriadas.map((c: any) => Number(c.ordem) || 0));
+        setOrdemCaixa((maiorPosicao + 1).toString());
+      } else {
+        setOrdemCaixa('1');
+      }
+    }
+  }, [caixasCriadas, caixaEmEdicaoId]);
+
   // ESTADOS MODO IMPORTAÇÃO
   const [mostrarImportacao, setMostrarImportacao] = useState(false);
   const [jsonInput, setJsonInput] = useState('');

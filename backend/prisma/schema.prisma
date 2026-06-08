@@ -34,6 +34,8 @@ model User {
 
   giveawaysVencidos     Giveaway[]             @relation("VencedorGiveaway")
   giveawaysParticipados ParticipanteGiveaway[]
+
+  depositosSkins  DepositoSkin[]
 }
 
 // O Inventário (Atualizado)
@@ -213,4 +215,17 @@ model BannerEvento {
   titulo    String   @default("HIGH RISK ZONE")
   descricao String   @default("Abre as caixas exclusivas deste evento...")
   ativo     Boolean  @default(true)
+}
+
+model DepositoSkin {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  skinNome    String
+  skinImagem  String
+  skinAssetId String   // ID do asset no Steam
+  valor       Float
+  status      String   @default("PENDENTE") // PENDENTE, CONFIRMADO, REJEITADO
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id])
 }

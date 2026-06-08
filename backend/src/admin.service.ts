@@ -164,12 +164,12 @@ export class AdminService {
         }
 
         // 🔥 Cinta de segurança anti pump & dump (só bloqueia se subir mais de 150%)
-        const limiteSeguranca = skin.preco * 5.00;
-        if (precoNovo > limiteSeguranca && skin.preco > 1) {
-          console.log(`🚨 [ALERTA] ${skin.nome}: ${skin.preco}€ → ${precoNovo}€. Bloqueado!`);
-          ignoradas++;
-          continue;
-        }
+        //const limiteSeguranca = skin.preco * 5.00;
+        //if (precoNovo > limiteSeguranca && skin.preco > 1) {
+         // console.log(`🚨 [ALERTA] ${skin.nome}: ${skin.preco}€ → ${precoNovo}€. Bloqueado!`);
+         // ignoradas++;
+          //continue;
+        //}
 
         await (this.prisma as any).item.update({
           where: { id: skin.id },

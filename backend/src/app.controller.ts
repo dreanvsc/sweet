@@ -825,7 +825,10 @@ async buscarInventarioSkins(@Param('userId') userId: string, @Query('tradeUrl') 
 
   @Post('admin/atualizar-precos')
   async atualizarPrecos() {
-    return await this.adminService.atualizarPrecosMercadoNoturno();
+    this.adminService.atualizarPrecosMercadoNoturno()
+      .then(r => console.log('✅ Preços:', r))
+      .catch(err => console.error('❌ Erro:', err));
+    return { sucesso: true, message: 'Atualização iniciada! Verifica os logs.' };
   }
 
 }

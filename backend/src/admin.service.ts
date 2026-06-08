@@ -6,6 +6,9 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 export class AdminService {
   constructor(private prisma: PrismaService) {}
 
+  // 🔥 Cache para evitar rate limit da Skinport
+  private ultimaAtualizacao: Date | null = null;
+
   async sincronizarArsenal() {
     try {
       const resSkins = await fetch('https://raw.githubusercontent.com/ByMykel/CSGO-API/main/public/api/en/skins.json');
@@ -120,70 +123,82 @@ export class AdminService {
   async atualizarPrecosMercadoNoturno() {
     console.log('🌙 [CRON] A iniciar a atualização de preços pela Skinport...');
 
+    // 🔥 Bloqueia se foi chamado há menos de 30 minutos
+    if (this.ultimaAtualizacao) {
+      const diffMinutos = (Date.now() - this.ultimaAtualizacao.getTime()) / 1000 / 60;
+      if (diffMinutos < 30) {
+        const restante = Math.ceil(30 - diffMinutos);
+        console.log(`⏳ [CRON] Rate limit interno — aguarda ${restante} minutos.`);
+        return { sucesso: false, message: `Aguarda ${restante} minutos para atualizar novamente.` };
+      }
+    }
+    this.ultimaAtualizacao = new Date();
+
     try {
-      // 🔥 Tenta com header de autenticação básica para evitar rate limit
       const respostaApi = await fetch(
         'https://api.skinport.com/v1/items?app_id=730&currency=EUR',
         { headers: { 'Accept-Encoding': 'br', 'User-Agent': 'Mozilla/5.0' } }
       );
 
-      // 🔥 Verifica se a resposta é válida antes de fazer parse
       if (!respostaApi.ok) {
         console.error(`❌ [CRON] Skinport devolveu status ${respostaApi.status}`);
+        this.ultimaAtualizacao = null; // reset para permitir tentar novamente
         return { sucesso: false, message: `Skinport status: ${respostaApi.status}` };
       }
 
       const mercadoRaw = await respostaApi.json();
 
-      // 🔥 Verifica se é um array válido
       if (!Array.isArray(mercadoRaw)) {
         console.error('❌ [CRON] Skinport devolveu formato inválido:', JSON.stringify(mercadoRaw).substring(0, 200));
+        this.ultimaAtualizacao = null;
         return { sucesso: false, message: 'Skinport devolveu formato inválido.' };
       }
 
       console.log(`📦 [CRON] ${mercadoRaw.length} preços recebidos da Skinport.`);
 
+      // Monta dicionário de preços
       const precosMercado: Record<string, number> = {};
       for (const skin of mercadoRaw) {
-        // 🔥 Usa sempre o preço mais baixo
         const precoReal = skin.min_price || skin.suggested_price;
         if (precoReal) precosMercado[skin.market_hash_name] = precoReal;
       }
 
+      // Busca todas as skins da BD
       const minhasSkins = await (this.prisma as any).item.findMany();
       let atualizadas = 0;
-      let ignoradas = 0;
       let semPreco = 0;
 
+      // 🔥 Prepara lista de updates
+      const paraAtualizar: { id: number, preco: number }[] = [];
       for (const skin of minhasSkins) {
         const precoNovo = precosMercado[skin.nome];
-
-        if (!precoNovo || precoNovo <= 0.05) {
-          semPreco++;
-          continue;
-        }
-
-        // 🔥 Cinta de segurança anti pump & dump (só bloqueia se subir mais de 150%)
-        //const limiteSeguranca = skin.preco * 5.00;
-        //if (precoNovo > limiteSeguranca && skin.preco > 1) {
-         // console.log(`🚨 [ALERTA] ${skin.nome}: ${skin.preco}€ → ${precoNovo}€. Bloqueado!`);
-         // ignoradas++;
-          //continue;
-        //}
-
-        await (this.prisma as any).item.update({
-          where: { id: skin.id },
-          data: { preco: parseFloat(precoNovo.toFixed(2)) }
-        });
+        if (!precoNovo || precoNovo <= 0.05) { semPreco++; continue; }
+        paraAtualizar.push({ id: skin.id, preco: parseFloat(precoNovo.toFixed(2)) });
         atualizadas++;
       }
 
-      const msg = `✅ [CRON] Concluído! ${atualizadas} atualizadas, ${ignoradas} bloqueadas, ${semPreco} sem preço.`;
+      // 🔥 Executa em lotes de 200 em paralelo — muito mais rápido
+      const tamanhoLote = 200;
+      for (let i = 0; i < paraAtualizar.length; i += tamanhoLote) {
+        const lote = paraAtualizar.slice(i, i + tamanhoLote);
+        await Promise.all(
+          lote.map((item) =>
+            (this.prisma as any).item.update({
+              where: { id: item.id },
+              data: { preco: item.preco }
+            })
+          )
+        );
+        console.log(`📦 [CRON] Lote ${Math.floor(i / tamanhoLote) + 1}/${Math.ceil(paraAtualizar.length / tamanhoLote)} concluído`);
+      }
+
+      const msg = `✅ [CRON] Concluído! ${atualizadas} atualizadas, ${semPreco} sem preço na Skinport.`;
       console.log(msg);
-      return { sucesso: true, atualizadas, ignoradas, semPreco, message: msg };
+      return { sucesso: true, atualizadas, semPreco, message: msg };
 
     } catch (error: any) {
       console.error('❌ [CRON] Falha:', error);
+      this.ultimaAtualizacao = null;
       throw new Error(error.message || 'Falha ao comunicar com a Skinport.');
     }
   }

@@ -164,7 +164,7 @@ export class AdminService {
         }
 
         // 🔥 Cinta de segurança anti pump & dump (só bloqueia se subir mais de 150%)
-        const limiteSeguranca = skin.preco * 1.50;
+        const limiteSeguranca = skin.preco * 5.00;
         if (precoNovo > limiteSeguranca && skin.preco > 1) {
           console.log(`🚨 [ALERTA] ${skin.nome}: ${skin.preco}€ → ${precoNovo}€. Bloqueado!`);
           ignoradas++;

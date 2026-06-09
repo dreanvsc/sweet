@@ -129,6 +129,13 @@ function HomeContent() {
       .catch(err => console.error(err));
   }, []);
 
+  useEffect(() => {
+    const ping = () => fetch('https://sweet-7ifa.onrender.com/config').catch(() => {});
+    ping();
+    const intervalo = setInterval(ping, 10 * 60 * 1000);
+    return () => clearInterval(intervalo);
+  }, []);
+
   const caixasEvento = caixasDaLoja.filter((c: any) => c.isEvento === true);
   const caixasNormais = caixasDaLoja.filter((c: any) => c.isEvento !== true);
 

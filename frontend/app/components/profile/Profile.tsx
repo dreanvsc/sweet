@@ -6,7 +6,8 @@ import ProfileInventory from './ProfileInventory';
 import ProfileSettings from './ProfileSettings';
 import ProfileHistory from './ProfileHistory';
 import ProfileSupport from './ProfileSupport';
-import ProfileMissions from './ProfileMissions'; // 🔥 IMPORTA A NOVA ABA
+import ProfileMissions from './ProfileMissions'; 
+
 
 export default function Profile({ 
   userId, saldo = 0, setSaldo, xp = 0, inventario = [], setInventario, setView, nome, avatar, user 

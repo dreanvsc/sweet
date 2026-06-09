@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { toast } from 'react-hot-toast';
 
 export default function Footer() {
 
@@ -112,7 +113,7 @@ export default function Footer() {
             👤 O Meu Perfil
           </button>
           
-          <button onClick={() => alert('Sistema de Afiliados a caminho! 🚀')} className="text-left text-zinc-400 hover:text-amber-400 text-xs font-semibold transition-colors">
+          <button onClick={() => toast.success('Sistema de Afiliados a caminho! 🚀', { style: { background: '#121215', color: '#fff', border: '1px solid #f59e0b' }})} className="text-left text-zinc-400 hover:text-amber-400 text-xs font-semibold transition-colors">
             💰 Sistema de Afiliados
           </button>
           

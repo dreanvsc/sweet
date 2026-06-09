@@ -90,7 +90,10 @@ export default function Footer() {
   
           {/* 🔥 O Gatilho (quando clicas aqui, ele clica na Sidebar por ti!) */}
           <button 
-            onClick={() => document.getElementById('btn-abrir-perfil')?.click()} 
+            onClick={() => {
+              document.getElementById('btn-abrir-perfil')?.click();
+              window.scrollTo({ top: 0, behavior: 'smooth' }); // Faz a página deslizar para o topo!
+            }} 
             className="text-left text-zinc-400 hover:text-white text-xs font-semibold transition-colors"
           >
             👤 O Meu Perfil

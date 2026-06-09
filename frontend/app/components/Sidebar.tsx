@@ -108,6 +108,7 @@ export default function Sidebar({ view, setView, saldo, userId, userData }: any)
               <div className="absolute top-0 left-1/2 -translate-x-1/2 w-20 h-20 bg-emerald-500/20 blur-2xl rounded-full"></div>
 
               <div 
+                id="btn-abrir-perfil"
                 onClick={() => setView('profile')}
                 className="flex items-center gap-2 w-full bg-white/5 p-2 rounded-xl mb-3 border border-white/5 overflow-hidden cursor-pointer hover:bg-white/10 hover:border-emerald-500/50 transition-all group relative z-10"
               >

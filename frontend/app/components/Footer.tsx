@@ -87,7 +87,14 @@ export default function Footer() {
         {/* COLUNA 3: A MINHA CONTA */}
         <div className="flex flex-col gap-4">
           <h4 className="text-white font-black text-sm uppercase tracking-widest mb-2">A Minha Conta</h4>
-          <Link href="/perfil" className="text-zinc-400 hover:text-white text-xs font-semibold transition-colors">👤 O Meu Perfil</Link>
+  
+          {/* 🔥 O Gatilho (quando clicas aqui, ele clica na Sidebar por ti!) */}
+          <button 
+            onClick={() => document.getElementById('btn-abrir-perfil')?.click()} 
+            className="text-left text-zinc-400 hover:text-white text-xs font-semibold transition-colors"
+          >
+            👤 O Meu Perfil
+          </button>
           <Link href="/afiliados" className="text-zinc-400 hover:text-amber-400 text-xs font-semibold transition-colors">💰 Sistema de Afiliados</Link>
           <Link href="/historico" className="text-zinc-400 hover:text-white text-xs font-semibold transition-colors">📦 Histórico de Caixas</Link>
           <Link href="/suporte" className="text-zinc-400 hover:text-white text-xs font-semibold transition-colors">🎧 Suporte / Tickets</Link>

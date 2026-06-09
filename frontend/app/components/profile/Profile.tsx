@@ -45,6 +45,7 @@ export default function Profile({
         {abas.map((aba) => (
           <button
             key={aba.nome}
+            id={`tab-${aba.nome}`}
             onClick={() => setActiveTab(aba.nome)}
             className={`flex items-center gap-2 px-6 py-4 text-[10px] font-black uppercase tracking-widest transition-all relative
               ${activeTab === aba.nome ? 'text-[#84c13a]' : 'text-zinc-500 hover:text-white hover:bg-white/5 rounded-t-lg'}`}

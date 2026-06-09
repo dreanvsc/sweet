@@ -4,6 +4,26 @@ import React from 'react';
 import Link from 'next/link';
 
 export default function Footer() {
+
+  // 🔥 O Super Comando à Distância do Chefe
+  const irParaAbaDoPerfil = (nomeExatoDaAba: string) => {
+    // 1. Abre o painel do perfil clicando na Sidebar invisivelmente
+    document.getElementById('btn-abrir-perfil')?.click();
+    
+    // 2. Sobe logo o ecrã para o topo com um deslize suave
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    
+    // 3. Espera 250ms (tempo do site processar a mudança de view) e clica na aba certa!
+    setTimeout(() => {
+      const botaoAba = document.getElementById(`tab-${nomeExatoDaAba}`);
+      if (botaoAba) {
+        botaoAba.click();
+      } else {
+        console.log(`Não encontrei o botão da aba: tab-${nomeExatoDaAba}`);
+      }
+    }, 250);
+  };
+
   return (
     <footer className="w-full bg-[#0a0a0c] border-t border-white/5 pt-12 pb-8 mt-20 relative overflow-hidden z-10 md:ml-[260px] md:w-[calc(100%-260px)]">
       
@@ -57,50 +77,52 @@ export default function Footer() {
 
         {/* COLUNA 2: SERVIÇO AO CLIENTE */}
         <ul className="space-y-3 mt-4">
-  <li>
-    <Link href="/fairness" className="text-zinc-400 hover:text-emerald-400 transition-colors text-xs font-bold flex items-center gap-2">
-      ⚖️ Comprovadamente Justo
-    </Link>
-  </li>
-  <li>
-    <Link href="/tos" className="text-zinc-400 hover:text-emerald-400 transition-colors text-xs font-bold flex items-center gap-2">
-      📄 Termos de Serviço (TOS)
-    </Link>
-  </li>
-  <li>
-    <Link href="/aml" className="text-zinc-400 hover:text-emerald-400 transition-colors text-xs font-bold flex items-center gap-2">
-      🛡️ Política AML
-    </Link>
-  </li>
-  <li>
-    <Link href="/privacy" className="text-zinc-400 hover:text-emerald-400 transition-colors text-xs font-bold flex items-center gap-2">
-      🔒 Política de Privacidade
-    </Link>
-  </li>
-  <li>
-    <Link href="/faq" className="text-zinc-400 hover:text-emerald-400 transition-colors text-xs font-bold flex items-center gap-2">
-      ❓ Perguntas Frequentes
-    </Link>
-  </li>
-</ul>
+          <li>
+            <Link href="/fairness" className="text-zinc-400 hover:text-emerald-400 transition-colors text-xs font-bold flex items-center gap-2">
+              ⚖️ Comprovadamente Justo
+            </Link>
+          </li>
+          <li>
+            <Link href="/tos" className="text-zinc-400 hover:text-emerald-400 transition-colors text-xs font-bold flex items-center gap-2">
+              📄 Termos de Serviço (TOS)
+            </Link>
+          </li>
+          <li>
+            <Link href="/aml" className="text-zinc-400 hover:text-emerald-400 transition-colors text-xs font-bold flex items-center gap-2">
+              🛡️ Política AML
+            </Link>
+          </li>
+          <li>
+            <Link href="/privacy" className="text-zinc-400 hover:text-emerald-400 transition-colors text-xs font-bold flex items-center gap-2">
+              🔒 Política de Privacidade
+            </Link>
+          </li>
+          <li>
+            <Link href="/faq" className="text-zinc-400 hover:text-emerald-400 transition-colors text-xs font-bold flex items-center gap-2">
+              ❓ Perguntas Frequentes
+            </Link>
+          </li>
+        </ul>
 
         {/* COLUNA 3: A MINHA CONTA */}
         <div className="flex flex-col gap-4">
           <h4 className="text-white font-black text-sm uppercase tracking-widest mb-2">A Minha Conta</h4>
-  
-          {/* 🔥 O Gatilho (quando clicas aqui, ele clica na Sidebar por ti!) */}
-          <button 
-            onClick={() => {
-              document.getElementById('btn-abrir-perfil')?.click();
-              window.scrollTo({ top: 0, behavior: 'smooth' }); // Faz a página deslizar para o topo!
-            }} 
-            className="text-left text-zinc-400 hover:text-white text-xs font-semibold transition-colors"
-          >
+          
+          <button onClick={() => irParaAbaDoPerfil('INVENTÁRIO')} className="text-left text-zinc-400 hover:text-white text-xs font-semibold transition-colors">
             👤 O Meu Perfil
           </button>
-          <Link href="/afiliados" className="text-zinc-400 hover:text-amber-400 text-xs font-semibold transition-colors">💰 Sistema de Afiliados</Link>
-          <Link href="/historico" className="text-zinc-400 hover:text-white text-xs font-semibold transition-colors">📦 Histórico de Caixas</Link>
-          <Link href="/suporte" className="text-zinc-400 hover:text-white text-xs font-semibold transition-colors">🎧 Suporte / Tickets</Link>
+          
+          <button onClick={() => alert('Sistema de Afiliados a caminho! 🚀')} className="text-left text-zinc-400 hover:text-amber-400 text-xs font-semibold transition-colors">
+            💰 Sistema de Afiliados
+          </button>
+          
+          <button onClick={() => irParaAbaDoPerfil('HISTÓRICO DA CONTA')} className="text-left text-zinc-400 hover:text-white text-xs font-semibold transition-colors">
+            📦 Histórico de Caixas
+          </button>
+          
+          <button onClick={() => irParaAbaDoPerfil('SUPORTE')} className="text-left text-zinc-400 hover:text-white text-xs font-semibold transition-colors">
+            🎧 Suporte / Tickets
+          </button>
         </div>
 
         {/* COLUNA 4: GAMBLING RESPONSÁVEL (+18) */}

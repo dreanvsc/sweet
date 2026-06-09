@@ -8,6 +8,7 @@ export default function TabFabrica() {
   const [todosItens, setTodosItens] = useState<any[]>([]);
   const [pesquisa, setPesquisa] = useState('');
   const [nomeCaixa, setNomeCaixa] = useState('');
+  const [categoriaCaixa, setCategoriaCaixa] = useState(''); // 🔥 NOVO: Guarda a categoria
   const [precoCaixa, setPrecoCaixa] = useState('');
   const [imagemCaixa, setImagemCaixa] = useState('');
   const [ordemCaixa, setOrdemCaixa] = useState('');
@@ -38,7 +39,6 @@ export default function TabFabrica() {
   // Estado para loading do toggle
   const [togglingId, setTogglingId] = useState<number | null>(null);
 
-  // ✅ FUNÇÃO QUE ESTAVA EM FALTA
   const carregarCaixas = () => {
     fetch('https://sweet-7ifa.onrender.com/caixas')
       .then(res => res.json())
@@ -165,7 +165,8 @@ export default function TabFabrica() {
           imagem: imagemCaixa, 
           itens: itensCaixa, 
           ordem: parseInt(ordemCaixa) || 0,
-          isEvento: isEventoCaixa
+          isEvento: isEventoCaixa,
+          categoria: categoriaCaixa || "CAIXAS ORIGINAIS" // 🔥 NOVO: Envia a categoria
         })
       });
       if (res.ok) {
@@ -184,6 +185,7 @@ export default function TabFabrica() {
     setImagemCaixa(caixa.imagem);
     setOrdemCaixa(caixa.ordem?.toString() || '0');
     setIsEventoCaixa(caixa.isEvento || false);
+    setCategoriaCaixa(caixa.categoria || ''); // 🔥 NOVO: Carrega a categoria
     try {
       const itensParseados = JSON.parse(caixa.itens);
       const itensComProb = itensParseados.map((i: any) => ({...i, imagem: getImagemSegura(i.imagem || i.image), probabilidade: i.probabilidade || 0}));
@@ -200,6 +202,7 @@ export default function TabFabrica() {
     setOrdemCaixa('');
     setItensCaixa([]);
     setIsEventoCaixa(false);
+    setCategoriaCaixa(''); // 🔥 NOVO: Limpa a categoria
   };
 
   const apagarCaixa = async (id: number) => {
@@ -263,9 +266,17 @@ export default function TabFabrica() {
          )}
          
          <form onSubmit={handleGuardarCaixa} className="space-y-5 relative z-10">
-           <div>
-             <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2 block ml-1">Nome da Coleção</label>
-             <input type="text" placeholder="Ex: Cyberpunk Case" required value={nomeCaixa} onChange={e => setNomeCaixa(e.target.value)} className="w-full bg-black/40 border border-white/5 focus:border-emerald-500/50 rounded-xl p-4 text-sm text-white font-bold outline-none transition-colors" />
+           
+           {/* 🔥 NOVO: Nome e Categoria lado a lado */}
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10">
+             <div>
+               <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2 block ml-1">Nome da Caixa</label>
+               <input type="text" placeholder="Ex: Cyberpunk Case" required value={nomeCaixa} onChange={e => setNomeCaixa(e.target.value)} className="w-full bg-black/40 border border-white/5 focus:border-emerald-500/50 rounded-xl p-4 text-sm text-white font-bold outline-none transition-colors" />
+             </div>
+             <div>
+               <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2 block ml-1">Categoria (Título da Loja)</label>
+               <input type="text" placeholder="Ex: CAIXAS PREMIUM" required value={categoriaCaixa} onChange={e => setCategoriaCaixa(e.target.value)} className="w-full bg-black/40 border border-amber-500/30 focus:border-amber-500/80 rounded-xl p-4 text-sm text-amber-400 font-bold outline-none transition-colors uppercase" />
+             </div>
            </div>
 
            <div className="grid grid-cols-3 gap-4">
@@ -415,6 +426,8 @@ export default function TabFabrica() {
                      {caixa.isEvento && (
                        <span className="mt-2 text-[8px] font-black bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded-full">EVENTO</span>
                      )}
+                     {/* Mostra também a categoria no cartão para saberes */}
+                     <span className="text-[8px] font-bold text-amber-500 mt-1 truncate w-full">{caixa.categoria || "CAIXAS ORIGINAIS"}</span>
                    </div>
                  </div>
                ))}

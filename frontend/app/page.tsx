@@ -215,49 +215,78 @@ function HomeContent() {
                 </div>
               </div>
 
-              {/* RESTO DA LOJA */}
-              {caixasNormais.length > 0 && (
-                <>
-                  <div className="flex items-center gap-4 mb-6">
-                    <h2 className="text-2xl md:text-3xl font-black italic uppercase tracking-tighter text-zinc-300">Todas as Caixas</h2>
-                    <div className="h-px flex-1 bg-white/5"></div>
-                  </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4">
-                    {caixasNormais.map((c: any, i: number) => (
-                      <div 
-                        key={c.id || i} 
-                        onClick={() => {
-                          router.push(`/?caixa=${c.id}`, { scroll: false });
-                          setCaixaSelecionada(c);
-                          setView('opening');
-                        }}
-                        className="relative h-40 sm:h-48 md:h-56 bg-[#1a1a21] border border-white/10 rounded-xl group hover:-translate-y-1 hover:border-emerald-500/50 hover:shadow-[0_8px_25px_rgba(16,185,129,0.2)] transition-all duration-300 cursor-pointer overflow-hidden flex flex-col justify-end"
-                      >
-                        {c.imagem && (
-                          <img 
-                            src={c.imagem} 
-                            alt={c.nome} 
-                            className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 z-0" 
-                          />
-                        )}
-                        <div className="absolute inset-0 bg-gradient-to-t from-[#0b0b0d] via-[#0b0b0d]/50 to-transparent z-10"></div>
-                        <div className="relative z-20 w-full p-3 flex flex-col items-center">
-                          <span className="text-zinc-100 text-[11px] sm:text-xs font-black uppercase tracking-widest truncate w-full text-center drop-shadow-md">
-                            {c.nome}
-                          </span>
-                          <div className="w-6 h-[2px] bg-emerald-500/80 my-2 rounded-full"></div>
-                          <div className="bg-black/60 backdrop-blur-sm border border-white/10 px-3 py-1 rounded-md flex items-center justify-center gap-1.5 w-max group-hover:bg-emerald-500/10 transition-colors">
-                            <span className="text-emerald-500 text-[10px] font-black">€</span>
-                            <span className="text-white font-bold text-xs sm:text-sm">
-                              {Number(c.preco).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </span>
+              {/* RESTO DA LOJA (SEPARADO PELAS TUAS CATEGORIAS DA BD) */}
+              {caixasNormais.length > 0 && (() => {
+                // 1. Agrupa as caixas pelo nome da categoria que tu definiste na BD
+                const categoriasAgrupadas: { [key: string]: any[] } = {};
+                
+                caixasNormais.forEach((caixa) => {
+                  const catNome = caixa.categoria || "CAIXAS ORIGINAIS";
+                  if (!categoriasAgrupadas[catNome]) {
+                    categoriasAgrupadas[catNome] = [];
+                  }
+                  categoriasAgrupadas[catNome].push(caixa);
+                });
+
+                // 2. Renderiza cada grupo com o teu título personalizado
+                return (
+                  <div className="flex flex-col gap-12 mt-8">
+                    {Object.keys(categoriasAgrupadas).map((tituloSeccao) => {
+                      const grupoDeCaixas = categoriasAgrupadas[tituloSeccao];
+
+                      return (
+                        <div key={tituloSeccao} className="w-full">
+                          
+                          {/* TÍTULO DA SECÇÃO PERSONALIZADO */}
+                          <div className="flex items-center justify-center gap-6 mb-8 relative">
+                            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/5 to-white/20"></div>
+                            <h2 className="text-xl md:text-2xl font-black italic uppercase tracking-widest text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]">
+                              {tituloSeccao}
+                            </h2>
+                            <div className="h-px flex-1 bg-gradient-to-l from-transparent via-white/5 to-white/20"></div>
+                          </div>
+
+                          {/* GRID DE CAIXAS DESTA CATEGORIA */}
+                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4">
+                            {grupoDeCaixas.map((c: any, i: number) => (
+                              <div 
+                                key={c.id || i} 
+                                onClick={() => {
+                                  router.push(`/?caixa=${c.id}`, { scroll: false });
+                                  setCaixaSelecionada(c);
+                                  setView('opening');
+                                }}
+                                className="relative h-40 sm:h-48 md:h-56 bg-[#1a1a21] border border-white/10 rounded-xl group hover:-translate-y-1 hover:border-emerald-500/50 hover:shadow-[0_8px_25px_rgba(16,185,129,0.2)] transition-all duration-300 cursor-pointer overflow-hidden flex flex-col justify-end"
+                              >
+                                {c.imagem && (
+                                  <img 
+                                    src={c.imagem} 
+                                    alt={c.nome} 
+                                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 z-0" 
+                                  />
+                                )}
+                                <div className="absolute inset-0 bg-gradient-to-t from-[#0b0b0d] via-[#0b0b0d]/50 to-transparent z-10"></div>
+                                <div className="relative z-20 w-full p-3 flex flex-col items-center">
+                                  <span className="text-zinc-100 text-[11px] sm:text-xs font-black uppercase tracking-widest truncate w-full text-center drop-shadow-md">
+                                    {c.nome}
+                                  </span>
+                                  <div className="w-6 h-[2px] bg-emerald-500/80 my-2 rounded-full"></div>
+                                  <div className="bg-black/60 backdrop-blur-sm border border-white/10 px-3 py-1 rounded-md flex items-center justify-center gap-1.5 w-max group-hover:bg-emerald-500/10 transition-colors">
+                                    <span className="text-emerald-500 text-[10px] font-black">€</span>
+                                    <span className="text-white font-bold text-xs sm:text-sm">
+                                      {Number(c.preco).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
-                </>
-              )}
+                );
+              })()}
             </div>
           )}
 

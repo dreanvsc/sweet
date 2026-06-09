@@ -73,15 +73,26 @@ function HomeContent() {
 
 
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const idDaSteam = urlParams.get('userId');
-    const idAtivo = idDaSteam || localStorage.getItem('userId');
-    
-    if (idAtivo) {
-      setUserId(idAtivo);
-      localStorage.setItem('userId', idAtivo); 
-      if (idDaSteam) window.history.replaceState({}, document.title, window.location.pathname);
-    }
+  const urlParams = new URLSearchParams(window.location.search);
+  const token = urlParams.get('token');
+  const tokenGuardado = token || localStorage.getItem('token');
+
+  if (tokenGuardado) {
+    localStorage.setItem('token', tokenGuardado);
+    // Busca o userId a partir do token
+    fetch('https://sweet-7ifa.onrender.com/auth/me', {
+      headers: { 'Authorization': `Bearer ${tokenGuardado}` }
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data?.id) {
+          setUserId(String(data.id));
+          setUserData(data);
+          setSaldo(data.saldo);
+        }
+      });
+    if (token) window.history.replaceState({}, document.title, window.location.pathname);
+  }
   }, []);
 
   const atualizarTudo = () => {

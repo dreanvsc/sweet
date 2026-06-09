@@ -6,6 +6,7 @@ import { CaixasService } from './caixas.service';
 import { UpgraderService } from './upgrader.service';
 import { AdminService } from './admin.service';
 import { PrismaService } from './prisma.service';
+import { gerarToken, verificarToken } from './steam.strategy';
 
 @Controller()
 export class AppController {
@@ -203,9 +204,8 @@ export class AppController {
   @Get('api/auth/steam/return')
   @UseGuards(AuthGuard('steam'))
   async steamLoginReturn(@Req() req, @Res() res) {
-    const user = req.user;
-    // O destino final de luxo
-    return res.redirect(`https://sweetdrop.pt/?userId=${req.user.id}`);
+    const token = gerarToken(req.user.id);
+    return res.redirect(`https://sweetdrop.pt/?token=${token}`);
   }
 
   // ==========================================
@@ -868,6 +868,16 @@ async buscarInventarioSkins(@Param('userId') userId: string, @Query('tradeUrl') 
       where: { id: Number(id) }, data: { status: 'REJEITADO' }
     });
     return { sucesso: true };
+  }
+
+  @Get('auth/me')
+  async getMe(@Req() req) {
+    const auth = req.headers.authorization;
+    if (!auth) return { erro: 'Sem token' };
+    const token = auth.replace('Bearer ', '');
+    const payload = verificarToken(token);
+    if (!payload) return { erro: 'Token inválido' };
+    return await this.usersService.getUtilizador(payload.userId);
   }
 
 }

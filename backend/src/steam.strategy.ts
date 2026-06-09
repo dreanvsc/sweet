@@ -2,12 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { PassportStrategy, PassportSerializer } from '@nestjs/passport';
 import { Strategy } from 'passport-steam';
 import { UsersService } from './users.service';
+import * as jwt from 'jsonwebtoken';
+
+const JWT_SECRET = 'sweetdrop_secret_2026_muda_isto'; // 🔥 Muda para uma string secreta
 
 @Injectable()
 export class SteamStrategy extends PassportStrategy(Strategy, 'steam') {
   constructor(private usersService: UsersService) {
     super({
-      // 🔥 A Steam tem de devolver a resposta para o teu BACKEND (Render) primeiro!
       returnURL: 'https://sweet-7ifa.onrender.com/api/auth/steam/return',
       realm: 'https://sweet-7ifa.onrender.com/',
       apiKey: '70414B811C0BEB087375922452721CCA',
@@ -15,9 +17,23 @@ export class SteamStrategy extends PassportStrategy(Strategy, 'steam') {
   }
 
   async validate(identifier: string, profile: any, done: any) {
-    // 🔥 Chama a função para guardar/atualizar o utilizador na tua base de dados
     const user = await this.usersService.loginComSteam(profile);
     return done(null, user);
+  }
+}
+
+// 🔥 Exporta para usar noutros ficheiros
+export const JWT_SECRET_KEY = JWT_SECRET;
+
+export function gerarToken(userId: number): string {
+  return jwt.sign({ userId }, JWT_SECRET, { expiresIn: '30d' });
+}
+
+export function verificarToken(token: string): { userId: number } | null {
+  try {
+    return jwt.verify(token, JWT_SECRET) as { userId: number };
+  } catch {
+    return null;
   }
 }
 

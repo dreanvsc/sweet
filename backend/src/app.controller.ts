@@ -759,20 +759,26 @@ async buscarInventarioSkins(@Param('userId') userId: string, @Query('tradeUrl') 
   // Criar troca Waxpeer
   @Post('deposito-skins/criar')
   async criarDepositoSkins(@Body() body: { userId: string, tradeUrl: string, items: any[] }) {
-    const WAXPEER_API_KEY = 'SUA_API_KEY_AQUI';
-    const res = await fetch('https://api.waxpeer.com/v1/merchant/deposit', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ api: WAXPEER_API_KEY, trade_url: body.tradeUrl, items: body.items })
-    });
-    const data = await res.json();
-    if (data.success) {
-      // Credita saldo após confirmação
-      const valorTotal = body.items.reduce((acc, i) => acc + (i.price / 1000), 0);
-      await this.usersService.adicionarSaldo(Number(body.userId), valorTotal);
-      return { sucesso: true };
+    try {
+      await Promise.all(
+        body.items.map((item: any) =>
+          (this.prisma as any).depositoSkin.create({
+            data: {
+              userId: Number(body.userId),
+              skinNome: item.name,
+              skinImagem: item.image || '',
+              skinAssetId: item.item_id?.toString() || '',
+              valor: parseFloat((item.price / 1000).toFixed(2)),
+              status: 'PENDENTE'
+            }
+          })
+        )
+      );
+      const valorTotal = body.items.reduce((acc: number, i: any) => acc + (i.price / 1000), 0);
+      return { sucesso: true, mensagem: `Skins registadas! Envia para o nosso Trade URL e aguarda confirmação.`, valorTotal: valorTotal.toFixed(2) };
+    } catch (e: any) {
+      return { sucesso: false, mensagem: 'Erro ao registar pedido.' };
     }
-    return { sucesso: false, mensagem: data.msg };
   }
 
   @Post('admin/injetar-saldo')
@@ -829,6 +835,39 @@ async buscarInventarioSkins(@Param('userId') userId: string, @Query('tradeUrl') 
       .then(r => console.log('✅ Preços:', r))
       .catch(err => console.error('❌ Erro:', err));
     return { sucesso: true, message: 'Atualização iniciada! Verifica os logs.' };
+  }
+
+  // 🔥 Lista depósitos de skins pendentes para o admin
+  @Get('admin/depositos-skins')
+  async listarDepositosSkins() {
+    return await (this.prisma as any).depositoSkin.findMany({
+      where: { status: 'PENDENTE' },
+      include: { user: { select: { nome: true, avatar: true, tradeUrl: true } } },
+      orderBy: { createdAt: 'desc' }
+    });
+  }
+
+  // 🔥 Confirma depósito e credita saldo
+  @Post('admin/depositos-skins/confirmar/:id')
+  async confirmarDepositoSkin(@Param('id') id: string) {
+    const deposito = await (this.prisma as any).depositoSkin.findUnique({ 
+      where: { id: Number(id) } 
+    });
+    if (!deposito) return { sucesso: false, mensagem: 'Pedido não encontrado.' };
+    await (this.prisma as any).depositoSkin.update({
+      where: { id: Number(id) }, data: { status: 'CONFIRMADO' }
+    });
+    await this.usersService.adicionarSaldo(deposito.userId, deposito.valor);
+    return { sucesso: true, mensagem: `${deposito.valor}€ creditados!` };
+  }
+
+  // 🔥 Rejeita depósito de skin
+  @Post('admin/depositos-skins/rejeitar/:id')
+  async rejeitarDepositoSkin(@Param('id') id: string) {
+    await (this.prisma as any).depositoSkin.update({
+      where: { id: Number(id) }, data: { status: 'REJEITADO' }
+    });
+    return { sucesso: true };
   }
 
 }

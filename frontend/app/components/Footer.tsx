@@ -61,12 +61,9 @@ export default function Footer() {
             SWEET<span className="text-emerald-500">DROP</span>
           </Link>
           <p className="text-zinc-500 text-xs leading-relaxed max-w-sm">
-            A plataforma mais inovadora e transparente para obteres as tuas skins de CS2 favoritas. Preços justos, sorteios limpos e comunidade forte.
+            A plataforma mais inovadora e transparente para obteres as tuas skins de CS2 favoritas.
           </p>
           <div className="flex gap-3">
-            <a href="#" className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center hover:bg-[#5865F2] hover:text-white text-zinc-400 transition-all">
-              <span className="font-bold">Discord</span>
-            </a>
             <a href="#" className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center hover:bg-white hover:text-black text-zinc-400 transition-all">
               <span className="font-bold">X</span>
             </a>

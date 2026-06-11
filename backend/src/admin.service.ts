@@ -121,85 +121,56 @@ export class AdminService {
 
   @Cron(CronExpression.EVERY_DAY_AT_4AM)
   async atualizarPrecosMercadoNoturno() {
-    console.log('🌙 [CRON] A iniciar a atualização de preços pela Skinport...');
-
-    // 🔥 Bloqueia se foi chamado há menos de 30 minutos
-    if (this.ultimaAtualizacao) {
-      const diffMinutos = (Date.now() - this.ultimaAtualizacao.getTime()) / 1000 / 60;
-      if (diffMinutos < 30) {
-        const restante = Math.ceil(30 - diffMinutos);
-        console.log(`⏳ [CRON] Rate limit interno — aguarda ${restante} minutos.`);
-        return { sucesso: false, message: `Aguarda ${restante} minutos para atualizar novamente.` };
-      }
-    }
-    this.ultimaAtualizacao = new Date();
+    console.log('🌙 [CRON] A iniciar a atualização de preços pelo CSGOBackpack...');
 
     try {
-      const respostaApi = await fetch(
-        'https://api.skinport.com/v1/items?app_id=730&currency=EUR',
-        { headers: { 'Accept-Encoding': 'br', 'User-Agent': 'Mozilla/5.0' } }
-      );
-
-      if (!respostaApi.ok) {
-        console.error(`❌ [CRON] Skinport devolveu status ${respostaApi.status}`);
-        this.ultimaAtualizacao = null; // reset para permitir tentar novamente
-        return { sucesso: false, message: `Skinport status: ${respostaApi.status}` };
+      // 1. Pedido ao CSGOBackpack (em Euros)
+      const resPrecos = await fetch('http://csgobackpack.net/api/GetItemsList/v2/?currency=EUR&no_details=true');
+      
+      if (!resPrecos.ok) {
+        console.log(`❌ [CRON] CSGOBackpack devolveu status ${resPrecos.status}`);
+        return { sucesso: false, message: `CSGOBackpack status: ${resPrecos.status}` };
       }
 
-      const mercadoRaw = await respostaApi.json();
-
-      if (!Array.isArray(mercadoRaw)) {
-        console.error('❌ [CRON] Skinport devolveu formato inválido:', JSON.stringify(mercadoRaw).substring(0, 200));
-        this.ultimaAtualizacao = null;
-        return { sucesso: false, message: 'Skinport devolveu formato inválido.' };
+      const data = await resPrecos.json();
+      
+      if (!data.success || !data.items_list) {
+        console.log('❌ [CRON] Formato inválido devolvido pela API.');
+        return { sucesso: false, message: 'Formato inválido' };
       }
 
-      console.log(`📦 [CRON] ${mercadoRaw.length} preços recebidos da Skinport.`);
+      const listaSkins = data.items_list;
+      let skinsAtualizadas = 0;
 
-      // Monta dicionário de preços
-      const precosMercado: Record<string, number> = {};
-      for (const skin of mercadoRaw) {
-        const precoReal = skin.min_price || skin.suggested_price;
-        if (precoReal) precosMercado[skin.market_hash_name] = precoReal;
-      }
+      // 2. Ir buscar todas as skins que tens na base de dados
+      const itensNaBaseDeDados = await this.prisma.item.findMany();
 
-      // Busca todas as skins da BD
-      const minhasSkins = await (this.prisma as any).item.findMany();
-      let atualizadas = 0;
-      let semPreco = 0;
-
-      // 🔥 Prepara lista de updates
-      const paraAtualizar: { id: number, preco: number }[] = [];
-      for (const skin of minhasSkins) {
-        const precoNovo = precosMercado[skin.nome];
-        if (!precoNovo || precoNovo <= 0.05) { semPreco++; continue; }
-        paraAtualizar.push({ id: skin.id, preco: parseFloat(precoNovo.toFixed(2)) });
-        atualizadas++;
-      }
-
-      // 🔥 Executa em lotes de 200 em paralelo — muito mais rápido
-      const tamanhoLote = 200;
-      for (let i = 0; i < paraAtualizar.length; i += tamanhoLote) {
-        const lote = paraAtualizar.slice(i, i + tamanhoLote);
-        await Promise.all(
-          lote.map((item) =>
-            (this.prisma as any).item.update({
+      // 3. Atualizar o preço de cada uma
+      for (const item of itensNaBaseDeDados) {
+        const infoSkin = listaSkins[item.nome];
+        
+        if (infoSkin) {
+          // Procura a média de 7 dias, senão tenta 30, senão assume 0
+          const precoMercado = infoSkin?.price?.['7_days']?.average 
+                            || infoSkin?.price?.['30_days']?.average 
+                            || 0;
+                            
+          if (precoMercado > 0) {
+            await this.prisma.item.update({
               where: { id: item.id },
-              data: { preco: item.preco }
-            })
-          )
-        );
-        console.log(`📦 [CRON] Lote ${Math.floor(i / tamanhoLote) + 1}/${Math.ceil(paraAtualizar.length / tamanhoLote)} concluído`);
+              data: { preco: parseFloat(precoMercado.toFixed(2)) }
+            });
+            skinsAtualizadas++;
+          }
+        }
       }
 
-      const msg = `✅ [CRON] Concluído! ${atualizadas} atualizadas, ${semPreco} sem preço na Skinport.`;
-      console.log(msg);
-      return { sucesso: true, atualizadas, semPreco, message: msg };
+      console.log(`✅ [CRON] Sucesso! ${skinsAtualizadas} skins atualizadas com os preços do CSGOBackpack.`);
+      return { sucesso: true, message: `${skinsAtualizadas} preços atualizados.` };
 
     } catch (error: any) {
-      console.error('❌ [CRON] Falha:', error);
-      this.ultimaAtualizacao = null;
-      throw new Error(error.message || 'Falha ao comunicar com a Skinport.');
+      console.error('❌ [CRON] Erro crítico ao atualizar preços:', error.message);
+      return { sucesso: false, message: 'Erro interno no CRON.' };
     }
   }
 

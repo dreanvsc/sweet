@@ -121,52 +121,67 @@ export class AdminService {
 
   @Cron(CronExpression.EVERY_DAY_AT_4AM)
   async atualizarPrecosMercadoNoturno() {
-    console.log('🌙 [CRON] A iniciar a atualização de preços pelo CSGOTrader (100% Anti-Bloqueio)...');
+    console.log('🌙 [CRON] A iniciar a atualização de preços pelo Market CSGO (API Pública)...');
 
     try {
-      // 1. Pedido a uma CDN estática pública (Não tem Cloudflare, impossível dar 403!)
-      const resPrecos = await fetch('https://prices.csgotrader.app/latest/prices_v6.json');
+      // 1. Pedido à API pública do Market CSGO (Feita especificamente para bots)
+      const resPrecos = await fetch('https://market.csgo.com/api/v2/prices/EUR.json');
       
       if (!resPrecos.ok) {
-        console.log(`❌ [CRON] CSGOTrader devolveu status ${resPrecos.status}`);
-        return { sucesso: false, message: `CSGOTrader status: ${resPrecos.status}` };
+        console.log(`❌ [CRON] Market CSGO devolveu status ${resPrecos.status}`);
+        return { sucesso: false, message: `Market status: ${resPrecos.status}` };
       }
 
-      const listaSkins = await resPrecos.json();
-      let skinsAtualizadas = 0;
+      // 2. Proteção Anti-Crash: Lemos como texto primeiro
+      const text = await resPrecos.text();
+      let data;
+      
+      try {
+        data = JSON.parse(text); // Tenta converter para JSON
+      } catch (e) {
+        // Se receber HTML (Cloudflare), não crasha o servidor! Apenas avisa.
+        console.log('❌ [CRON] A API devolveu uma página web (HTML) em vez de dados.');
+        return { sucesso: false, message: 'Bloqueio de Firewall (HTML recebido).' };
+      }
 
-      // Taxa de conversão aproximada de Dólar para Euro (A CDN entrega em USD)
-      const TAXA_USD_TO_EUR = 0.92;
+      // 3. Verifica se a API nos deu a lista de itens
+      if (!data.success || !data.items) {
+        console.log('❌ [CRON] Formato inválido devolvido pelo Market CSGO.');
+        return { sucesso: false, message: 'Formato inválido' };
+      }
 
-      // 2. Ir buscar todas as skins que tens na base de dados
-      const itensNaBaseDeDados = await this.prisma.item.findMany();
-
-      // 3. Atualizar o preço de cada uma
-      for (const item of itensNaBaseDeDados) {
-        const infoSkin = listaSkins[item.nome];
-        
-        if (infoSkin) {
-          // Tenta ir buscar o preço da Buff (mais realista) ou o da Steam (7 dias)
-          const precoEmUSD = infoSkin.buff163?.starting_at?.price || infoSkin.steam?.last_7d || infoSkin.steam?.last_24h || 0;
-                            
-          if (precoEmUSD > 0) {
-            // A API já entrega em formato decimal (ex: 15.50). Só precisamos converter para Euros.
-            const precoFinalEmEuros = parseFloat((precoEmUSD * TAXA_USD_TO_EUR).toFixed(2));
-
-            await this.prisma.item.update({
-              where: { id: item.id },
-              data: { preco: precoFinalEmEuros }
-            });
-            skinsAtualizadas++;
-          }
+      // 4. Transformar a lista da API num "dicionário" para procurar super rápido
+      const mapPrecos = new Map<string, number>();
+      for (const itemApi of data.items) {
+        if (itemApi.market_hash_name && itemApi.price) {
+           mapPrecos.set(itemApi.market_hash_name, parseFloat(itemApi.price));
         }
       }
 
-      console.log(`✅ [CRON] Sucesso! ${skinsAtualizadas} skins atualizadas com a CDN do CSGOTrader.`);
+      let skinsAtualizadas = 0;
+
+      // 5. Ir buscar todas as skins que tens na base de dados
+      const itensNaBaseDeDados = await this.prisma.item.findMany();
+
+      // 6. Atualizar o preço de cada uma
+      for (const item of itensNaBaseDeDados) {
+        // Procurar o preço da arma exata no dicionário
+        const precoMercadoEuros = mapPrecos.get(item.nome);
+        
+        if (precoMercadoEuros && precoMercadoEuros > 0) {
+          await this.prisma.item.update({
+            where: { id: item.id },
+            data: { preco: parseFloat(precoMercadoEuros.toFixed(2)) }
+          });
+          skinsAtualizadas++;
+        }
+      }
+
+      console.log(`✅ [CRON] Sucesso! ${skinsAtualizadas} skins atualizadas com os preços reais (€).`);
       return { sucesso: true, message: `${skinsAtualizadas} preços atualizados.` };
 
     } catch (error: any) {
-      console.error('❌ [CRON] Erro crítico no CSGOTrader:', error.message);
+      console.error('❌ [CRON] Erro crítico no Market CSGO:', error.message);
       return { sucesso: false, message: 'Erro interno no CRON.' };
     }
   }

@@ -11,16 +11,32 @@ export class CaixasService {
     private readonly usersService: UsersService 
   ) {}
 
-  async criarCaixa(dados: { nome: string, preco: number, imagem: string, itens: any[], ordem?: number }) {
+  async criarCaixa(dados: { nome: string, preco: number, imagem: string, itens: any[], ordem?: number, isEvento?: boolean, categoria?: string }) {
     return await (this.prisma as any).caixa.create({
-      data: { nome: dados.nome, preco: Number(dados.preco), imagem: dados.imagem || '/skins/glock.png', itens: JSON.stringify(dados.itens), ordem: Number(dados.ordem) || 0 }
+      data: { 
+        nome: dados.nome, 
+        preco: Number(dados.preco), 
+        imagem: dados.imagem || '/skins/glock.png', 
+        itens: JSON.stringify(dados.itens), 
+        ordem: Number(dados.ordem) || 0,
+        isEvento: dados.isEvento || false,
+        categoria: dados.categoria || "CAIXAS ORIGINAIS" // 🔥 Aqui está a magia!
+      }
     });
   }
 
-  async atualizarCaixa(id: number, dados: { nome: string, preco: number, imagem: string, itens: any[], ordem?: number }) {
+  async atualizarCaixa(id: number, dados: { nome: string, preco: number, imagem: string, itens: any[], ordem?: number, isEvento?: boolean, categoria?: string }) {
     return await (this.prisma as any).caixa.update({
       where: { id: Number(id) },
-      data: { nome: dados.nome, preco: Number(dados.preco), imagem: dados.imagem || '/skins/glock.png', itens: JSON.stringify(dados.itens), ordem: Number(dados.ordem) || 0 }
+      data: { 
+        nome: dados.nome, 
+        preco: Number(dados.preco), 
+        imagem: dados.imagem || '/skins/glock.png', 
+        itens: JSON.stringify(dados.itens), 
+        ordem: Number(dados.ordem) || 0,
+        isEvento: dados.isEvento || false,
+        categoria: dados.categoria || "CAIXAS ORIGINAIS" // 🔥 Aqui está a magia!
+      }
     });
   }
 

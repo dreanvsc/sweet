@@ -121,36 +121,47 @@ export class AdminService {
 
   @Cron(CronExpression.EVERY_DAY_AT_4AM)
   async atualizarPrecosMercadoNoturno() {
-    console.log('🌙 [CRON] A iniciar a atualização de preços pelo Market CSGO (API Pública)...');
+    console.log('🌙 [CRON] A iniciar a atualização de preços pelo Market CSGO (Otimizado)...');
 
     try {
-      // 1. Pedido à API pública do Market CSGO (Feita especificamente para bots)
-      const resPrecos = await fetch('https://market.csgo.com/api/v2/prices/EUR.json');
+      // Controlador para cancelar o pedido se demorar demasiado (Timeout de 15 segundos)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+      // 1. Pedido com compressão (GZIP) e limite de tempo para ser ultra rápido
+      const resPrecos = await fetch('https://market.csgo.com/api/v2/prices/EUR.json', {
+        signal: controller.signal,
+        headers: {
+          'Accept-Encoding': 'gzip, deflate, br' // Pede o ficheiro compactado (pesa 10x menos!)
+        }
+      });
       
+      clearTimeout(timeoutId); // Limpa o temporizador se o download correu bem
+
       if (!resPrecos.ok) {
         console.log(`❌ [CRON] Market CSGO devolveu status ${resPrecos.status}`);
         return { sucesso: false, message: `Market status: ${resPrecos.status}` };
       }
 
-      // 2. Proteção Anti-Crash: Lemos como texto primeiro
+      console.log('📦 [CRON] Ficheiro descarregado com sucesso! A ler dados...');
+
       const text = await resPrecos.text();
       let data;
       
       try {
-        data = JSON.parse(text); // Tenta converter para JSON
+        data = JSON.parse(text);
       } catch (e) {
-        // Se receber HTML (Cloudflare), não crasha o servidor! Apenas avisa.
-        console.log('❌ [CRON] A API devolveu uma página web (HTML) em vez de dados.');
-        return { sucesso: false, message: 'Bloqueio de Firewall (HTML recebido).' };
+        console.log('❌ [CRON] Erro ao decifrar os dados. API enviou formato inválido.');
+        return { sucesso: false, message: 'Erro no JSON parse.' };
       }
 
-      // 3. Verifica se a API nos deu a lista de itens
       if (!data.success || !data.items) {
         console.log('❌ [CRON] Formato inválido devolvido pelo Market CSGO.');
         return { sucesso: false, message: 'Formato inválido' };
       }
 
-      // 4. Transformar a lista da API num "dicionário" para procurar super rápido
+      console.log(`⚡ [CRON] A processar ${data.items.length} itens do mercado na memória...`);
+
       const mapPrecos = new Map<string, number>();
       for (const itemApi of data.items) {
         if (itemApi.market_hash_name && itemApi.price) {
@@ -159,13 +170,11 @@ export class AdminService {
       }
 
       let skinsAtualizadas = 0;
-
-      // 5. Ir buscar todas as skins que tens na base de dados
       const itensNaBaseDeDados = await this.prisma.item.findMany();
 
-      // 6. Atualizar o preço de cada uma
+      console.log(`💾 [CRON] A injetar os novos preços em ${itensNaBaseDeDados.length} armas no teu banco de dados...`);
+
       for (const item of itensNaBaseDeDados) {
-        // Procurar o preço da arma exata no dicionário
         const precoMercadoEuros = mapPrecos.get(item.nome);
         
         if (precoMercadoEuros && precoMercadoEuros > 0) {
@@ -177,10 +186,14 @@ export class AdminService {
         }
       }
 
-      console.log(`✅ [CRON] Sucesso! ${skinsAtualizadas} skins atualizadas com os preços reais (€).`);
+      console.log(`✅ [CRON] Sucesso Supremo! ${skinsAtualizadas} skins atualizadas com preços em Euros.`);
       return { sucesso: true, message: `${skinsAtualizadas} preços atualizados.` };
 
     } catch (error: any) {
+      if (error.name === 'AbortError') {
+        console.error('❌ [CRON] Limite de tempo esgotado (Timeout)! A API do Market CSGO demorou mais de 15 segundos a responder.');
+        return { sucesso: false, message: 'Timeout na API externa.' };
+      }
       console.error('❌ [CRON] Erro crítico no Market CSGO:', error.message);
       return { sucesso: false, message: 'Erro interno no CRON.' };
     }

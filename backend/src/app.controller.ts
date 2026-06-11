@@ -698,63 +698,75 @@ export class AppController {
   
   // Buscar inventário Steam via Waxpeer
   @Get('deposito-skins/inventario/:userId')
-async buscarInventarioSkins(@Param('userId') userId: string, @Query('tradeUrl') tradeUrl: string) {
-  const WAXPEER_API_KEY = '156774db12463dacfbe3c2a6a9e183bf8462ae60c55de988fe36806950450c8a';
-  
-  const user = await this.prisma.user.findUnique({ where: { id: Number(userId) } });
-  if (!user) return { items: [] };
-  
-  const steamId = user.username;
-  
-  // 1️⃣ Busca inventário Steam
-  const resInv = await fetch(
-    `https://steamcommunity.com/inventory/${steamId}/730/2?l=english&count=100`
-  );
-  const dataInv = await resInv.json();
-  
-  if (!dataInv || !dataInv.assets) return { items: [] };
-
-  // 2️⃣ Monta lista de items tradeable
-  const items = dataInv.assets.map((asset: any) => {
-    const desc = dataInv.descriptions.find(
-      (d: any) => d.classid === asset.classid && d.instanceid === asset.instanceid
+  async buscarInventarioSkins(@Param('userId') userId: string, @Query('tradeUrl') tradeUrl: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: Number(userId) } });
+    if (!user) return { items: [] };
+    
+    const steamId = user.username;
+    
+    // 1️⃣ Busca inventário Steam
+    const resInv = await fetch(
+      `https://steamcommunity.com/inventory/${steamId}/730/2?l=english&count=100`
     );
-    return {
-      item_id: asset.assetid,
-      name: desc?.market_hash_name || 'Unknown',
-      image: desc?.icon_url || '',
-      price: 0,
-      tradable: desc?.tradable === 1
-    };
-  }).filter((i: any) => i.tradable && i.name !== 'Unknown');
+    const dataInv = await resInv.json();
+    
+    if (!dataInv || !dataInv.assets) return { items: [] };
 
-  // 3️⃣ Busca preços à Waxpeer
-  try {
-  const resPrecos = await fetch(
-    'https://api.skinport.com/v1/items?app_id=730&currency=EUR&tradable=0',
-    { headers: { 'Accept-Encoding': 'br' } }
-  );
-  const dataPrecos = await resPrecos.json();
-  
-  const dictPrecos: Record<string, number> = {};
-  dataPrecos.forEach((item: any) => {
-    const preco = item.suggested_price || item.min_price || 0;
-    if (preco > 0) dictPrecos[item.market_hash_name] = preco;
-  });
+    // 2️⃣ Monta lista de items tradeable
+    const items = dataInv.assets.map((asset: any) => {
+      const desc = dataInv.descriptions.find(
+        (d: any) => d.classid === asset.classid && d.instanceid === asset.instanceid
+      );
+      return {
+        item_id: asset.assetid,
+        name: desc?.market_hash_name || 'Unknown',
+        image: desc?.icon_url || '',
+        price: 0,
+        tradable: desc?.tradable === 1
+      };
+    }).filter((i: any) => i.tradable && i.name !== 'Unknown');
 
-  const itemsComPreco = items.map((item: any) => ({
-    ...item,
-    // Skinport usa o mesmo nome que o Steam (market_hash_name)
-    price: dictPrecos[item.name] ? Math.round(dictPrecos[item.name] * 1000) : 0
-  }));
+    // 3️⃣ Busca preços à CSGOBackpack (A solução anti 429)
+    try {
+      const resPrecos = await fetch(
+        'http://csgobackpack.net/api/GetItemsList/v2/?currency=EUR&no_details=true'
+      );
+      
+      if (!resPrecos.ok) {
+        console.log('⚠️ CSGOBackpack falhou. Sem preços para os depósitos agora.');
+        return { items };
+      }
 
-  return { items: itemsComPreco };
-} catch (e) {
-  console.error('Erro ao buscar preços Skinport:', e);
-}
+      const data = await resPrecos.json();
+      
+      if (!data.success || !data.items_list) {
+        return { items };
+      }
 
-  return { items };
-}
+      const listaSkins = data.items_list;
+
+      const itemsComPreco = items.map((item: any) => {
+        const infoSkin = listaSkins[item.name];
+        
+        // Busca a média dos últimos 7 dias. Se não houver, tenta 30 dias.
+        const precoEmEuros = infoSkin?.price?.['7_days']?.average 
+                            || infoSkin?.price?.['30_days']?.average 
+                            || 0;
+
+        return {
+          ...item,
+          // O frontend espera o preço em cêntimos (ex: 15.50€ -> 1550)
+          price: precoEmEuros > 0 ? Math.round(precoEmEuros * 1000) : 0
+        };
+      });
+
+      return { items: itemsComPreco };
+    } catch (e) {
+      console.error('❌ Erro crítico ao buscar preços do CSGOBackpack:', e);
+    }
+
+    return { items };
+  }
 
   // Criar troca Waxpeer
   @Post('deposito-skins/criar')

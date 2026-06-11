@@ -125,7 +125,12 @@ export class AdminService {
 
     try {
       // 1. Pedido ao CSGOBackpack (em Euros)
-      const resPrecos = await fetch('http://csgobackpack.net/api/GetItemsList/v2/?currency=EUR&no_details=true');
+      const resPrecos = await fetch('https://csgobackpack.net/api/GetItemsList/v2/?currency=EUR&no_details=true', {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'application/json, text/plain, */*'
+        }
+      });
       
       if (!resPrecos.ok) {
         console.log(`❌ [CRON] CSGOBackpack devolveu status ${resPrecos.status}`);

@@ -121,60 +121,62 @@ export class AdminService {
 
   @Cron(CronExpression.EVERY_DAY_AT_4AM)
   async atualizarPrecosMercadoNoturno() {
-    console.log('🌙 [CRON] A iniciar a atualização de preços pelo CSGOBackpack...');
+    console.log('🌙 [CRON] A iniciar a atualização de preços pela Pricempire (Anti-Bloqueio)...');
 
     try {
-      // 1. Pedido ao CSGOBackpack (em Euros)
-      const resPrecos = await fetch('https://csgobackpack.net/api/GetItemsList/v2/?currency=EUR&no_details=true', {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept': 'application/json, text/plain, */*'
-        }
-      });
+      // 1. Pedido à API pública do Pricempire (Esta não bloqueia o Render!)
+      const resPrecos = await fetch('https://api.pricempire.com/v1/packages/prices');
       
       if (!resPrecos.ok) {
-        console.log(`❌ [CRON] CSGOBackpack devolveu status ${resPrecos.status}`);
-        return { sucesso: false, message: `CSGOBackpack status: ${resPrecos.status}` };
+        console.log(`❌ [CRON] Pricempire devolveu status ${resPrecos.status}`);
+        return { sucesso: false, message: `Pricempire status: ${resPrecos.status}` };
       }
 
       const data = await resPrecos.json();
       
-      if (!data.success || !data.items_list) {
-        console.log('❌ [CRON] Formato inválido devolvido pela API.');
+      // A Pricempire devolve um objeto onde a chave principal é "prices"
+      if (!data || !data.prices) {
+        console.log('❌ [CRON] Formato inválido devolvido pela Pricempire.');
         return { sucesso: false, message: 'Formato inválido' };
       }
 
-      const listaSkins = data.items_list;
+      const listaSkins = data.prices;
       let skinsAtualizadas = 0;
+
+      // Taxa de conversão aproximada de Dólar para Euro (Pricempire entrega em USD)
+      const TAXA_USD_TO_EUR = 0.92;
 
       // 2. Ir buscar todas as skins que tens na base de dados
       const itensNaBaseDeDados = await this.prisma.item.findMany();
 
       // 3. Atualizar o preço de cada uma
       for (const item of itensNaBaseDeDados) {
+        // A Pricempire usa o market_hash_name da Steam como chave
         const infoSkin = listaSkins[item.nome];
         
         if (infoSkin) {
-          // Procura a média de 7 dias, senão tenta 30, senão assume 0
-          const precoMercado = infoSkin?.price?.['7_days']?.average 
-                            || infoSkin?.price?.['30_days']?.average 
-                            || 0;
+          // Vamos buscar o preço de referência (source: "buff" ou "steam")
+          // Eles dão o valor em cêntimos de dólar (ex: $1.50 vem como 150)
+          const precoEmUSD = infoSkin.buff?.price || infoSkin.steam?.price || 0;
                             
-          if (precoMercado > 0) {
+          if (precoEmUSD > 0) {
+            // Converter cêntimos de dólar para Euros normais (ex: 150 -> 1.50 * 0.92 = 1.38€)
+            const precoFinalEmEuros = parseFloat(((precoEmUSD / 100) * TAXA_USD_TO_EUR).toFixed(2));
+
             await this.prisma.item.update({
               where: { id: item.id },
-              data: { preco: parseFloat(precoMercado.toFixed(2)) }
+              data: { preco: precoFinalEmEuros }
             });
             skinsAtualizadas++;
           }
         }
       }
 
-      console.log(`✅ [CRON] Sucesso! ${skinsAtualizadas} skins atualizadas com os preços do CSGOBackpack.`);
+      console.log(`✅ [CRON] Sucesso! ${skinsAtualizadas} skins atualizadas com os preços reais.`);
       return { sucesso: true, message: `${skinsAtualizadas} preços atualizados.` };
 
     } catch (error: any) {
-      console.error('❌ [CRON] Erro crítico ao atualizar preços:', error.message);
+      console.error('❌ [CRON] Erro crítico na Pricempire:', error.message);
       return { sucesso: false, message: 'Erro interno no CRON.' };
     }
   }

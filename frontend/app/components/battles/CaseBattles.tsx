@@ -29,9 +29,12 @@ export default function CaseBattles({ userId, user, saldo, caixas, setView, atua
   // 🔥 RADAR DE RECONEXÃO AUTOMÁTICA 🔥
   // Se voltares à página e tiveres uma batalha a decorrer, ele abre-a logo!
   useEffect(() => {
-    if (!batalhaAtiva && batalhas.length > 0) {
+    // Adicionada variável global (sessionStorage) para detetar se o jogador acabou de fechar a arena
+    const acabouDeSair = sessionStorage.getItem('saiuDaBatalha');
+    
+    if (!batalhaAtiva && batalhas.length > 0 && !acabouDeSair) {
       const minhaBatalha = batalhas.find(b => 
-        b.estado === 'jogando' && b.jogadores.some((j: any) => String(j.id) === String(user.id))
+        (b.estado === 'jogando' || b.estado === 'espera') && b.jogadores.some((j: any) => String(j.id) === String(user.id))
       );
       if (minhaBatalha) {
         setBatalhaAtiva(minhaBatalha);
@@ -80,8 +83,14 @@ export default function CaseBattles({ userId, user, saldo, caixas, setView, atua
         batalha={batalhaAtiva} 
         userId={userId} 
         onLeave={() => { 
+          // 🔥 Marcamos na memória do browser que acabámos de sair propositadamente
+          sessionStorage.setItem('saiuDaBatalha', 'true');
           setBatalhaAtiva(null); 
           socket.emit('pedir_batalhas'); 
+          
+          // Remove a tag passados 5 segundos (tempo suficiente para o servidor apagar a batalha)
+          setTimeout(() => sessionStorage.removeItem('saiuDaBatalha'), 5000);
+          
           if (typeof atualizarTudo === 'function') atualizarTudo();
         }} 
       />

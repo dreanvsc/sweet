@@ -289,7 +289,7 @@ export default function Coinflip({ userId, user, saldo, inventario, atualizarTud
                <h2 className="text-2xl sm:text-3xl font-black italic uppercase text-white tracking-tighter drop-shadow-md">
                  Coin<span className="text-amber-500">flip</span>
                </h2>
-               <p className="text-zinc-400 text-xs sm:text-sm font-bold tracking-widest uppercase mt-1">A Sorte Favorece os Audazes</p>
+               <p className="text-zinc-400 text-xs sm:text-sm font-bold tracking-widest uppercase mt-1">Até onde vai a tua sorte?</p>
             </div>
          </div>
          

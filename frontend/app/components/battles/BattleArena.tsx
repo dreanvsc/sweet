@@ -183,16 +183,68 @@ export default function BattleArena({ batalha, userId, onLeave }: any) {
 
       {/* 🔥 MENSAGEM GIGANTE DE SUSPENSE DURANTE O EMPATE */}
       {mostrandoDesempate && (
-        <div className="mt-8 text-center flex flex-col items-center justify-center animate-in zoom-in duration-500">
-           <div className="bg-blue-900/40 border-2 border-blue-500 shadow-[0_0_50px_rgba(59,130,246,0.6)] px-16 py-8 rounded-3xl animate-pulse">
-             <span className="text-6xl mb-4 block">🪙</span>
-             <h2 className="text-4xl font-black text-white uppercase tracking-widest italic drop-shadow-lg">
-                EMPATE TÉCNICO!
-             </h2>
-             <p className="text-blue-300 font-bold uppercase text-lg mt-2 tracking-widest">
-                A DECIDIR VENCEDOR POR COINFLIP...
-             </p>
-           </div>
+        <div className="mt-8 text-center flex flex-col items-center justify-center animate-in zoom-in duration-500 relative z-50">
+          {/* CSS INJETADO PARA A FÍSICA DA MOEDA */}
+          <style>{`
+            .coin-container { perspective: 1000px; }
+            .coin-3d {
+              width: 140px; height: 140px;
+              position: relative;
+              transform-style: preserve-3d;
+            }
+            .flip-p1 { animation: animP1 4s cubic-bezier(0.15, 0.85, 0.3, 1) forwards; }
+            .flip-p2 { animation: animP2 4s cubic-bezier(0.15, 0.85, 0.3, 1) forwards; }
+            
+            /* Cai na Cara 1 (Rodou 10 vezes certas) */
+            @keyframes animP1 { 
+              0% { transform: rotateY(0deg) translateY(0) scale(1); } 
+              50% { transform: rotateY(1800deg) translateY(-80px) scale(1.3); } 
+              100% { transform: rotateY(3600deg) translateY(0) scale(1); } 
+            }
+            /* Cai na Cara 2 (Rodou 10 vezes e meia) */
+            @keyframes animP2 { 
+              0% { transform: rotateY(0deg) translateY(0) scale(1); } 
+              50% { transform: rotateY(1800deg) translateY(-80px) scale(1.3); } 
+              100% { transform: rotateY(3780deg) translateY(0) scale(1); } 
+            }
+            
+            .coin-side {
+              position: absolute; width: 100%; height: 100%;
+              border-radius: 50%;
+              backface-visibility: hidden;
+              display: flex; flex-direction: column; align-items: center; justify-content: center;
+              background-color: #121215;
+              overflow: hidden;
+            }
+            .coin-front { transform: rotateY(0deg); border: 4px solid #3b82f6; box-shadow: 0 0 30px rgba(59,130,246,0.6); }
+            .coin-back { transform: rotateY(180deg); border: 4px solid #ef4444; box-shadow: 0 0 30px rgba(239,68,68,0.6); }
+          `}</style>
+
+          <div className="bg-[#121215]/95 border border-white/10 px-20 py-12 rounded-3xl flex flex-col items-center justify-center shadow-[0_0_50px_rgba(0,0,0,0.8)] backdrop-blur-md">
+            <h2 className="text-4xl font-black text-white uppercase tracking-widest italic mb-10 drop-shadow-lg flex items-center gap-4">
+              ⚔️ EMPATE TÉCNICO! ⚔️
+            </h2>
+            
+            <div className="coin-container mb-8">
+              <div className={`coin-3d ${
+                /* Se o vencedor for o jogador 2 (Coroa), roda para cair no lado de trás */
+                (empateIds[1] === vencedorId || batalha.jogadores[1]?.id === vencedorId) ? 'flip-p2' : 'flip-p1'
+              }`}>
+                {/* CARA 1 (FRENTE - AZUL) */}
+                <div className="coin-side coin-front">
+                  <img src={batalha.jogadores.find((j: any) => j.id === (empateIds[0] || batalha.jogadores[0]?.id))?.foto} className="w-full h-full object-cover opacity-90" alt="Cara P1" />
+                </div>
+                {/* CARA 2 (TRÁS - VERMELHO) */}
+                <div className="coin-side coin-back">
+                  <img src={batalha.jogadores.find((j: any) => j.id === (empateIds[1] || batalha.jogadores[1]?.id))?.foto} className="w-full h-full object-cover opacity-90" alt="Coroa P2" />
+                </div>
+              </div>
+            </div>
+
+            <p className="text-zinc-400 font-black uppercase text-sm tracking-widest animate-pulse mt-4 bg-white/5 px-6 py-2 rounded-xl">
+              A Atirar Moeda ao Ar...
+            </p>
+          </div>
         </div>
       )}
 

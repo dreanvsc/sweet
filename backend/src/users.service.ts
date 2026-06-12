@@ -147,11 +147,49 @@ export class UsersService {
       data: { userId: Number(dados.userId), metodo: dados.metodo, valor: parseFloat(Number(dados.valor).toFixed(2)) }
     });
     
+    // 🔥 1. O NOVO MOTOR MB WAY REAL LIGADO AO STRIPE
     if (dados.metodo === 'mbway') {
       if (!dados.telemovel) throw new BadRequestException("Número de telemóvel obrigatório.");
-      return { sucesso: true, metodo: 'mbway', msg: `Pedido enviado para o telemóvel ${dados.telemovel}.`, txId: transacao.id };
+      
+      try {
+        // O Stripe trabalha em cêntimos (ex: 10€ = 1000)
+        const amountEmCentimos = Math.round(dados.valor * 100);
+
+        const paymentIntent = await this.stripe.paymentIntents.create({
+          amount: amountEmCentimos,
+          currency: 'eur',
+          payment_method_types: ['mb_way'],
+          payment_method_data: {
+            type: 'mb_way',
+            billing_details: {
+              // A SIBS e o Stripe exigem o indicativo de Portugal (+351) anexado
+              phone: `+351${dados.telemovel.trim()}`,
+            },
+          },
+          confirm: true, // Confirma imediatamente para disparar o pop-up no tlm!
+          description: `Depósito SweetDrop - Jogador #${dados.userId}`,
+          metadata: { 
+            userId: String(dados.userId), 
+            txId: String(transacao.id) 
+          },
+          // O Stripe exige uma return_url obrigatória por segurança
+          return_url: `http://localhost:3001/?deposito=pendente&tx=${transacao.id}`, 
+        });
+
+        return { 
+          sucesso: true, 
+          metodo: 'mbway', 
+          msg: `Pedido enviado para o telemóvel ${dados.telemovel}. Aceita na aplicação!`, 
+          txId: transacao.id,
+          intentId: paymentIntent.id
+        };
+      } catch (error: any) {
+        console.error("🔥 Erro fatal no Stripe MB WAY:", error?.message || error);
+        throw new BadRequestException(error?.message || "Erro ao conectar com a Gateway MB WAY.");
+      }
     }
 
+    // 💳 2. CARTÃO (MANTIDO IGUAL AO TEU)
     if (dados.metodo === 'cartao') {
       try {
         const session = await this.stripe.checkout.sessions.create({
@@ -166,6 +204,7 @@ export class UsersService {
       } catch (error) { throw new BadRequestException("Erro ao contactar a Gateway."); }
     }
 
+    // ₿ 3. CRYPTO (MANTIDO IGUAL AO TEU)
     if (dados.metodo === 'crypto') {
       try {
         const apiKey = (process.env.NOWPAYMENTS_API_KEY || '').trim();

@@ -310,10 +310,7 @@ export default function Coinflip({ userId, user, saldo, inventario, atualizarTud
                  <div className="absolute inset-0 bg-amber-500/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
                  <span className="text-5xl relative z-10 opacity-50 group-hover:opacity-100 transition-opacity drop-shadow-[0_0_15px_rgba(245,158,11,0.8)]">💰</span>
               </div>
-              <h3 className="text-xl sm:text-2xl font-black text-white uppercase tracking-widest mb-3 drop-shadow-md">A Mesa está Vazia</h3>
-              <p className="text-zinc-500 text-sm max-w-lg text-center leading-relaxed">
-                Ninguém atirou a moeda ao ar ainda. Escolhe o teu lado, entra na disputa e dobra o teu inventário num piscar de olhos!
-              </p>
+              <h3 className="text-xl sm:text-2xl font-black text-white uppercase tracking-widest mb-3 drop-shadow-md">À Espera de Jogadores!</h3>            
           </div>
         ) : (
           jogos.map((jogo) => (

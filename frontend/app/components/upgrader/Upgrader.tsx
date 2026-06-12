@@ -119,7 +119,7 @@ export default function Upgrader({ userId, inventario, setSaldo, setInventario, 
         <h2 className="text-4xl font-black text-white italic tracking-tighter drop-shadow-md">
           UPGRADER <span className="text-emerald-500">PRO</span>
         </h2>
-        <p className="text-zinc-500 text-xs font-bold uppercase tracking-[0.3em] mt-2">Arrisca o teu lixo por tesouros</p>
+        <p className="text-zinc-500 text-xs font-bold uppercase tracking-[0.3em] mt-2">Arrisca para algo melhor!</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch">

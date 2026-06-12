@@ -99,7 +99,7 @@ export default function Giveaways({ userId, setView }: any) {
               GIVEAWAYS <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-emerald-500 to-teal-400 drop-shadow-[0_0_20px_rgba(16,185,129,0.4)]">ATIVOS</span>
             </h2>
           </div>
-          <p className="text-zinc-400 font-medium tracking-wide ml-16">Participa e ganha skins lendárias totalmente de graça!</p>
+          <p className="text-zinc-400 font-medium tracking-wide ml-16">Participa e ganha skins totalmente de graça!</p>
         </div>
         <button onClick={() => setView('store')} className="group flex items-center gap-2 text-zinc-500 hover:text-white font-bold tracking-widest text-xs uppercase transition-all bg-white/5 hover:bg-white/10 px-5 py-2.5 rounded-xl border border-white/5 hover:border-white/10 hover:shadow-lg">
           <span className="group-hover:-translate-x-1 transition-transform">←</span> Voltar à Loja

@@ -120,12 +120,13 @@ export default function ModalDeposito({ onClose, userId }: { onClose: () => void
       });
       const data = await res.json();
       if (data.sucesso) {
-        toast.success("✅ Oferta de troca enviada! Aceita no Steam.");
+        toast.success("✅ Pedido guardado!");
         setInventario([]);
         setSkinsSelecionadas([]);
+        // Guardamos o valor e dizemos que fomos para a página de sucesso das skins
         setInfoPagamento({ metodo: 'skins', valor: valorTotalSkins.toFixed(2) });
       } else {
-        toast.error(data.mensagem || "Erro ao criar troca.");
+        toast.error(data.mensagem || "Erro ao criar pedido.");
       }
     } catch (e) {
       toast.error("Erro ao ligar ao servidor.");
@@ -290,7 +291,21 @@ export default function ModalDeposito({ onClose, userId }: { onClose: () => void
                 {infoPagamento.metodo === 'mbway' ? '📱' : infoPagamento.metodo === 'skins' ? '🔫' : '💳'}
               </span>
               <h2 className="text-2xl font-black text-white mb-2">
-                {infoPagamento.metodo === 'skins' ? 'Troca Enviada!' : infoPagamento.msg}
+                {infoPagamento.metodo === 'skins' && (
+                <div className="bg-orange-500/10 border border-orange-500/20 rounded-xl p-6 mb-4 flex flex-col items-center">
+                  <p className="text-sm text-zinc-300 text-center mb-4">
+                    Para completares o depósito, envia as skins que selecionaste para o Bot do Império. O teu saldo de <span className="text-orange-400 font-black">{infoPagamento.valor}€</span> será creditado assim que recebermos a troca!
+                  </p>
+                  <a 
+                    href="https://steamcommunity.com/tradeoffer/new/?partner=1156810616&token=Svsz7Gfu" 
+                    target="_blank" 
+                    rel="noreferrer"
+                    className="bg-orange-500 hover:bg-orange-400 text-black px-6 py-4 rounded-xl font-black uppercase text-sm shadow-[0_0_20px_rgba(249,115,22,0.4)] hover:scale-105 transition-all w-full text-center flex items-center justify-center gap-2"
+                  >
+                    <span>📤</span> ENVIAR SKINS NA STEAM
+                  </a>
+                </div>
+              )}
               </h2>
               
               {infoPagamento.metodo === 'skins' && (

@@ -13,10 +13,12 @@ import AdminVerificacoes from './AdminVerificacoes';
 import TabGiveaways from './TabGiveaways';
 import TabBanner from './TabBanner';
 import TabBanco from './TabBanco';
+// 🔥 IMPORT NOVO AQUI
+import AdminDepositosSkins from './AdminDepositosSkins';
 
 export default function Admin({ userId }: any) {
-  // 🔥 Adicionado 'verificacoes' e 'giveaways' ao estado
-  const [activeTab, setActiveTab] = useState<'users' | 'boxes' | 'stats' | 'system' | 'staff' | 'tickets' | 'livechat' | 'missoes' | 'withdraws' | 'verificacoes'| 'giveaways' | 'banner'| 'banco'>('boxes');
+  // 🔥 Adicionado 'depositos' ao estado
+  const [activeTab, setActiveTab] = useState<'users' | 'boxes' | 'stats' | 'system' | 'staff' | 'tickets' | 'livechat' | 'missoes' | 'withdraws' | 'verificacoes'| 'giveaways' | 'banner'| 'banco' | 'depositos'>('boxes');
 
   // =========================================================================
   // 🔥 ESTADOS PARA A EQUIPA (PROMOVER E REMOVER)
@@ -127,8 +129,16 @@ export default function Admin({ userId }: any) {
             <span className="text-lg w-6 text-center drop-shadow-md">📦</span> 
             <span className="text-xs font-bold uppercase tracking-widest">Logística (Saques)</span>
           </button>
+
+          {/* 🔥 NOVO BOTÃO DOS DEPÓSITOS SKINS */}
+          <button 
+            onClick={() => setActiveTab('depositos')} 
+            className={`flex items-center gap-3 p-4 rounded-xl text-left transition-all duration-300 ${activeTab === 'depositos' ? 'bg-gradient-to-r from-emerald-500/20 to-transparent border-l-4 border-emerald-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.15)] translate-x-2' : 'bg-transparent text-zinc-400 hover:text-white hover:bg-white/5 hover:translate-x-1'}`}
+          >
+            <span className="text-lg w-6 text-center drop-shadow-md">📥</span> 
+            <span className="text-xs font-bold uppercase tracking-widest text-emerald-400">Depósitos Skins</span>
+          </button>
           
-          {/* 🔥 NOVO BOTÃO DOS SORTEIOS */}
           <button 
             onClick={() => setActiveTab('giveaways')} 
             className={`flex items-center gap-3 p-4 rounded-xl text-left transition-all duration-300 ${activeTab === 'giveaways' ? 'bg-gradient-to-r from-amber-500/20 to-transparent border-l-4 border-amber-500 text-white shadow-[0_0_15px_rgba(245,158,11,0.1)] translate-x-2' : 'bg-transparent text-zinc-400 hover:text-white hover:bg-white/5 hover:translate-x-1'}`}
@@ -192,7 +202,6 @@ export default function Admin({ userId }: any) {
             <span className="text-xs font-bold uppercase tracking-widest">Moderação</span>
           </button>
 
-          {/* 🔥 NOVO BOTÃO DAS VERIFICAÇÕES DO CEO */}
           <button 
             onClick={() => setActiveTab('verificacoes')} 
             className={`flex items-center gap-3 p-4 rounded-xl text-left transition-all duration-300 ${activeTab === 'verificacoes' ? 'bg-gradient-to-r from-indigo-500/20 to-transparent border-l-4 border-indigo-500 text-white shadow-[0_0_15px_rgba(99,102,241,0.15)] translate-x-2' : 'bg-transparent text-zinc-400 hover:text-white hover:bg-white/5 hover:translate-x-1'}`}
@@ -226,6 +235,8 @@ export default function Admin({ userId }: any) {
           {activeTab === 'users' && <TabClientes />}
           {activeTab === 'boxes' && <TabFabrica />}
           {activeTab === 'withdraws' && <AdminLevantamentos />}
+          {/* 🔥 ABA DOS DEPÓSITOS SKINS RENDERIZADA */}
+          {activeTab === 'depositos' && <AdminDepositosSkins />}
           {activeTab === 'tickets' && <AdminTickets />}
           {activeTab === 'livechat' && <AdminLiveChat />}
           {activeTab === 'missoes' && <AdminMissoes />}

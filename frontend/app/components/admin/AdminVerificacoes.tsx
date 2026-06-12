@@ -79,7 +79,7 @@ export default function AdminVerificacoes() {
             <h3 className="text-2xl font-black italic uppercase text-white tracking-tighter flex items-center gap-3">
               <span className="text-3xl drop-shadow-[0_0_8px_rgba(99,102,241,0.5)]">🛡️</span> Painel de <span className="text-indigo-400">Verificações</span>
             </h3>
-            <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest mt-1">Aprova ou rejeita quem pode levantar skins do teu império.</p>
+            <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest mt-1">Aprova ou rejeita quem pode levantar skins.</p>
           </div>
           <div className="bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 px-4 py-2 rounded-xl text-[10px] font-black uppercase">
             {listaSegura.length} Pendentes

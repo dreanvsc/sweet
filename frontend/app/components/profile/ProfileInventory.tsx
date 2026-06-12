@@ -37,7 +37,7 @@ export default function ProfileInventory({ inventario, setInventario, setSaldo, 
 
     const precoReal = Number(item?.preco || item?.valor || 0);
     if (precoReal < 2.00) {
-      return toast.error("VALOR MÍNIMO REQUERIDO: O império apenas faz envios de skins acima de 2.00€!");
+      return toast.error("VALOR MÍNIMO REQUERIDO: O SweetDrop apenas faz envios de skins acima de 2.00€!");
     }
     setSkinParaLevantar(item);
   };

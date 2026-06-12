@@ -149,7 +149,7 @@ export default function ProfileMissions({ userId }: any) {
             <div className="bg-gradient-to-r from-blue-600 to-indigo-900 p-6 flex gap-4 items-center relative">
               <div className="bg-black/20 w-16 h-16 rounded-xl flex items-center justify-center text-3xl shadow-inner border border-white/10 backdrop-blur-md">🔪</div>
               <div>
-                <h2 className="text-xl font-black text-white">Mostra as tuas skins ganhas no Império</h2>
+                <h2 className="text-xl font-black text-white">Mostra as tuas skins ganhas no SweetDrop</h2>
                 <p className="text-blue-200 text-xs font-bold mt-1">Grava um vídeo curto (mín. 10s). Publica-o no TikTok, YouTube Shorts ou Instagram Reels.</p>
               </div>
               <button onClick={() => setModalMissao(false)} className="absolute top-4 right-4 text-white/50 hover:text-white font-black text-xl">✕</button>
@@ -173,7 +173,7 @@ export default function ProfileMissions({ userId }: any) {
                       <div className="flex justify-between items-start relative z-10">
                         <div>
                           <h4 className="text-white font-black text-sm mb-1">Publicar vídeo no {plat.nome}</h4>
-                          <p className="text-zinc-500 text-[10px] font-bold">O nome "Império" deve estar visível no título ou ecrã. Tag: <span className="text-emerald-500">#ImperioDrop</span></p>
+                          <p className="text-zinc-500 text-[10px] font-bold">O nome "SweetDrop" deve estar visível no título ou ecrã. Tag: <span className="text-emerald-500">#SweetDrop</span></p>
                         </div>
                         <div className="bg-black/40 px-3 py-1.5 rounded-lg border border-white/5 shrink-0">
                            {/* 🔥 PREÇO DINÂMICO TAMBÉM DENTRO DO MODAL */}

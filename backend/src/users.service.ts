@@ -156,7 +156,7 @@ export class UsersService {
       try {
         const session = await this.stripe.checkout.sessions.create({
           payment_method_types: ['card'],
-          line_items: [{ price_data: { currency: 'eur', product_data: { name: 'Adicionar Saldo - IMPÉRIO' }, unit_amount: Math.round(dados.valor * 100) }, quantity: 1 }],
+          line_items: [{ price_data: { currency: 'eur', product_data: { name: 'Adicionar Saldo - SweetDrop' }, unit_amount: Math.round(dados.valor * 100) }, quantity: 1 }],
           mode: 'payment',
           success_url: `http://localhost:3001/?deposito=sucesso&tx=${transacao.id}`,
           cancel_url: `http://localhost:3001/?deposito=cancelado`,
@@ -255,7 +255,7 @@ export class UsersService {
 
     const valorDaSkin = skin.valor || skin.preco || 0;
     if (valorDaSkin < 2.00) {
-      throw new BadRequestException("O império não envia armas abaixo de 2.00€. Vende a skin por saldo ou faz Upgrade!");
+      throw new BadRequestException("O SweetDrop não envia armas abaixo de 2.00€. Vende a skin por saldo ou faz Upgrade!");
     }
 
     try {

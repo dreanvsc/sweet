@@ -33,7 +33,7 @@ export default function ProfileHistory({ userId }: any) {
   if (loading) {
     return (
       <div className="text-center py-20 text-zinc-500 font-black tracking-widest text-xs uppercase animate-pulse">
-        ⏳ A carregar histórico do Império...
+        ⏳ A carregar histórico do SweetDrop...
       </div>
     );
   }

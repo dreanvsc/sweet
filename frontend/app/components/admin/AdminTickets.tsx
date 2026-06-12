@@ -88,7 +88,7 @@ export default function AdminTickets() {
               {tickets.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="py-12 text-center text-zinc-600 font-black uppercase text-[10px] tracking-widest">
-                    Nenhum ticket pendente. O império está calmo.
+                    Nenhum ticket pendente.
                   </td>
                 </tr>
               ) : (
@@ -154,7 +154,7 @@ export default function AdminTickets() {
 
             <div className="flex flex-col gap-3 relative z-10">
               <label className="text-emerald-500 text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
-                <span>👑</span> A tua resposta (Equipa Império)
+                <span>👑</span> A tua resposta (Equipa SweetDrop)
               </label>
               <textarea 
                 rows={5}

@@ -136,7 +136,7 @@ export default function ProfileSupport({ userId }: any) {
             <p className={`text-[10px] font-black uppercase tracking-widest mb-2 flex items-center gap-2 ${
               ticketVisualizar.resposta ? 'text-emerald-500' : 'text-amber-500'
             }`}>
-              <span className="text-lg">👑</span> Resposta da Equipa Império
+              <span className="text-lg">👑</span> Resposta da Equipa SweetDrop
             </p>
             
             {ticketVisualizar.resposta ? (

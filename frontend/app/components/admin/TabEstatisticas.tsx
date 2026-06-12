@@ -15,7 +15,7 @@ export default function TabEstatisticas() {
   return (
     <div className="animate-in fade-in">
       <h3 className="text-2xl font-black uppercase italic mb-8 text-white border-b border-white/5 pb-4 flex items-center gap-3">
-        <span className="text-3xl drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]">📊</span> Visão Global do Império
+        <span className="text-3xl drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]">📊</span> Visão Global do SweetDrop
       </h3>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

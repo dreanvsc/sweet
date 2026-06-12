@@ -294,7 +294,7 @@ export default function ModalDeposito({ onClose, userId }: { onClose: () => void
                 {infoPagamento.metodo === 'skins' && (
                 <div className="bg-orange-500/10 border border-orange-500/20 rounded-xl p-6 mb-4 flex flex-col items-center">
                   <p className="text-sm text-zinc-300 text-center mb-4">
-                    Para completares o depósito, envia as skins que selecionaste para o Bot do Império. O teu saldo de <span className="text-orange-400 font-black">{infoPagamento.valor}€</span> será creditado assim que recebermos a troca!
+                    Para completares o depósito, envia as skins que selecionaste para o Bot do SweetDrop. O teu saldo de <span className="text-orange-400 font-black">{infoPagamento.valor}€</span> será creditado assim que recebermos a troca!
                   </p>
                   <a 
                     href="https://steamcommunity.com/tradeoffer/new/?partner=1156810616&token=Svsz7Gfu" 

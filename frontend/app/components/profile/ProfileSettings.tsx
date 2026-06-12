@@ -146,7 +146,7 @@ export default function ProfileSettings({ userData, userId }: any) {
             <div className={`w-5 h-5 rounded border flex-shrink-0 mt-0.5 flex items-center justify-center transition-colors ${newsletter ? 'bg-emerald-500 border-emerald-500' : 'bg-[#121215] border-white/10 group-hover:border-white/30'}`}>
               {newsletter && <span className="text-black text-xs font-black">✓</span>}
             </div>
-            <span className="text-zinc-400 text-[10px] leading-relaxed select-none">Aceito receber por via eletrónica boletins informativos e de promoção do Império</span>
+            <span className="text-zinc-400 text-[10px] leading-relaxed select-none">Aceito receber por via eletrónica boletins informativos e de promoção do SweetDrop</span>
           </label>
 
           <button 

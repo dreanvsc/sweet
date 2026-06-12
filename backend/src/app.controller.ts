@@ -578,7 +578,7 @@ export class AppController {
         html: `
           <div style="background-color: #121215; color: white; padding: 30px; font-family: sans-serif; text-align: center; border-radius: 10px;">
             <h2 style="color: #10b981;">Verificação de E-mail</h2>
-            <p>O teu código de verificação para o Império é:</p>
+            <p>O teu código de verificação para o SweetDrop é:</p>
             <h1 style="background-color: #1b1b1e; padding: 15px; letter-spacing: 5px; border: 1px solid #10b981; display: inline-block;">${codigo}</h1>
           </div>
         `

@@ -77,7 +77,7 @@ export default function LiveChatWidget({ userId, userName }: any) {
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-black/20 rounded-full flex items-center justify-center text-xl">👑</div>
               <div>
-                <h3 className="text-black font-black text-xs uppercase tracking-widest">Suporte Império</h3>
+                <h3 className="text-black font-black text-xs uppercase tracking-widest">Suporte SweetDrop</h3>
                 <p className="text-black/60 text-[9px] font-bold uppercase">Online • Resposta imediata</p>
               </div>
             </div>

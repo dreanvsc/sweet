@@ -712,7 +712,7 @@ export class AppController {
     
     if (!dataInv || !dataInv.assets) return { items: [] };
 
-    // 2️⃣ Monta lista de items tradeable
+    // 2️⃣ Monta lista de items tradeable (da mochila do utilizador)
     const items = dataInv.assets.map((asset: any) => {
       const desc = dataInv.descriptions.find(
         (d: any) => d.classid === asset.classid && d.instanceid === asset.instanceid
@@ -726,46 +726,57 @@ export class AppController {
       };
     }).filter((i: any) => i.tradable && i.name !== 'Unknown');
 
-    // 3️⃣ Busca preços à CSGOBackpack (A solução anti 429)
+    // 3️⃣ Busca preços ao Market CSGO (Rápido, anti-bloqueio, em Euros reais)
     try {
-      const resPrecos = await fetch(
-        'http://csgobackpack.net/api/GetItemsList/v2/?currency=EUR&no_details=true'
-      );
+      const resPrecos = await fetch('https://market.csgo.com/api/v2/prices/EUR.json', {
+        headers: {
+          'Accept-Encoding': 'gzip, deflate, br'
+        }
+      });
       
       if (!resPrecos.ok) {
-        console.log('⚠️ CSGOBackpack falhou. Sem preços para os depósitos agora.');
+        console.log('⚠️ Market CSGO falhou. A devolver itens com preço 0.');
         return { items };
       }
 
-      const data = await resPrecos.json();
-      
-      if (!data.success || !data.items_list) {
+      const text = await resPrecos.text();
+      let dataPrecos;
+      try {
+        dataPrecos = JSON.parse(text);
+      } catch (e) {
         return { items };
       }
 
-      const listaSkins = data.items_list;
+      if (!dataPrecos.success || !dataPrecos.items) {
+         return { items };
+      }
 
+      // Constrói o "Dicionário" em memória num milissegundo
+      const mapPrecos = new Map<string, number>();
+      for (const itemApi of dataPrecos.items) {
+        if (itemApi.market_hash_name && itemApi.price) {
+           mapPrecos.set(itemApi.market_hash_name, parseFloat(itemApi.price));
+        }
+      }
+
+      // Cola o preço em cada arma da mochila do utilizador
       const itemsComPreco = items.map((item: any) => {
-        const infoSkin = listaSkins[item.name];
+        const precoMercado = mapPrecos.get(item.name) || 0;
         
-        // Busca a média dos últimos 7 dias. Se não houver, tenta 30 dias.
-        const precoEmEuros = infoSkin?.price?.['7_days']?.average 
-                            || infoSkin?.price?.['30_days']?.average 
-                            || 0;
-
         return {
           ...item,
-          // O frontend espera o preço em cêntimos (ex: 15.50€ -> 1550)
-          price: precoEmEuros > 0 ? Math.round(precoEmEuros * 1000) : 0
+          // O frontend espera o preço em cêntimos (ex: 15.50€ -> 1550).
+          // Math.floor para não haver bugs de arredondamento em pagamentos.
+          price: precoMercado > 0 ? Math.floor(precoMercado * 1000) : 0
         };
       });
 
       return { items: itemsComPreco };
-    } catch (e) {
-      console.error('❌ Erro crítico ao buscar preços do CSGOBackpack:', e);
-    }
 
-    return { items };
+    } catch (e) {
+      console.error('❌ Erro ao cruzar inventário com preços:', e);
+      return { items };
+    }
   }
 
   // Criar troca Waxpeer

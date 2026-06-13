@@ -173,13 +173,12 @@ export default function ModalDeposito({ onClose, userId }: { onClose: () => void
                     {metodo === 'mbway' && <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#00a8e8] shadow-[0_0_10px_#00a8e8]"></div>}
                     
                     {/* LOGO MB WAY DESENHADO EM CÓDIGO (NUNCA QUEBRA!) */}
-                    <div className="w-14 h-8 bg-white rounded flex items-center justify-center shadow-inner gap-1">
-                      <div className="grid grid-cols-3 gap-[1.5px]">
-                        {[...Array(9)].map((_, i) => (
-                          <div key={i} className="w-[3px] h-[3px] bg-[#00a8e8] rounded-sm"></div>
-                        ))}
-                      </div>
-                      <span className="text-[#00a8e8] font-black text-[9px] tracking-tighter leading-none mt-0.5">MB<br/>WAY</span>
+                    <div className="w-14 h-8 bg-white rounded flex items-center justify-center shadow-inner px-1">
+                      <img 
+                        src="https://upload.wikimedia.org/wikipedia/commons/4/4d/MBWay_logo.svg"
+                        alt="MB WAY"
+                        className="h-5 object-contain"
+                      />
                     </div>
 
                     <span className={`font-black uppercase tracking-wide text-sm ${metodo === 'mbway' ? 'text-white' : 'text-zinc-400'}`}>MB Way</span>
@@ -191,8 +190,16 @@ export default function ModalDeposito({ onClose, userId }: { onClose: () => void
                     
                     {/* LOGOS VISA E MASTERCARD (SIMPLE ICONS CDN) */}
                     <div className="w-14 h-8 bg-white rounded flex items-center justify-center shadow-inner gap-1.5 px-1">
-                      <img src="https://cdn.simpleicons.org/visa/1434CB" alt="Visa" className="h-2.5 object-contain" />
-                      <img src="https://cdn.simpleicons.org/mastercard/EB001B" alt="Mastercard" className="h-4 object-contain" />
+                      <img 
+                        src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg"
+                        alt="Visa"
+                        className="h-3 object-contain"
+                      />
+                      <img 
+                        src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg"
+                        alt="Mastercard"
+                        className="h-5 object-contain"
+                      />
                     </div>
 
                     <span className={`font-black uppercase tracking-wide text-sm ${metodo === 'cartao' ? 'text-white' : 'text-zinc-400'}`}>Cartão</span>

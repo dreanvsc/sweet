@@ -121,7 +121,6 @@ export default function Sidebar({ view, setView, saldo, userId, userData }: any)
               <p className="text-xl font-black text-white tracking-tighter drop-shadow-[0_0_8px_rgba(255,255,255,0.3)] relative z-10">{Number(saldo).toFixed(2)}<span className="text-emerald-500">€</span></p>
               <div className="flex gap-2 w-full mt-3 relative z-10">
                 <button onClick={() => setModalAberto(true)} className="flex-1 py-1.5 bg-gradient-to-r from-emerald-500 to-emerald-400 hover:from-emerald-400 hover:to-emerald-300 transition-all text-black text-[9px] font-black rounded-md uppercase shadow-[0_0_15px_rgba(16,185,129,0.4)] hover:-translate-y-0.5">Depositar</button>
-                {/* AQUI ESTÁ O BOTÃO DE SAIR CORRIGIDO (DESKTOP) */}
                 <button onClick={handleLogout} className="px-2 py-1.5 bg-white/5 hover:bg-red-500/20 hover:border-red-500/50 transition-all text-zinc-400 hover:text-red-400 text-[9px] font-black rounded-md uppercase border border-white/5 hover:-translate-y-0.5" title="Terminar Sessão">Sair</button>
               </div>
             </div>
@@ -228,7 +227,6 @@ export default function Sidebar({ view, setView, saldo, userId, userData }: any)
             </div>
 
             {userId && (
-              {/* AQUI ESTÁ O BOTÃO DE SAIR CORRIGIDO (MOBILE) */}
               <button onClick={handleLogout} className="w-full py-3 bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-black rounded-xl uppercase tracking-widest">
                 Terminar Sessão
               </button>

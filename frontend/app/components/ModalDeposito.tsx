@@ -189,14 +189,14 @@ export default function ModalDeposito({ onClose, userId }: { onClose: () => void
                     {metodo === 'cartao' && <div className="absolute left-0 top-0 bottom-0 w-1 bg-purple-500 shadow-[0_0_10px_purple]"></div>}
                     
                     {/* LOGOS VISA E MASTERCARD (SIMPLE ICONS CDN) */}
-                    <div className="w-14 h-8 bg-white rounded flex items-center justify-center shadow-inner gap-1.5 px-1">
+                    <div className="w-14 h-8 bg-white rounded flex items-center justify-center shadow-inner gap-1 px-1">
                       <img 
-                        src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg"
+                        src="https://img.icons8.com/color/48/visa.png"
                         alt="Visa"
-                        className="h-3 object-contain"
+                        className="h-5 object-contain"
                       />
                       <img 
-                        src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg"
+                        src="https://img.icons8.com/color/48/mastercard.png"
                         alt="Mastercard"
                         className="h-5 object-contain"
                       />

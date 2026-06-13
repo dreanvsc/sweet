@@ -175,9 +175,9 @@ export default function ModalDeposito({ onClose, userId }: { onClose: () => void
                     {/* LOGO MB WAY DESENHADO EM CÓDIGO (NUNCA QUEBRA!) */}
                     <div className="w-14 h-8 bg-white rounded flex items-center justify-center shadow-inner px-1">
                       <img 
-                        src="https://upload.wikimedia.org/wikipedia/commons/4/4d/MBWay_logo.svg"
+                        src="https://img.icons8.com/color/48/mb-way.png"
                         alt="MB WAY"
-                        className="h-5 object-contain"
+                        className="h-6 object-contain"
                       />
                     </div>
 

@@ -10,6 +10,10 @@ export default function ModalDeposito({ onClose, userId }: { onClose: () => void
   const [loading, setLoading] = useState(false);
   const [infoPagamento, setInfoPagamento] = useState<any>(null);
 
+  // 🎁 MOTOR DE BOAS VINDAS (0 = 1º Depósito, 1 = 2º Depósito, 2+ = Normal)
+  // No futuro, podes atualizar este state pelo fetch do backend
+  const [numeroDepositos, setNumeroDepositos] = useState<number>(0); 
+
   // 🎮 SKINS
   const [tradeUrl, setTradeUrl] = useState('');
   const [inventario, setInventario] = useState<any[]>([]);
@@ -24,10 +28,39 @@ export default function ModalDeposito({ onClose, userId }: { onClose: () => void
         .then(res => res.json())
         .then(data => {
           if (data?.tradeUrl) setTradeUrl(data.tradeUrl);
+          // Exemplo de como puxar os depósitos se o teu backend já enviar:
+          // if (data?.totalDepositosFeitos !== undefined) setNumeroDepositos(data.totalDepositosFeitos);
         })
         .catch(() => {});
     }
   }, [userId]);
+
+  // 🔥 OPÇÕES DE VALORES COM BÓNUS MARKETING NORMAL
+  const pacotesValor = [
+    { v: 5, bonus: 0 }, { v: 10, bonus: 0 }, { v: 25, bonus: 3 }, { v: 50, bonus: 5 }, { v: 100, bonus: 10 }
+  ];
+
+  // 🧮 MATEMÁTICA DO BÓNUS DE BOAS VINDAS
+  const calcularBonus = (vBase: number) => {
+    if (metodo === 'skins') return vBase * 0.10; // Skins têm sempre 10% fixo
+    
+    if (numeroDepositos === 0) {
+      // 1º DEPÓSITO: 100% ATÉ 500€
+      return Math.min(vBase * 1.00, 500);
+    } else if (numeroDepositos === 1) {
+      // 2º DEPÓSITO: 50% ATÉ 250€
+      return Math.min(vBase * 0.50, 250);
+    } else {
+      // DEPÓSITOS NORMAIS: Bónus do pacote
+      const pacote = pacotesValor.find(p => p.v.toString() === valor);
+      const percentagemPacote = pacote?.bonus || 0;
+      return vBase * (percentagemPacote / 100);
+    }
+  };
+
+  const valorBase = Number(valor) || 0;
+  const valorBonus = calcularBonus(valorBase);
+  const valorTotalReceber = (valorBase + valorBonus).toFixed(2);
 
   const handlePagar = async () => {
     if (!userId) return toast.error("Erro de sessão.");
@@ -38,7 +71,8 @@ export default function ModalDeposito({ onClose, userId }: { onClose: () => void
     try {
       const res = await fetch('https://sweet-7ifa.onrender.com/depositar', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: Number(userId), metodo, valor: Number(valor), telemovel })
+        // Enviamos a indicação do bónus esperado para o backend processar
+        body: JSON.stringify({ userId: Number(userId), metodo, valor: Number(valor), telemovel, bonusEsperado: valorBonus })
       });
       const data = await res.json();
       
@@ -132,29 +166,28 @@ export default function ModalDeposito({ onClose, userId }: { onClose: () => void
     setDepositando(false);
   };
 
-  // 🔥 OPÇÕES DE VALORES COM BÓNUS MARKETING
-  const pacotesValor = [
-    { v: 5, bonus: 0 }, { v: 10, bonus: 0 }, { v: 25, bonus: 3 }, { v: 50, bonus: 5 }, { v: 100, bonus: 10 }
-  ];
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
       
       {/* CONTAINER PRINCIPAL */}
       <div className="bg-[#0b0c10] border border-white/10 rounded-2xl w-full max-w-4xl shadow-[0_0_50px_rgba(0,0,0,0.9)] flex flex-col overflow-hidden max-h-[90vh]">
         
-        {/* CABEÇALHO PREMIUM */}
-        <div className="px-8 py-5 border-b border-white/5 bg-white/[0.02] flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.2)]">
-              <span className="text-emerald-400 font-black text-xl">€</span>
+        {/* CABEÇALHO PREMIUM DINÂMICO */}
+        <div className="px-8 py-5 border-b border-white/5 bg-white/[0.02] flex justify-between items-center relative overflow-hidden">
+          <div className={`absolute right-0 top-0 w-64 h-full bg-gradient-to-l to-transparent transition-colors ${numeroDepositos === 0 ? 'from-amber-500/10' : numeroDepositos === 1 ? 'from-blue-500/10' : 'from-emerald-500/10'}`}></div>
+          <div className="flex items-center gap-3 relative z-10">
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center border shadow-[0_0_15px_rgba(0,0,0,0.2)] ${numeroDepositos === 0 ? 'bg-amber-500/10 border-amber-500/20' : numeroDepositos === 1 ? 'bg-blue-500/10 border-blue-500/20' : 'bg-emerald-500/10 border-emerald-500/20'}`}>
+              <span className={`font-black text-xl ${numeroDepositos === 0 ? 'text-amber-400' : numeroDepositos === 1 ? 'text-blue-400' : 'text-emerald-400'}`}>€</span>
             </div>
             <div>
               <h2 className="text-xl font-black text-white uppercase tracking-wider">Adicionar Fundos</h2>
-              <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest">Saldo disponível na hora</p>
+              <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest flex items-center gap-2">
+                <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${numeroDepositos === 0 ? 'bg-amber-500' : numeroDepositos === 1 ? 'bg-blue-500' : 'bg-emerald-500'}`}></span>
+                Depósitos Imediatos
+              </p>
             </div>
           </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-zinc-500 hover:text-white hover:bg-white/10 transition-colors">
+          <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-zinc-500 hover:text-white hover:bg-white/10 transition-colors z-10">
             ✕
           </button>
         </div>
@@ -163,7 +196,7 @@ export default function ModalDeposito({ onClose, userId }: { onClose: () => void
           {!infoPagamento ? (
             <div className="flex flex-col md:flex-row gap-10">
               
-              {/* LADO ESQUERDO - MÉTODOS DE PAGAMENTO COM LOGOS */}
+              {/* LADO ESQUERDO - MÉTODOS DE PAGAMENTO */}
               <div className="w-full md:w-1/3">
                 <h3 className="text-zinc-500 text-[10px] font-black uppercase tracking-widest mb-4">1. Escolher Método</h3>
                 <div className="flex flex-col gap-3">
@@ -171,37 +204,19 @@ export default function ModalDeposito({ onClose, userId }: { onClose: () => void
                   {/* BOTÃO MB WAY */}
                   <button onClick={() => setMetodo('mbway')} className={`relative overflow-hidden p-4 rounded-xl border transition-all duration-300 flex items-center gap-4 ${metodo === 'mbway' ? 'bg-[#00a8e8]/10 border-[#00a8e8] shadow-[0_0_20px_rgba(0,168,232,0.15)] scale-[1.02]' : 'bg-white/[0.02] border-white/5 hover:border-white/20'}`}>
                     {metodo === 'mbway' && <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#00a8e8] shadow-[0_0_10px_#00a8e8]"></div>}
-                    
-                    {/* LOGO MB WAY DESENHADO EM CÓDIGO (NUNCA QUEBRA!) */}
                     <div className="w-14 h-8 bg-white rounded flex items-center justify-center shadow-inner px-1">
-                      <img 
-                        src="https://img.icons8.com/color/48/mb-way.png"
-                        alt="MB WAY"
-                        className="h-6 object-contain"
-                      />
+                      <img src="https://img.icons8.com/color/48/mb-way.png" alt="MB WAY" className="h-6 object-contain" />
                     </div>
-
                     <span className={`font-black uppercase tracking-wide text-sm ${metodo === 'mbway' ? 'text-white' : 'text-zinc-400'}`}>MB Way</span>
                   </button>
 
                   {/* BOTÃO CARTÃO */}
                   <button onClick={() => setMetodo('cartao')} className={`relative overflow-hidden p-4 rounded-xl border transition-all duration-300 flex items-center gap-4 ${metodo === 'cartao' ? 'bg-purple-500/10 border-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.15)] scale-[1.02]' : 'bg-white/[0.02] border-white/5 hover:border-white/20'}`}>
                     {metodo === 'cartao' && <div className="absolute left-0 top-0 bottom-0 w-1 bg-purple-500 shadow-[0_0_10px_purple]"></div>}
-                    
-                    {/* LOGOS VISA E MASTERCARD (SIMPLE ICONS CDN) */}
                     <div className="w-14 h-8 bg-white rounded flex items-center justify-center shadow-inner gap-1 px-1">
-                      <img 
-                        src="https://img.icons8.com/color/48/visa.png"
-                        alt="Visa"
-                        className="h-5 object-contain"
-                      />
-                      <img 
-                        src="https://img.icons8.com/color/48/mastercard.png"
-                        alt="Mastercard"
-                        className="h-5 object-contain"
-                      />
+                      <img src="https://img.icons8.com/color/48/visa.png" alt="Visa" className="h-5 object-contain" />
+                      <img src="https://img.icons8.com/color/48/mastercard.png" alt="Mastercard" className="h-5 object-contain" />
                     </div>
-
                     <span className={`font-black uppercase tracking-wide text-sm ${metodo === 'cartao' ? 'text-white' : 'text-zinc-400'}`}>Cartão</span>
                   </button>
 
@@ -219,7 +234,6 @@ export default function ModalDeposito({ onClose, userId }: { onClose: () => void
                   <button onClick={() => setMetodo('skins')} className={`relative overflow-hidden p-4 rounded-xl border transition-all duration-300 flex items-center gap-4 ${metodo === 'skins' ? 'bg-emerald-500/10 border-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.15)] scale-[1.02]' : 'bg-white/[0.02] border-white/5 hover:border-white/20'}`}>
                     {metodo === 'skins' && <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 shadow-[0_0_10px_#10b981]"></div>}
                     <div className="w-14 h-8 flex items-center justify-center bg-black/40 rounded shadow-inner border border-white/5">
-                      {/* Logo CS oficial via Icons8 */}
                       <img src="https://img.icons8.com/color/48/counter-strike-global-offensive.png" alt="CS2" className="h-6 w-6 object-contain drop-shadow-[0_0_5px_rgba(16,185,129,0.3)]" />
                     </div>
                     <div className="flex flex-col items-start">
@@ -232,7 +246,7 @@ export default function ModalDeposito({ onClose, userId }: { onClose: () => void
               </div>
 
               {/* LADO DIREITO - DETALHES E CHECKOUT */}
-              <div className="w-full md:w-2/3 border-t md:border-t-0 md:border-l border-white/5 pt-6 md:pt-0 md:pl-10">
+              <div className="w-full md:w-2/3 border-t md:border-t-0 md:border-l border-white/5 pt-6 md:pt-0 md:pl-10 flex flex-col justify-between">
                 
                 {metodo === 'skins' ? (
                   <div className="animate-in fade-in zoom-in-95 duration-300">
@@ -285,57 +299,116 @@ export default function ModalDeposito({ onClose, userId }: { onClose: () => void
                         )}
 
                         <button onClick={depositarSkins} disabled={depositando || skinsSelecionadas.length === 0 || valorTotalSkins < 0.5} className="w-full py-4 bg-emerald-500 hover:bg-emerald-400 text-black font-black text-sm uppercase tracking-widest rounded-xl transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] disabled:opacity-50 flex items-center justify-center gap-2">
-                          {depositando ? 'A PREPARAR...' : skinsSelecionadas.length === 0 ? 'SELECIONA SKINS ACIMA' : `DEPOSITAR ${valorTotalSkins.toFixed(2)}€ AGORA`}
+                          {depositando ? 'A PREPARAR...' : skinsSelecionadas.length === 0 ? 'SELECIONA SKINS ACIMA' : `DEPOSITAR E RECEBER ${(valorTotalSkins * 1.10).toFixed(2)}€ AGORA`}
                         </button>
                       </>
                     )}
                   </div>
                 ) : (
-                  <div className="animate-in fade-in slide-in-from-right-4 duration-300">
-                    <h3 className="text-zinc-500 text-[10px] font-black uppercase tracking-widest mb-4">2. Escolher Montante</h3>
+                  <div className="animate-in fade-in slide-in-from-right-4 duration-300 flex-1 flex flex-col">
                     
-                    {/* BOTÕES DE VALOR COM BÓNUS */}
-                    <div className="grid grid-cols-3 gap-3 mb-6">
-                      {pacotesValor.map(p => (
-                        <button key={p.v} onClick={() => setValor(p.v.toString())} className={`relative flex flex-col items-center justify-center p-3 rounded-xl border transition-all ${valor === p.v.toString() ? 'bg-white/10 border-white text-white scale-105' : 'bg-white/[0.02] border-white/5 text-zinc-400 hover:bg-white/5 hover:border-white/20'}`}>
-                          {p.bonus > 0 && <span className="absolute -top-2.5 bg-emerald-500 text-black text-[9px] font-black px-2 py-0.5 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.4)]">+{p.bonus}% BÓNUS</span>}
-                          <span className="text-xl font-black">{p.v}€</span>
-                        </button>
-                      ))}
-                    </div>
-
-                    <div className="relative mb-6">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white font-black text-lg">€</span>
-                      <input type="number" value={valor} onChange={e => setValor(e.target.value)} className="w-full bg-black border border-white/10 rounded-xl py-4 pl-10 pr-4 text-white font-black text-xl outline-none focus:border-white transition-colors text-right" placeholder="0.00" />
-                    </div>
-
-                    {metodo === 'mbway' && (
-                      <div className="mb-6 animate-in slide-in-from-top-2">
-                        <label className="text-zinc-500 text-[10px] font-black uppercase tracking-widest mb-2 block">3. Número de Telemóvel</label>
-                        <div className="relative">
-                          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 font-black">+351</span>
-                          <input type="tel" value={telemovel} onChange={e => setTelemovel(e.target.value)} maxLength={9} placeholder="912345678" className="w-full bg-black border border-white/10 rounded-xl py-4 pl-16 pr-4 text-white font-black outline-none focus:border-[#00a8e8] transition-colors" />
+                    {/* BANNERS ESPECIAIS DE BOAS VINDAS */}
+                    {numeroDepositos === 0 && (
+                      <div className="mb-6 bg-gradient-to-r from-amber-500/20 to-amber-600/5 border border-amber-500/30 rounded-xl p-4 flex items-center gap-4 shadow-[0_0_20px_rgba(245,158,11,0.1)]">
+                        <div className="text-3xl">🎁</div>
+                        <div>
+                          <h4 className="text-amber-400 font-black uppercase text-sm">Bónus de 1º Depósito</h4>
+                          <p className="text-zinc-300 text-[11px] font-bold">Oferecemos-te <strong className="text-white">100% EXTRA</strong> até 500€ no teu primeiro carregamento!</p>
                         </div>
                       </div>
                     )}
 
-                    <button onClick={handlePagar} disabled={loading} className={`w-full py-5 rounded-xl font-black text-sm uppercase tracking-widest transition-all text-black flex items-center justify-center gap-2 hover:scale-[1.02] disabled:opacity-50 disabled:scale-100 ${
-                        metodo === 'mbway' ? 'bg-[#00a8e8] hover:bg-[#0090c7] shadow-[0_0_25px_rgba(0,168,232,0.3)]' :
-                        metodo === 'cartao' ? 'bg-purple-500 hover:bg-purple-400 shadow-[0_0_25px_rgba(168,85,247,0.3)]' :
-                        'bg-amber-500 hover:bg-amber-400 shadow-[0_0_25px_rgba(245,158,11,0.3)]'
-                      }`}>
-                      {loading ? 'A PROCESSAR...' : `PAGAR ${valor}€ AGORA`}
-                    </button>
-                    <p className="text-center text-zinc-600 text-[9px] font-bold uppercase tracking-widest mt-4 flex items-center justify-center gap-1.5">
-                      <span className="text-emerald-500 text-xs">🔒</span> Pagamento Seguro e Encriptado
-                    </p>
+                    {numeroDepositos === 1 && (
+                      <div className="mb-6 bg-gradient-to-r from-blue-500/20 to-blue-600/5 border border-blue-500/30 rounded-xl p-4 flex items-center gap-4 shadow-[0_0_20px_rgba(59,130,246,0.1)]">
+                        <div className="text-3xl">🚀</div>
+                        <div>
+                          <h4 className="text-blue-400 font-black uppercase text-sm">Bónus de 2º Depósito</h4>
+                          <p className="text-zinc-300 text-[11px] font-bold">Oferecemos-te <strong className="text-white">50% EXTRA</strong> até 250€ para continuares a jogar!</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* ZONA 1: ESCOLHER VALOR */}
+                    <div>
+                      <h3 className="text-zinc-500 text-[10px] font-black uppercase tracking-widest mb-4">2. Escolher Montante</h3>
+                      
+                      <div className="grid grid-cols-3 gap-3 mb-6">
+                        {pacotesValor.map(p => {
+                          let etiqueta = "";
+                          let corEtiqueta = "";
+                          
+                          if (numeroDepositos === 0) {
+                            etiqueta = "+100% BÓNUS";
+                            corEtiqueta = "from-amber-500 to-amber-400 text-black shadow-[0_0_10px_rgba(245,158,11,0.5)]";
+                          } else if (numeroDepositos === 1) {
+                            etiqueta = "+50% BÓNUS";
+                            corEtiqueta = "from-blue-500 to-blue-400 text-white shadow-[0_0_10px_rgba(59,130,246,0.5)]";
+                          } else if (p.bonus > 0) {
+                            etiqueta = `+${p.bonus}% BÓNUS`;
+                            corEtiqueta = "from-emerald-500 to-emerald-400 text-black shadow-[0_0_10px_rgba(16,185,129,0.5)]";
+                          }
+
+                          return (
+                            <button key={p.v} onClick={() => setValor(p.v.toString())} className={`relative flex flex-col items-center justify-center p-3 rounded-xl border transition-all ${valor === p.v.toString() ? 'bg-white/10 border-white text-white scale-105 shadow-lg' : 'bg-white/[0.02] border-white/5 text-zinc-400 hover:bg-white/5 hover:border-white/20'}`}>
+                              {etiqueta && (
+                                <span className={`absolute -top-2.5 bg-gradient-to-r text-[9px] font-black px-2 py-0.5 rounded-full ${corEtiqueta}`}>
+                                  {etiqueta}
+                                </span>
+                              )}
+                              <span className="text-xl font-black">{p.v}€</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      <div className="relative mb-6">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white font-black text-lg">€</span>
+                        <input type="number" value={valor} onChange={e => setValor(e.target.value)} className="w-full bg-black border border-white/10 rounded-xl py-4 pl-10 pr-4 text-white font-black text-xl outline-none focus:border-white transition-colors text-right shadow-inner" placeholder="0.00" />
+                      </div>
+                    </div>
+
+                    <div className="mt-auto">
+                      {metodo === 'mbway' && (
+                        <div className="mb-6 animate-in slide-in-from-top-2">
+                          <label className="text-zinc-500 text-[10px] font-black uppercase tracking-widest mb-2 block">3. Número de Telemóvel</label>
+                          <div className="relative">
+                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 font-black">+351</span>
+                            <input type="tel" value={telemovel} onChange={e => setTelemovel(e.target.value)} maxLength={9} placeholder="912345678" className="w-full bg-black border border-white/10 rounded-xl py-4 pl-16 pr-4 text-white font-black outline-none focus:border-[#00a8e8] transition-colors" />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* BOTÃO FINAL - A PSICOLOGIA DOS GANHOS */}
+                      <button onClick={handlePagar} disabled={loading} className={`w-full relative overflow-hidden py-5 rounded-xl font-black text-sm uppercase tracking-widest transition-all text-black flex flex-col items-center justify-center gap-1 hover:scale-[1.02] disabled:opacity-50 disabled:scale-100 ${
+                          metodo === 'mbway' ? 'bg-[#00a8e8] hover:bg-[#0090c7] shadow-[0_0_25px_rgba(0,168,232,0.3)]' :
+                          metodo === 'cartao' ? 'bg-purple-500 hover:bg-purple-400 shadow-[0_0_25px_rgba(168,85,247,0.3)]' :
+                          'bg-amber-500 hover:bg-amber-400 shadow-[0_0_25px_rgba(245,158,11,0.3)]'
+                        }`}>
+                        
+                        <div className="flex items-center gap-2">
+                          {loading ? <span className="animate-spin w-4 h-4 border-2 border-black border-t-transparent rounded-full block"></span> : null}
+                          <span>{loading ? 'A PROCESSAR...' : `PAGAR ${valorBase || '0'}€ AGORA`}</span>
+                        </div>
+                        
+                        {valorBonus > 0 && !loading && (
+                          <span className="text-[10px] bg-black/20 px-3 py-1 rounded-full font-bold">
+                            + RECEBES <span className={`drop-shadow-md ${numeroDepositos === 0 ? 'text-amber-300' : numeroDepositos === 1 ? 'text-blue-300' : 'text-white'}`}>{valorTotalReceber}€</span> NO SITE!
+                          </span>
+                        )}
+                        
+                      </button>
+                      <p className="text-center text-zinc-600 text-[9px] font-bold uppercase tracking-widest mt-4 flex items-center justify-center gap-1.5">
+                        <span className="text-emerald-500 text-xs">🔒</span> Pagamento Seguro e Encriptado
+                      </p>
+                    </div>
+
                   </div>
                 )}
               </div>
             </div>
           ) : (
             
-            /* ECRÃ DE SUCESSO (ESTILO PREMIUM) */
+            /* ECRÃ DE SUCESSO */
             <div className="py-12 flex flex-col items-center justify-center text-center animate-in zoom-in-95 duration-500">
               <div className="w-24 h-24 bg-emerald-500/10 rounded-full flex items-center justify-center border border-emerald-500/30 shadow-[0_0_40px_rgba(16,185,129,0.2)] mb-6">
                 <span className="text-4xl">{infoPagamento.metodo === 'skins' ? '🔫' : infoPagamento.metodo === 'cartao' ? '💳' : '📱'}</span>

@@ -164,7 +164,65 @@ export default function ModalDeposito({ onClose, userId }: { onClose: () => void
             <div className="flex flex-col md:flex-row gap-10">
               
               {/* LADO ESQUERDO - MÉTODOS DE PAGAMENTO COM LOGOS */}
-              
+              <div className="w-full md:w-1/3">
+                <h3 className="text-zinc-500 text-[10px] font-black uppercase tracking-widest mb-4">1. Escolher Método</h3>
+                <div className="flex flex-col gap-3">
+                  
+                  {/* BOTÃO MB WAY */}
+                  <button onClick={() => setMetodo('mbway')} className={`relative overflow-hidden p-4 rounded-xl border transition-all duration-300 flex items-center gap-4 ${metodo === 'mbway' ? 'bg-[#00a8e8]/10 border-[#00a8e8] shadow-[0_0_20px_rgba(0,168,232,0.15)] scale-[1.02]' : 'bg-white/[0.02] border-white/5 hover:border-white/20'}`}>
+                    {metodo === 'mbway' && <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#00a8e8] shadow-[0_0_10px_#00a8e8]"></div>}
+                    
+                    {/* LOGO MB WAY DESENHADO EM CÓDIGO (NUNCA QUEBRA!) */}
+                    <div className="w-14 h-8 bg-white rounded flex items-center justify-center shadow-inner gap-1">
+                      <div className="grid grid-cols-3 gap-[1.5px]">
+                        {[...Array(9)].map((_, i) => (
+                          <div key={i} className="w-[3px] h-[3px] bg-[#00a8e8] rounded-sm"></div>
+                        ))}
+                      </div>
+                      <span className="text-[#00a8e8] font-black text-[9px] tracking-tighter leading-none mt-0.5">MB<br/>WAY</span>
+                    </div>
+
+                    <span className={`font-black uppercase tracking-wide text-sm ${metodo === 'mbway' ? 'text-white' : 'text-zinc-400'}`}>MB Way</span>
+                  </button>
+
+                  {/* BOTÃO CARTÃO */}
+                  <button onClick={() => setMetodo('cartao')} className={`relative overflow-hidden p-4 rounded-xl border transition-all duration-300 flex items-center gap-4 ${metodo === 'cartao' ? 'bg-purple-500/10 border-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.15)] scale-[1.02]' : 'bg-white/[0.02] border-white/5 hover:border-white/20'}`}>
+                    {metodo === 'cartao' && <div className="absolute left-0 top-0 bottom-0 w-1 bg-purple-500 shadow-[0_0_10px_purple]"></div>}
+                    
+                    {/* LOGOS VISA E MASTERCARD (SIMPLE ICONS CDN) */}
+                    <div className="w-14 h-8 bg-white rounded flex items-center justify-center shadow-inner gap-1.5 px-1">
+                      <img src="https://cdn.simpleicons.org/visa/1434CB" alt="Visa" className="h-2.5 object-contain" />
+                      <img src="https://cdn.simpleicons.org/mastercard/EB001B" alt="Mastercard" className="h-4 object-contain" />
+                    </div>
+
+                    <span className={`font-black uppercase tracking-wide text-sm ${metodo === 'cartao' ? 'text-white' : 'text-zinc-400'}`}>Cartão</span>
+                  </button>
+
+                  {/* BOTÃO CRYPTO */}
+                  <button onClick={() => setMetodo('crypto')} className={`relative overflow-hidden p-4 rounded-xl border transition-all duration-300 flex items-center gap-4 ${metodo === 'crypto' ? 'bg-amber-500/10 border-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.15)] scale-[1.02]' : 'bg-white/[0.02] border-white/5 hover:border-white/20'}`}>
+                    {metodo === 'crypto' && <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-500 shadow-[0_0_10px_orange]"></div>}
+                    <div className="w-14 h-8 flex items-center justify-center gap-1.5 bg-black/40 rounded shadow-inner border border-white/5">
+                      <img src="https://cryptologos.cc/logos/bitcoin-btc-logo.svg?v=029" alt="Bitcoin" className="h-5 w-5 object-contain drop-shadow-md" />
+                      <img src="https://cryptologos.cc/logos/ethereum-eth-logo.svg?v=029" alt="Ethereum" className="h-5 w-5 object-contain drop-shadow-md opacity-80" />
+                    </div>
+                    <span className={`font-black uppercase tracking-wide text-sm ${metodo === 'crypto' ? 'text-white' : 'text-zinc-400'}`}>Crypto</span>
+                  </button>
+
+                  {/* BOTÃO SKINS */}
+                  <button onClick={() => setMetodo('skins')} className={`relative overflow-hidden p-4 rounded-xl border transition-all duration-300 flex items-center gap-4 ${metodo === 'skins' ? 'bg-emerald-500/10 border-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.15)] scale-[1.02]' : 'bg-white/[0.02] border-white/5 hover:border-white/20'}`}>
+                    {metodo === 'skins' && <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 shadow-[0_0_10px_#10b981]"></div>}
+                    <div className="w-14 h-8 flex items-center justify-center bg-black/40 rounded shadow-inner border border-white/5">
+                      {/* Logo CS oficial via Icons8 */}
+                      <img src="https://img.icons8.com/color/48/counter-strike-global-offensive.png" alt="CS2" className="h-6 w-6 object-contain drop-shadow-[0_0_5px_rgba(16,185,129,0.3)]" />
+                    </div>
+                    <div className="flex flex-col items-start">
+                      <span className={`font-black uppercase tracking-wide text-sm ${metodo === 'skins' ? 'text-white' : 'text-zinc-400'}`}>Skins CS2</span>
+                      <span className="text-[9px] text-emerald-500 font-bold uppercase">+10% Bónus</span>
+                    </div>
+                  </button>
+
+                </div>
+              </div>
 
               {/* LADO DIREITO - DETALHES E CHECKOUT */}
               <div className="w-full md:w-2/3 border-t md:border-t-0 md:border-l border-white/5 pt-6 md:pt-0 md:pl-10">

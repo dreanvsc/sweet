@@ -173,7 +173,7 @@ export class UsersService {
             txId: String(transacao.id) 
           },
           // O Stripe exige uma return_url obrigatória por segurança
-          return_url: `http://localhost:3001/?deposito=pendente&tx=${transacao.id}`, 
+          return_url: `https://sweetdrop.pt/?deposito=pendente&tx=${transacao.id}`,
         });
 
         return { 
@@ -196,8 +196,8 @@ export class UsersService {
           payment_method_types: ['card'],
           line_items: [{ price_data: { currency: 'eur', product_data: { name: 'Adicionar Saldo - SweetDrop' }, unit_amount: Math.round(dados.valor * 100) }, quantity: 1 }],
           mode: 'payment',
-          success_url: `http://localhost:3001/?deposito=sucesso&tx=${transacao.id}`,
-          cancel_url: `http://localhost:3001/?deposito=cancelado`,
+          success_url: `https://sweetdrop.pt/?deposito=sucesso&tx=${transacao.id}`,
+          cancel_url: `https://sweetdrop.pt/?deposito=cancelado`,
           client_reference_id: transacao.id.toString(),
         });
         return { sucesso: true, metodo: 'cartao', url: session.url, msg: "Redirecionando...", txId: transacao.id };

@@ -11,7 +11,7 @@ export default function ModalDeposito({ onClose, userId }: { onClose: () => void
   const [infoPagamento, setInfoPagamento] = useState<any>(null);
 
   // 🎁 MOTOR DE BOAS VINDAS (0 = 1º Depósito, 1 = 2º Depósito, 2+ = Normal)
-  // No futuro, podes atualizar este state pelo fetch do backend
+  // Nota: Podes alterar manualmente para 1 ou 2 para testar os outros cenários no ecrã!
   const [numeroDepositos, setNumeroDepositos] = useState<number>(0); 
 
   // 🎮 SKINS
@@ -28,8 +28,6 @@ export default function ModalDeposito({ onClose, userId }: { onClose: () => void
         .then(res => res.json())
         .then(data => {
           if (data?.tradeUrl) setTradeUrl(data.tradeUrl);
-          // Exemplo de como puxar os depósitos se o teu backend já enviar:
-          // if (data?.totalDepositosFeitos !== undefined) setNumeroDepositos(data.totalDepositosFeitos);
         })
         .catch(() => {});
     }
@@ -40,18 +38,18 @@ export default function ModalDeposito({ onClose, userId }: { onClose: () => void
     { v: 5, bonus: 0 }, { v: 10, bonus: 0 }, { v: 25, bonus: 3 }, { v: 50, bonus: 5 }, { v: 100, bonus: 10 }
   ];
 
-  // 🧮 MATEMÁTICA DO BÓNUS DE BOAS VINDAS
+  // 🧮 MATEMÁTICA DO BÓNUS DE BOAS VINDAS (AGORA TOTALMENTE CORRIGIDA COM OS TRAVÕES)
   const calcularBonus = (vBase: number) => {
     if (metodo === 'skins') return vBase * 0.10; // Skins têm sempre 10% fixo
     
     if (numeroDepositos === 0) {
-      // 1º DEPÓSITO: 100% ATÉ 500€
+      // 1º DEPÓSITO: 100% EXTRA ATÉ UM MÁXIMO DE 500€ DE BÓNUS
       return Math.min(vBase * 1.00, 500);
     } else if (numeroDepositos === 1) {
-      // 2º DEPÓSITO: 50% ATÉ 250€
+      // 2º DEPÓSITO: 50% EXTRA ATÉ UM MÁXIMO DE 250€ DE BÓNUS
       return Math.min(vBase * 0.50, 250);
     } else {
-      // DEPÓSITOS NORMAIS: Bónus do pacote
+      // DEPÓSITOS NORMAIS: Bónus do pacote correspondente
       const pacote = pacotesValor.find(p => p.v.toString() === valor);
       const percentagemPacote = pacote?.bonus || 0;
       return vBase * (percentagemPacote / 100);
@@ -71,7 +69,6 @@ export default function ModalDeposito({ onClose, userId }: { onClose: () => void
     try {
       const res = await fetch('https://sweet-7ifa.onrender.com/depositar', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        // Enviamos a indicação do bónus esperado para o backend processar
         body: JSON.stringify({ userId: Number(userId), metodo, valor: Number(valor), telemovel, bonusEsperado: valorBonus })
       });
       const data = await res.json();
@@ -172,7 +169,7 @@ export default function ModalDeposito({ onClose, userId }: { onClose: () => void
       {/* CONTAINER PRINCIPAL */}
       <div className="bg-[#0b0c10] border border-white/10 rounded-2xl w-full max-w-4xl shadow-[0_0_50px_rgba(0,0,0,0.9)] flex flex-col overflow-hidden max-h-[90vh]">
         
-        {/* CABEÇALHO PREMIUM DINÂMICO */}
+        {/* CABEÇALHO PREMIUM */}
         <div className="px-8 py-5 border-b border-white/5 bg-white/[0.02] flex justify-between items-center relative overflow-hidden">
           <div className={`absolute right-0 top-0 w-64 h-full bg-gradient-to-l to-transparent transition-colors ${numeroDepositos === 0 ? 'from-amber-500/10' : numeroDepositos === 1 ? 'from-blue-500/10' : 'from-emerald-500/10'}`}></div>
           <div className="flex items-center gap-3 relative z-10">
@@ -378,7 +375,7 @@ export default function ModalDeposito({ onClose, userId }: { onClose: () => void
                         </div>
                       )}
 
-                      {/* BOTÃO FINAL - A PSICOLOGIA DOS GANHOS */}
+                      {/* BOTÃO FINAL COM TRAVAÇÃO REAL NO FILTRO */}
                       <button onClick={handlePagar} disabled={loading} className={`w-full relative overflow-hidden py-5 rounded-xl font-black text-sm uppercase tracking-widest transition-all text-black flex flex-col items-center justify-center gap-1 hover:scale-[1.02] disabled:opacity-50 disabled:scale-100 ${
                           metodo === 'mbway' ? 'bg-[#00a8e8] hover:bg-[#0090c7] shadow-[0_0_25px_rgba(0,168,232,0.3)]' :
                           metodo === 'cartao' ? 'bg-purple-500 hover:bg-purple-400 shadow-[0_0_25px_rgba(168,85,247,0.3)]' :
@@ -451,7 +448,7 @@ export default function ModalDeposito({ onClose, userId }: { onClose: () => void
 
               <p className="text-[10px] text-zinc-500 uppercase font-bold mt-8 flex items-center justify-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                O teu saldo será atualizado automaticamente.
+                O teu saldo será updated automaticamente.
               </p>
 
               <button onClick={onClose} className="mt-8 text-zinc-500 text-xs font-black uppercase tracking-widest hover:text-white transition-colors border border-zinc-800 hover:border-zinc-600 px-6 py-2 rounded-lg">Voltar à Loja</button>

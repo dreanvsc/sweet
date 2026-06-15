@@ -11,7 +11,7 @@ export default function DashboardParceiro({ userId }: { userId: string }) {
   // 1. Vai buscar os dados do código do influencer ao servidor
   const carregarDadosAfiliado = async (isRetry = false) => {
     try {
-      const res = await fetch(`https://sweet-7ifa.onrender.com/afiliados/stats/${userId}`);
+      const res = await fetch(`https://sweet-7ifa.onrender.com/parceiros/stats/${userId}`);
       if (res.ok) {
         const data = await res.json();
         setEstatisticas(data);
@@ -49,7 +49,7 @@ export default function DashboardParceiro({ userId }: { userId: string }) {
 
     setTransferindo(true);
     try {
-      const res = await fetch('https://sweet-7ifa.onrender.com/afiliados/transferir', {
+      const res = await fetch('https://sweet-7ifa.onrender.com/parceiros/transferir', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: Number(userId) })

@@ -923,7 +923,7 @@ export class AppController {
     return { sucesso: true, mensagem: `Acesso VIP do jogador #${body.alvoId} foi revogado.` };
   }
 
-  @Get('afiliados/stats/:userId')
+  @Get('parceiros/stats/:userId')
   async getStatsAfiliado(@Param('userId') userId: string) {
     
     // 1. Procura DIRETAMENTE na tabela de códigos
@@ -952,7 +952,7 @@ export class AppController {
     };
   }
 
-  @Post('afiliados/transferir')
+  @Post('parceiros/transferir')
   async transferirSaldoAfiliado(@Body() body: { userId: number }) {
     // Como o Stripe já te paga automaticamente, este botão é só visual
     return { sucesso: true, message: "Saldo já se encontra disponível na tua conta principal!" };

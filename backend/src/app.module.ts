@@ -17,6 +17,9 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { GiveawaysController } from './giveaways.controller';
 import { GiveawaysService } from './giveaways.service';
 
+// 💰 O NOVO WEBHOOK DO STRIPE (MÁQUINA DE AFILIADOS):
+import { StripeWebhookController } from './stripe.controller';
+
 @Module({
   imports: [
     // 🔥 MÓDULOS: O Relógio do Servidor
@@ -24,8 +27,9 @@ import { GiveawaysService } from './giveaways.service';
   ],
   controllers: [
     AppController,
-    // 🔥 ADICIONADO AQUI:
-    GiveawaysController 
+    GiveawaysController,
+    // 🔥 O WEBHOOK FICA AQUI A ESCUTAR O BANCO:
+    StripeWebhookController 
   ],
   providers: [
     // 🔥 SERVIÇOS E GATEWAYS
@@ -40,7 +44,6 @@ import { GiveawaysService } from './giveaways.service';
     BattlesGateway,
     CoinflipGateway,
     ChatGateway,
-    // 🔥 ADICIONADO AQUI:
     GiveawaysService
   ],
 })

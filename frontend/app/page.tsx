@@ -12,9 +12,12 @@ import Admin from './components/admin/Admin';
 import CaseBattles from './components/battles/CaseBattles';
 import Coinflip from './components/coinflip/Coinflip'; 
 import Giveaways from './components/Giveaways';
+// 🔥 IMPORTA O NOVO PAINEL DE PARCEIROS
+import DashboardParceiro from './components/DashboardParceiro';
 
 function HomeContent() {
-  const [view, setView] = useState<'store' | 'opening' | 'upgrader' | 'daily' | 'profile'| 'admin' | 'battles' | 'coinflip' | 'giveaways'>('store');
+  // 🔥 ADICIONEI 'parcerias' AQUI NA LISTA DE VIEWS:
+  const [view, setView] = useState<'store' | 'opening' | 'upgrader' | 'daily' | 'profile'| 'admin' | 'battles' | 'coinflip' | 'giveaways' | 'parcerias'>('store');
   const [saldo, setSaldo] = useState(0.0); 
   const [xp, setXp] = useState(0);
   const [inventario, setInventario] = useState<any[]>([]); 
@@ -328,6 +331,9 @@ function HomeContent() {
           )}
 
           {view === 'giveaways' && <Giveaways userId={userId} setView={setView} />}
+
+          {/* 🔥 NOVO: RENDERIZA O ECRÃ DE PARCEIROS QUANDO CLICARES NA SIDEBAR */}
+          {view === 'parcerias' && <DashboardParceiro userId={userId} />}
 
         </section>
       </div>

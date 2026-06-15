@@ -54,6 +54,10 @@ export default function Sidebar({ view, setView, saldo, userId, userData }: any)
   const percentagemProgresso = Math.min(Math.round((currentXp / xpTotalNecessario) * 100), 100);
 
   const isAdmin = userData?.role === 'admin' || userData?.role === 'ADMIN' || userData?.isAdmin === true || String(userId) === '1';
+  
+  // 🔥 NOVO: Verifica se o utilizador é um Youtuber/Parceiro ou Admin
+  // (Podes ajustar 'STREAMER' ou 'INFLUENCER' dependendo de como estiveres a guardar a role no backend)
+  const isParceiro = isAdmin || userData?.role === 'STREAMER' || userData?.role === 'INFLUENCER' || (userData?.codigosParceiro && userData?.codigosParceiro?.length > 0);
 
   return (
     <>
@@ -97,6 +101,14 @@ export default function Sidebar({ view, setView, saldo, userId, userData }: any)
         <button onClick={() => setView('giveaways')} className={`flex items-center gap-3 p-3 rounded-xl transition-all duration-300 ${view === 'giveaways' ? 'bg-gradient-to-r from-purple-500/20 to-transparent border-l-4 border-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.1)]' : 'text-zinc-400 hover:text-white hover:bg-white/5 hover:translate-x-1'}`}>
           <span className="text-lg drop-shadow-md">🎁</span> <span className="text-[10px] font-bold uppercase tracking-widest">Giveaways</span>
         </button>
+
+        {/* 🔥 NOVO: BOTÃO VIP EXCLUSIVO PARA YOUTUBERS E PARCEIROS */}
+        {isParceiro && (
+          <button onClick={() => setView('parcerias')} className={`flex items-center gap-3 p-3 rounded-xl transition-all duration-300 border border-purple-500/10 mt-1 ${view === 'parcerias' ? 'bg-gradient-to-r from-purple-500/30 to-purple-500/5 text-purple-400 shadow-[0_0_20px_rgba(168,85,247,0.2)]' : 'text-zinc-400 hover:text-purple-400 hover:bg-purple-500/10 hover:translate-x-1'}`}>
+            <span className="text-lg drop-shadow-md">🍇</span> <span className="text-[10px] font-black uppercase tracking-widest">Parcerias</span>
+          </button>
+        )}
+
         {isAdmin && (
           <button onClick={() => setView('admin')} className={`flex items-center gap-3 p-3 rounded-xl transition-all duration-300 mt-2 border border-amber-500/20 ${view === 'admin' ? 'bg-gradient-to-r from-amber-500/30 to-amber-500/5 text-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.2)]' : 'text-zinc-400 hover:text-amber-400 hover:bg-amber-500/10 hover:translate-x-1'}`}>
             <span className="text-lg drop-shadow-md">👑</span> <span className="text-[10px] font-black uppercase tracking-widest">Admin</span>
@@ -177,7 +189,7 @@ export default function Sidebar({ view, setView, saldo, userId, userData }: any)
             <span className="text-2xl">⚔️</span>
             <span className="text-[9px] font-black uppercase">Battles</span>
           </button>
-          <button onClick={() => setMenuAberto(!menuAberto)} className={`flex flex-col items-center gap-0.5 px-4 py-2 rounded-xl transition-all ${menuAberto || ['coinflip','giveaways','admin','profile'].includes(view) ? 'text-white' : 'text-zinc-600'}`}>
+          <button onClick={() => setMenuAberto(!menuAberto)} className={`flex flex-col items-center gap-0.5 px-4 py-2 rounded-xl transition-all ${menuAberto || ['coinflip','giveaways','admin','profile', 'parcerias'].includes(view) ? 'text-white' : 'text-zinc-600'}`}>
             <span className="text-2xl">⋯</span>
             <span className="text-[9px] font-black uppercase">Mais</span>
           </button>
@@ -214,10 +226,20 @@ export default function Sidebar({ view, setView, saldo, userId, userData }: any)
                 <span className="text-2xl">🎁</span>
                 <span className="text-[9px] font-black uppercase">Giveaways</span>
               </button>
+              
+              {/* 🔥 NOVO: BOTÃO VIP EXCLUSIVO PARA O MOBILE TAMBÉM */}
+              {isParceiro && (
+                <button onClick={() => { setView('parcerias'); setMenuAberto(false); }} className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all ${view === 'parcerias' ? 'border-purple-500/50 bg-purple-500/10 text-purple-400' : 'border-white/5 bg-white/5 text-zinc-400'}`}>
+                  <span className="text-2xl">🍇</span>
+                  <span className="text-[9px] font-black uppercase">Parcerias</span>
+                </button>
+              )}
+
               <button onClick={() => { setView('profile'); setMenuAberto(false); }} className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all ${view === 'profile' ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-400' : 'border-white/5 bg-white/5 text-zinc-400'}`}>
                 <span className="text-2xl">👤</span>
                 <span className="text-[9px] font-black uppercase">Perfil</span>
               </button>
+
               {isAdmin && (
                 <button onClick={() => { setView('admin'); setMenuAberto(false); }} className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all ${view === 'admin' ? 'border-amber-500/50 bg-amber-500/10 text-amber-400' : 'border-white/5 bg-white/5 text-zinc-400'}`}>
                   <span className="text-2xl">👑</span>

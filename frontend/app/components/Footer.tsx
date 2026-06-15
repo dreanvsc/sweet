@@ -63,6 +63,7 @@ export default function Footer() {
           <p className="text-zinc-500 text-xs leading-relaxed max-w-sm">
             A plataforma mais inovadora e transparente para obteres as tuas skins de CS2 favoritas.
           </p>
+          <p>geral@sweetdrop.pt</p>
           <div className="flex gap-3">
             <a href="#" className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center hover:bg-white hover:text-black text-zinc-400 transition-all">
               <span className="font-bold">X</span>

@@ -36,6 +36,7 @@ model User {
   giveawaysParticipados ParticipanteGiveaway[]
 
   depositosSkins  DepositoSkin[]
+  codigosParceiro PromoCode[] @relation("DonoDoCodigo")
 }
 
 // O Inventário (Atualizado)
@@ -80,6 +81,11 @@ model PromoCode {
   limite    Int      @default(100)
   ativo     Boolean  @default(true)
   createdAt DateTime @default(now())
+
+  ownerId          Int?     
+  owner            User?    @relation("DonoDoCodigo", fields: [ownerId], references: [id])
+  comissao         Float    @default(0.0) 
+  ganhosAcumulados Float    @default(0.0) 
 }
 
 model CodigoUsado {

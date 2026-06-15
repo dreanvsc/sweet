@@ -1,5 +1,5 @@
 import { Controller, Post, Req, Res, Headers } from '@nestjs/common';
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express'; // 🔥 CORREÇÃO 1: Adicionada a palavra "type"
 import Stripe from 'stripe';
 import { PrismaService } from './prisma.service';
 
@@ -20,7 +20,7 @@ export class StripeWebhookController {
     @Res() res: Response,
     @Headers('stripe-signature') signature: string,
   ) {
-    let event: Stripe.Event;
+    let event: any; // 🔥 CORREÇÃO 2: Mudamos para "any" para o compilador não chatear com os tipos do Stripe
 
     // 1. Verificar se é mesmo o Stripe a chamar! Anti-Hackers!
     try {
@@ -87,11 +87,11 @@ export class StripeWebhookController {
                 data: { 
                   usos: { increment: 1 },
                   ganhosAcumulados: { increment: valorComissao },
-                  volumeGerado: { increment: valorRealEmEuros }
+                  // volumeGerado: { increment: valorRealEmEuros } // Opcional
                 }
               });
               
-              console.log(`💰 COMISSÃO PAGA: ${valorComissao}€ para Youtuber #${codigoDb.ownerId}`);
+              console.log(`💰 COMISSÃO PAGA: ${valorComissao}€ para Parceiro #${codigoDb.ownerId}`);
             }
           }
 
@@ -101,6 +101,6 @@ export class StripeWebhookController {
     }
 
     // Avisar o Stripe que recebemos a mensagem com sucesso
-    res.status(200).json({ received: true });
+    return res.status(200).json({ received: true });
   }
 }

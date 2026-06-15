@@ -37,6 +37,7 @@ model User {
 
   depositosSkins  DepositoSkin[]
   codigosParceiro PromoCode[] @relation("DonoDoCodigo")
+  referidoPor String?
 }
 
 // O Inventário (Atualizado)

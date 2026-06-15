@@ -118,7 +118,7 @@ export default function DashboardParceiro({ userId }: { userId: string }) {
           <div className="w-12 h-12 bg-blue-500/10 rounded-xl border border-blue-500/20 flex items-center justify-center text-2xl">👥</div>
           <div>
             <p className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">Utilizadores Registados</p>
-            <p className="text-2xl font-black text-white mt-1">{estatisticas.usos} <span className="text-xs text-zinc-400 font-bold">fãs</span></p>
+            <p className="text-2xl font-black text-white mt-1">{estatisticas.usos} <span className="text-xs text-zinc-400 font-bold">users</span></p>
           </div>
         </div>
 

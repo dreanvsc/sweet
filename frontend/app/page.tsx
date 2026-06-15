@@ -139,6 +139,31 @@ function HomeContent() {
     return () => clearInterval(intervalo);
   }, []);
 
+  useEffect(() => {
+  const params = new URLSearchParams(window.location.search);
+  const ref = params.get('ref');
+  if (ref) {
+    localStorage.setItem('pendingRefCode', ref.toUpperCase());
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }
+}, []);
+
+  // 🔥 Aplica o código de referência depois do login
+  useEffect(() => {
+    if (!userId) return;
+    const pendingRef = localStorage.getItem('pendingRefCode');
+    if (!pendingRef) return;
+
+    fetch('https://sweet-7ifa.onrender.com/utilizador/aplicar-referral', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: Number(userId), codigo: pendingRef })
+    })
+      .then(res => res.json())
+      .then(() => localStorage.removeItem('pendingRefCode'))
+      .catch(() => localStorage.removeItem('pendingRefCode'));
+  }, [userId]);
+
   const caixasEvento = caixasDaLoja.filter((c: any) => c.isEvento === true);
   const caixasNormais = caixasDaLoja.filter((c: any) => c.isEvento !== true);
 

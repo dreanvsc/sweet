@@ -925,26 +925,24 @@ export class AppController {
 
   @Get('parceiros/stats/:userId')
   async getStatsAfiliado(@Param('userId') userId: string) {
-    
-    // 1. Procura DIRETAMENTE na tabela de códigos
     const codigo = await (this.prisma as any).promoCode.findFirst({
       where: { ownerId: Number(userId) }
     });
 
-    if (!codigo) {
-      throw new BadRequestException('Ainda não tens nenhum código atribuído.');
-    }
+    if (!codigo) throw new BadRequestException('Ainda não tens nenhum código atribuído.');
 
-    // 🔥 MATEMÁTICA DE GÉNIO: Calcula o volume gerado sem precisar de base de dados!
-    // Se a comissão é 10% e o gajo ganhou 5€, significa que gerou 50€ para o site.
+    // 🔥 Conta utilizadores reais que se registaram com este código
+    const utilizadoresReferidos = await (this.prisma as any).user.count({
+      where: { referidoPor: codigo.codigo }
+    });
+
     const comissaoPercent = codigo.comissao || 10;
     const ganhos = codigo.ganhosAcumulados || 0;
     const volumeCalculado = ganhos > 0 ? (ganhos / (comissaoPercent / 100)) : 0;
 
-    // 2. Retorna os teus dados reais à prova de erros
     return {
       codigo: codigo.codigo,
-      usos: codigo.usos,
+      usos: utilizadoresReferidos,
       volumeGerado: volumeCalculado,
       ganhosAcumulados: ganhos,
       comissao: comissaoPercent,
@@ -957,4 +955,29 @@ export class AppController {
     // Como o Stripe já te paga automaticamente, este botão é só visual
     return { sucesso: true, message: "Saldo já se encontra disponível na tua conta principal!" };
   }
+
+  @Post('utilizador/aplicar-referral')
+async aplicarReferral(@Body() body: { userId: number, codigo: string }) {
+  try {
+    const user = await this.prisma.user.findUnique({ where: { id: Number(body.userId) } });
+    if (!user) return { sucesso: false };
+    
+    // 🔒 Só aplica se ainda não tiver nenhum código associado
+    if (user.referidoPor) return { sucesso: false, mensagem: 'Já tens um código associado.' };
+
+    const codigoLimpo = body.codigo.trim().toUpperCase();
+    const promo = await (this.prisma as any).promoCode.findUnique({ where: { codigo: codigoLimpo } });
+    if (!promo || !promo.ownerId) return { sucesso: false, mensagem: 'Código inválido.' };
+    if (promo.ownerId === Number(body.userId)) return { sucesso: false, mensagem: 'Não podes usar o teu próprio código.' };
+
+    await this.prisma.user.update({
+      where: { id: Number(body.userId) },
+      data: { referidoPor: codigoLimpo }
+    });
+
+    return { sucesso: true };
+  } catch (e: any) {
+    return { sucesso: false, mensagem: e.message };
+  }
+}
 }

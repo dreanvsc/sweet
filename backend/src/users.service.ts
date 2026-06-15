@@ -6,7 +6,7 @@ import axios from 'axios';
 @Injectable()
 export class UsersService {
   // A tua chave de testes do Stripe
-  private stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+  private stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
     apiVersion: '2026-04-22.dahlia' as any,
   });
 

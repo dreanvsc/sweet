@@ -922,4 +922,37 @@ export class AppController {
     });
     return { sucesso: true, mensagem: `Acesso VIP do jogador #${body.alvoId} foi revogado.` };
   }
+
+  @Get('afiliados/stats/:userId')
+  async getStatsAfiliado(@Param('userId') userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: Number(userId) },
+      include: { codigosParceiro: true }
+    });
+
+    if (!user) throw new BadRequestException('Utilizador não encontrado.');
+
+    // Procura o código que acabaste de criar na BD
+    const codigo = user.codigosParceiro?.[0];
+
+    if (!codigo) {
+      throw new BadRequestException('Ainda não tens nenhum código atribuído.');
+    }
+
+    // Retorna os teus dados reais!
+    return {
+      codigo: codigo.codigo,
+      usos: codigo.usos,
+      volumeGerado: codigo.volumeGerado || 0,
+      ganhosAcumulados: codigo.ganhosAcumulados,
+      comissao: codigo.comissao,
+      saldoDisponivel: codigo.ganhosAcumulados 
+    };
+  }
+
+  @Post('afiliados/transferir')
+  async transferirSaldoAfiliado(@Body() body: { userId: number }) {
+    // Como o Stripe já te paga automaticamente, este botão é só visual
+    return { sucesso: true, message: "Saldo já se encontra disponível na tua conta principal!" };
+  }
 }

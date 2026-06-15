@@ -9,25 +9,32 @@ export default function DashboardParceiro({ userId }: { userId: string }) {
   const [transferindo, setTransferindo] = useState(false);
 
   // 1. Vai buscar os dados do código do influencer ao servidor
-  const carregarDadosAfiliado = async () => {
+  const carregarDadosAfiliado = async (isRetry = false) => {
     try {
       const res = await fetch(`https://sweet-7ifa.onrender.com/afiliados/stats/${userId}`);
       if (res.ok) {
         const data = await res.json();
         setEstatisticas(data);
+        setLoading(false);
+      } else {
+        // Se falhar e ainda não tentámos outra vez (pode ser cold start do Render)
+        if (!isRetry) {
+          setTimeout(() => carregarDadosAfiliado(true), 4000);
+        } else {
+          setEstatisticas(null);
+          setLoading(false);
+        }
       }
     } catch (e) {
-      // Fallback para testes visuais enquanto não crias a rota do GET
-      setEstatisticas({
-        codigo: "DREAN",
-        usos: 142,
-        volumeGerado: 3450.00,
-        ganhosAcumulados: 345.00, // 10% de comissão
-        comissao: 10,
-        saldoDisponivel: 125.50 // O que ele ainda não transferiu para o site
-      });
+      console.error('Erro ao carregar dados de afiliado:', e);
+      // Retry uma vez por causa do cold start do Render
+      if (!isRetry) {
+        setTimeout(() => carregarDadosAfiliado(true), 4000);
+      } else {
+        setEstatisticas(null);
+        setLoading(false);
+      }
     }
-    setLoading(false);
   };
 
   useEffect(() => {
@@ -51,14 +58,12 @@ export default function DashboardParceiro({ userId }: { userId: string }) {
 
       if (res.ok && data.sucesso) {
         toast.success(`🎉 Sucesso! ${estatisticas.saldoDisponivel.toFixed(2)}€ foram injetados no teu saldo do site!`);
-        window.location.reload(); // Dá F5 para atualizar o saldo na sidebar global
+        window.location.reload();
       } else {
         toast.error(data.message || "Erro ao transferir saldo.");
       }
     } catch (e) {
-      // Fallback visual para veres o efeito
-      toast.success("🔥 [Modo Demo] Saldo transferido com sucesso para a tua conta!");
-      setEstatisticas((prev: any) => ({ ...prev, saldoDisponivel: 0 }));
+      toast.error("Erro ao ligar ao servidor.");
     }
     setTransferindo(false);
   };
@@ -122,7 +127,7 @@ export default function DashboardParceiro({ userId }: { userId: string }) {
           <div className="w-12 h-12 bg-amber-500/10 rounded-xl border border-amber-500/20 flex items-center justify-center text-2xl">📈</div>
           <div>
             <p className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">Volume Total Gerado</p>
-            <p className="text-2xl font-black text-white mt-1">{estatisticas.volumeGerado.toFixed(2)}<span className="text-amber-500">€</span></p>
+            <p className="text-2xl font-black text-white mt-1">{Number(estatisticas.volumeGerado).toFixed(2)}<span className="text-amber-500">€</span></p>
           </div>
         </div>
 
@@ -131,7 +136,7 @@ export default function DashboardParceiro({ userId }: { userId: string }) {
           <div className="w-12 h-12 bg-emerald-500/10 rounded-xl border border-emerald-500/20 flex items-center justify-center text-2xl">💰</div>
           <div>
             <p className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">Ganhos Totais Acumulados</p>
-            <p className="text-2xl font-black text-emerald-400 mt-1">{estatisticas.ganhosAcumulados.toFixed(2)}€</p>
+            <p className="text-2xl font-black text-emerald-400 mt-1">{Number(estatisticas.ganhosAcumulados).toFixed(2)}€</p>
           </div>
         </div>
 
@@ -145,7 +150,7 @@ export default function DashboardParceiro({ userId }: { userId: string }) {
           <div>
             <h4 className="text-white font-black uppercase tracking-wide">Carteira de Comissão</h4>
             <p className="text-zinc-500 text-xs mt-0.5">Dinheiro real pronto a ser injetado diretamente no teu saldo do site.</p>
-            <p className="text-3xl font-black text-emerald-400 mt-2 tracking-tight">{estatisticas.saldoDisponivel.toFixed(2)}€</p>
+            <p className="text-3xl font-black text-emerald-400 mt-2 tracking-tight">{Number(estatisticas.saldoDisponivel).toFixed(2)}€</p>
           </div>
         </div>
 

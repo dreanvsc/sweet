@@ -904,27 +904,22 @@ export class AppController {
   }
 
 
-  @Post('promover-streamer')
+  @Post('admin/promover-streamer')
   async promoverStreamer(@Body() body: { adminId: string, alvoId: string }) {
-    // 1. (Opcional) Podes verificar aqui se o adminId realmente é um Administrador válido por segurança
-
-    // 2. Muda o cargo do gajo para 'STREAMER'
     await this.prisma.user.update({
       where: { id: Number(body.alvoId) },
       data: { role: 'STREAMER' }
     });
-
     return { sucesso: true, mensagem: `Jogador #${body.alvoId} promovido a Parceiro VIP com sucesso!` };
   }
 
-  @Post('despromover-streamer')
+  // 🔥 ADICIONA O "admin/" AQUI NO @POST TAMBÉM
+  @Post('admin/despromover-streamer')
   async despromoverStreamer(@Body() body: { adminId: string, alvoId: string }) {
-    // Retorna o cargo dele a utilizador comum ('USER')
     await this.prisma.user.update({
       where: { id: Number(body.alvoId) },
       data: { role: 'USER' }
     });
-
     return { sucesso: true, mensagem: `Acesso VIP do jogador #${body.alvoId} foi revogado.` };
   }
 }

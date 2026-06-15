@@ -925,28 +925,30 @@ export class AppController {
 
   @Get('afiliados/stats/:userId')
   async getStatsAfiliado(@Param('userId') userId: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: Number(userId) },
-      include: { codigosParceiro: true }
+    
+    // 1. Procura DIRETAMENTE na tabela de códigos
+    const codigo = await (this.prisma as any).promoCode.findFirst({
+      where: { ownerId: Number(userId) }
     });
-
-    if (!user) throw new BadRequestException('Utilizador não encontrado.');
-
-    // Procura o código que acabaste de criar na BD
-    const codigo = user.codigosParceiro?.[0];
 
     if (!codigo) {
       throw new BadRequestException('Ainda não tens nenhum código atribuído.');
     }
 
-    // Retorna os teus dados reais!
+    // 🔥 MATEMÁTICA DE GÉNIO: Calcula o volume gerado sem precisar de base de dados!
+    // Se a comissão é 10% e o gajo ganhou 5€, significa que gerou 50€ para o site.
+    const comissaoPercent = codigo.comissao || 10;
+    const ganhos = codigo.ganhosAcumulados || 0;
+    const volumeCalculado = ganhos > 0 ? (ganhos / (comissaoPercent / 100)) : 0;
+
+    // 2. Retorna os teus dados reais à prova de erros
     return {
       codigo: codigo.codigo,
       usos: codigo.usos,
-      volumeGerado: codigo.volumeGerado || 0,
-      ganhosAcumulados: codigo.ganhosAcumulados,
-      comissao: codigo.comissao,
-      saldoDisponivel: codigo.ganhosAcumulados 
+      volumeGerado: volumeCalculado,
+      ganhosAcumulados: ganhos,
+      comissao: comissaoPercent,
+      saldoDisponivel: ganhos 
     };
   }
 

@@ -5,7 +5,7 @@ import { PrismaService } from './prisma.service';
 
 @Controller('webhook')
 export class StripeWebhookController {
-  private stripe = new Stripe('sk_test_51Rpmc74OmjLR4F9r9O1pLeNghohaJ147VrG1p2hUmpBTjUgCNxO6VOYRJiXwNbzUrXuPgaHj0EagEbd05v4i7FJL00TLzbBaFb', {
+  private stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
     apiVersion: '2026-04-22.dahlia' as any,
   });
 

@@ -12,7 +12,7 @@ export class SteamStrategy extends PassportStrategy(Strategy, 'steam') {
     super({
       returnURL: 'https://sweet-7ifa.onrender.com/api/auth/steam/return',
       realm: 'https://sweet-7ifa.onrender.com/',
-      apiKey: '70414B811C0BEB087375922452721CCA',
+      apiKey: '60600FD2DD5E73CCC3C63FAA5F003B5E',
     });
   }
 

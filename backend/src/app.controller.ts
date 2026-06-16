@@ -808,13 +808,12 @@ export class AppController {
   async injetarSaldo(@Body() body: { adminId: string, alvoId: string, valor: number }) {
     const { adminId, alvoId, valor } = body;
 
-    // 1. Validação de segurança básica
-    if (!adminId || !alvoId || !valor || valor <= 0) {
+    // 1. Validação de segurança básica — agora aceita valores negativos (remover saldo)
+    if (!adminId || !alvoId || valor === undefined || valor === null || valor === 0) {
       return { sucesso: false, erro: 'Dados inválidos ou valor zero.' };
     }
 
     try {
-      // 2. CONVERSÃO PARA NÚMERO: Converter os IDs recebidos do Frontend
       const idAdminNum = Number(adminId);
       const idAlvoNum = Number(alvoId);
 
@@ -822,8 +821,6 @@ export class AppController {
         return { sucesso: false, erro: 'Os IDs fornecidos têm de ser números válidos.' };
       }
 
-      // 3. SEGURANÇA: Verificar se quem está a pedir é mesmo o Admin/Patrão
-      // 🔥 Ajustado para 'this.prisma.user'
       const admin = await this.prisma.user.findUnique({
         where: { id: idAdminNum }
       });
@@ -832,9 +829,15 @@ export class AppController {
         return { sucesso: false, erro: 'Acesso negado! Não és um Administrador.' };
       }
 
-      // 4. O COFRE: Injetar o dinheiro na conta do jogador (Incremento numérico)
-      // 🔥 Ajustado para 'this.prisma.user'
-      await this.prisma.user.update({
+      const user = await this.prisma.user.findUnique({ where: { id: idAlvoNum } });
+      if (!user) return { sucesso: false, erro: 'Jogador não encontrado.' };
+
+      // 🔥 Impede saldo negativo ao remover
+      if (valor < 0 && user.saldo + valor < 0) {
+        return { sucesso: false, erro: `O jogador só tem ${user.saldo.toFixed(2)}€. Não podes remover mais do que isso.` };
+      }
+
+      const novoSaldo = await this.prisma.user.update({
         where: { id: idAlvoNum },
         data: {
           saldo: {
@@ -843,12 +846,22 @@ export class AppController {
         }
       });
 
-      console.log(`🏦 BANCO: Admin #${idAdminNum} injetou ${valor}€ na conta #${idAlvoNum}`);
-      return { sucesso: true, mensagem: `Injeção de ${valor}€ concluída com sucesso!` };
+      await (this.prisma as any).historicoJogo.create({
+        data: {
+          userId: idAlvoNum,
+          acao: 'Ajuste Admin',
+          detalhe: `Admin #${idAdminNum} ${valor > 0 ? 'adicionou' : 'removeu'} ${Math.abs(valor).toFixed(2)}€`,
+          valor: Math.abs(valor),
+          tipo: valor > 0 ? 'GANHO' : 'GASTO'
+        }
+      });
+
+      console.log(`🏦 BANCO: Admin #${idAdminNum} ${valor > 0 ? 'injetou' : 'removeu'} ${valor}€ na conta #${idAlvoNum}`);
+      return { sucesso: true, mensagem: `Operação de ${Math.abs(valor)}€ concluída com sucesso!`, novoSaldo: novoSaldo.saldo };
 
     } catch (error) {
       console.error("Erro no Banco Central:", error);
-      return { sucesso: false, erro: 'Erro ao injetar. O ID do jogador existe na Base de Dados?' };
+      return { sucesso: false, erro: 'Erro ao processar. O ID do jogador existe na Base de Dados?' };
     }
   }
 

@@ -49,18 +49,26 @@ export default function LanguageSwitcher() {
 
     const aplicar = () => {
       if (lingua === 'pt') {
-        // 🔥 Restaura o texto original em vez de "traduzir para português"
-        const linkRestaurar = document.querySelector('.goog-te-banner-frame');
-        const select = document.querySelector('.goog-te-combo') as HTMLSelectElement | null;
-        
-        // Limpa a cookie de tradução para forçar o original
-        document.cookie = 'googtrans=/pt/pt; path=/; max-age=0';
-        document.cookie = `googtrans=; path=/; domain=${window.location.hostname}; max-age=0`;
-        document.cookie = `googtrans=/pt/pt; path=/`;
+        // 🔥 Clica no botão nativo "Mostrar original" do Google dentro do iframe da barra
+        const iframe = document.querySelector('iframe.goog-te-banner-frame') as HTMLIFrameElement | null;
+        let cliquei = false;
 
-        if (select) {
-          select.value = 'pt';
-          select.dispatchEvent(new Event('change'));
+        if (iframe && iframe.contentDocument) {
+          const botaoRestaurar = iframe.contentDocument.querySelector('[id$=".restore"]') as HTMLElement | null;
+          if (botaoRestaurar) {
+            botaoRestaurar.click();
+            cliquei = true;
+          }
+        }
+
+        if (!cliquei) {
+          // Fallback: limpa cookies e recarrega sem o parâmetro de tradução
+          document.cookie = 'googtrans=; path=/; max-age=0';
+          document.cookie = `googtrans=; path=/; domain=${window.location.hostname}; max-age=0`;
+          // Só recarrega se a página estiver mesmo traduzida (evita loop infinito)
+          if (document.documentElement.classList.contains('translated-ltr') || document.documentElement.classList.contains('translated-rtl')) {
+            window.location.reload();
+          }
         }
         return;
       }

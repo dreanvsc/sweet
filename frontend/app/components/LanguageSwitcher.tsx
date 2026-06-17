@@ -15,10 +15,21 @@ function lerCookie(nome: string): string | null {
 }
 
 function limparCookieGoogtrans() {
-  const hostname = window.location.hostname;
-  document.cookie = 'googtrans=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC';
-  document.cookie = `googtrans=; path=/; domain=${hostname}; expires=Thu, 01 Jan 1970 00:00:00 UTC`;
-  document.cookie = `googtrans=; path=/; domain=.${hostname}; expires=Thu, 01 Jan 1970 00:00:00 UTC`;
+  const hostname = window.location.hostname; // ex: sweetdrop.pt ou www.sweetdrop.pt
+  const hostnameSemWww = hostname.replace(/^www\./, ''); // sweetdrop.pt
+
+  const dominios = [
+    undefined, // sem domain explícito (host-only)
+    hostname,
+    hostnameSemWww,
+    `.${hostnameSemWww}`, // .sweetdrop.pt
+    `www.${hostnameSemWww}`, // www.sweetdrop.pt
+  ];
+
+  dominios.forEach((dominio) => {
+    const base = 'googtrans=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC';
+    document.cookie = dominio ? `${base}; domain=${dominio}` : base;
+  });
 }
 
 export default function LanguageSwitcher() {
@@ -53,14 +64,19 @@ export default function LanguageSwitcher() {
     if (novaLingua === lingua) return;
 
     if (novaLingua === 'pt') {
-      // 🔥 Remove a cookie de tradução por completo e recarrega -> volta ao original
+      // 🔥 Remove a cookie de tradução em todos os domínios possíveis e recarrega -> volta ao original
       limparCookieGoogtrans();
       window.location.reload();
     } else {
-      // 🔥 Define a cookie para inglês e recarrega -> o Google traduz ao carregar
+      // 🔥 Define a cookie para inglês nos mesmos domínios e recarrega -> o Google traduz ao carregar
       const hostname = window.location.hostname;
-      document.cookie = '/pt/en'.length ? `googtrans=/pt/en; path=/` : '';
-      document.cookie = `googtrans=/pt/en; path=/; domain=${hostname}`;
+      const hostnameSemWww = hostname.replace(/^www\./, '');
+
+      document.cookie = `googtrans=/pt/en; path=/`;
+      document.cookie = `googtrans=/pt/en; path=/; domain=${hostnameSemWww}`;
+      document.cookie = `googtrans=/pt/en; path=/; domain=.${hostnameSemWww}`;
+      document.cookie = `googtrans=/pt/en; path=/; domain=www.${hostnameSemWww}`;
+
       window.location.reload();
     }
   };

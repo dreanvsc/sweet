@@ -38,19 +38,16 @@ export default function LanguageSwitcher() {
     script.async = true;
     document.body.appendChild(script);
 
-    // Restaura a língua escolhida anteriormente
     const guardada = localStorage.getItem('siteLang');
     if (guardada === 'en') {
       setLingua('en');
     }
   }, []);
 
-  // 🔥 Aplica a tradução sempre que a língua mudar (e o widget estiver pronto)
   useEffect(() => {
     if (!pronto) return;
 
     const aplicar = () => {
-      // Define a cookie que o Google Translate usa para saber a língua atual
       const valorCookie = lingua === 'en' ? '/pt/en' : '/pt/pt';
       document.cookie = `googtrans=${valorCookie}; path=/`;
       document.cookie = `googtrans=${valorCookie}; path=/; domain=${window.location.hostname}`;
@@ -60,7 +57,6 @@ export default function LanguageSwitcher() {
         select.value = lingua === 'en' ? 'en' : 'pt';
         select.dispatchEvent(new Event('change'));
       } else {
-        // Se o select ainda não existir, tenta de novo em breve
         setTimeout(aplicar, 300);
       }
     };
@@ -69,26 +65,40 @@ export default function LanguageSwitcher() {
     localStorage.setItem('siteLang', lingua);
   }, [lingua, pronto]);
 
-  // 🔥 Força o body a manter top:0 mesmo quando o Google Translate tenta empurrá-lo
+  // 🔥 Vigia HTML e BODY constantemente e remove qualquer empurrão/iframe da barra
   useEffect(() => {
-    const corrigirBody = () => {
+    const limpar = () => {
+      // Remove o top/margin que o Google injeta no html e no body
+      document.documentElement.style.removeProperty('margin-top');
+      document.documentElement.style.top = '0px';
       document.body.style.top = '0px';
       document.body.style.position = 'static';
+
+      // Remove fisicamente o iframe da barra se existir
+      const iframes = document.querySelectorAll('iframe.goog-te-banner-frame, iframe.skiptranslate');
+      iframes.forEach((el) => el.remove());
+
+      // Remove a div wrapper que por vezes sobra
+      const banner = document.querySelector('.goog-te-banner-frame');
+      if (banner) banner.remove();
     };
 
-    corrigirBody();
-    const observer = new MutationObserver(corrigirBody);
-    observer.observe(document.body, { attributes: true, attributeFilter: ['style'] });
+    limpar();
+    const interval = setInterval(limpar, 500);
 
-    return () => observer.disconnect();
+    const observer = new MutationObserver(limpar);
+    observer.observe(document.documentElement, { attributes: true, childList: true, subtree: true, attributeFilter: ['style'] });
+
+    return () => {
+      clearInterval(interval);
+      observer.disconnect();
+    };
   }, []);
 
   return (
     <>
-      {/* Container exigido pelo Google Translate, escondido visualmente */}
       <div id="google_translate_element" style={{ display: 'none' }}></div>
 
-      {/* Botão flutuante PT / EN */}
       <div className="fixed top-3 right-3 z-[60] flex gap-1 bg-black/60 backdrop-blur-md p-1 rounded-xl border border-white/10 shadow-lg notranslate">
         <button
           onClick={() => setLingua('pt')}
@@ -104,20 +114,25 @@ export default function LanguageSwitcher() {
         </button>
       </div>
 
-      {/* Esconde a barra horrível que o Google Translate injeta no topo */}
       <style jsx global>{`
         .goog-te-banner-frame.skiptranslate,
-        iframe.goog-te-banner-frame {
+        iframe.goog-te-banner-frame,
+        iframe.skiptranslate,
+        .skiptranslate iframe {
           display: none !important;
           visibility: hidden !important;
           height: 0 !important;
+          width: 0 !important;
+          position: absolute !important;
+          top: -9999px !important;
+        }
+        html, html.translated-ltr, html.translated-rtl {
+          margin-top: 0px !important;
+          top: 0px !important;
         }
         body {
           top: 0px !important;
           position: static !important;
-        }
-        html {
-          margin-top: 0px !important;
         }
         .goog-te-gadget {
           height: 0;

@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 
-export default function TabBanco() {
+export default function TabBanco({ userId }: { userId: string }) {
   const [alvoId, setAlvoId] = useState('');
   const [valorDepositado, setValorDepositado] = useState('');
   const [loading, setLoading] = useState(false);
@@ -34,6 +34,7 @@ export default function TabBanco() {
     e.preventDefault();
     if (!alvoId || !valorDepositado) return toast.error('Preenche todos os campos!');
     if (parseFloat(valorDepositado) <= 0) return toast.error('O valor tem de ser positivo!');
+    if (!userId) return toast.error('Erro de sessão: admin não identificado. Faz login novamente.');
 
     setLoading(true);
     try {
@@ -45,7 +46,7 @@ export default function TabBanco() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          adminId: localStorage.getItem('userId'),
+          adminId: userId,
           alvoId,
           valor: valorFinal
         })
@@ -69,7 +70,7 @@ export default function TabBanco() {
 
         setValorDepositado('');
         // Atualiza info do user
-        if (userInfo) setUserInfo({ ...userInfo, saldo: data.novoSaldo });
+        if (userInfo && data.novoSaldo !== undefined) setUserInfo({ ...userInfo, saldo: data.novoSaldo });
       } else {
         toast.error(data.erro || 'Erro ao modificar saldo.');
       }

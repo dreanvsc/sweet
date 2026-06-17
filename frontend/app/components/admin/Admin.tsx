@@ -223,7 +223,7 @@ export default function Admin({ userId }: any) {
           {activeTab === 'livechat' && <AdminLiveChat />}
           {activeTab === 'missoes' && <AdminMissoes />}
           {activeTab === 'banner' && <TabBanner />}
-          {activeTab === 'banco' && <TabBanco />}
+          {activeTab === 'banco' && <TabBanco userId={userId} />}
           {activeTab === 'verificacoes' && <AdminVerificacoes />}
           {activeTab === 'giveaways' && <TabGiveaways />}
 

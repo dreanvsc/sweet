@@ -67,14 +67,21 @@ export default function LanguageSwitcher() {
 
   // 🔥 Apenas EMPURRA a barra para fora do ecrã via CSS — não remove nada da DOM,
   // para não interferir com o motor de tradução do Google.
+  // 🔥 Esconde o container .skiptranslate que o Google injeta como filho direto do body
   useEffect(() => {
-    const corrigirPosicao = () => {
+    const escondeBarra = () => {
+      const containers = document.querySelectorAll('body > .skiptranslate, iframe.skiptranslate, .goog-te-banner-frame');
+      containers.forEach((el) => {
+        (el as HTMLElement).style.setProperty('display', 'none', 'important');
+        (el as HTMLElement).style.setProperty('height', '0px', 'important');
+        (el as HTMLElement).style.setProperty('visibility', 'hidden', 'important');
+      });
       document.documentElement.style.setProperty('margin-top', '0px', 'important');
       document.body.style.setProperty('top', '0px', 'important');
     };
 
-    corrigirPosicao();
-    const interval = setInterval(corrigirPosicao, 400);
+    escondeBarra();
+    const interval = setInterval(escondeBarra, 400);
     return () => clearInterval(interval);
   }, []);
 
@@ -99,12 +106,26 @@ export default function LanguageSwitcher() {
 
       {/* Apenas esconde visualmente a barra (sem remover do DOM, sem afetar o motor) */}
       <style jsx global>{`
-        .goog-te-banner-frame.skiptranslate {
-          top: -50px !important;
+        .skiptranslate,
+        iframe.skiptranslate,
+        body > .skiptranslate,
+        .goog-te-banner-frame {
+          display: none !important;
           height: 0 !important;
+          min-height: 0 !important;
+          max-height: 0 !important;
+          visibility: hidden !important;
+          border: none !important;
+          overflow: hidden !important;
+        }
+        html {
+          margin-top: 0 !important;
         }
         body {
+          margin-top: 0 !important;
           top: 0px !important;
+          position: static !important;
+          min-height: 0;
         }
         .goog-te-gadget {
           height: 0;

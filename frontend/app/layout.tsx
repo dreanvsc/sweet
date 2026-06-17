@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from 'react-hot-toast';
 import Footer from './components/Footer';
+import LanguageSwitcher from './components/LanguageSwitcher';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -29,6 +30,9 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-[#0b0b0d]">
+
+        {/* 🔥 BOTÃO PT/EN (Google Translate por trás) */}
+        <LanguageSwitcher />
         
         {/* O CONTEÚDO PRINCIPAL DO TEU SITE */}
         <main className="flex-1">

@@ -9,81 +9,63 @@ declare global {
   }
 }
 
+function lerCookie(nome: string): string | null {
+  const match = document.cookie.match(new RegExp('(^| )' + nome + '=([^;]+)'));
+  return match ? decodeURIComponent(match[2]) : null;
+}
+
+function limparCookieGoogtrans() {
+  const hostname = window.location.hostname;
+  document.cookie = 'googtrans=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC';
+  document.cookie = `googtrans=; path=/; domain=${hostname}; expires=Thu, 01 Jan 1970 00:00:00 UTC`;
+  document.cookie = `googtrans=; path=/; domain=.${hostname}; expires=Thu, 01 Jan 1970 00:00:00 UTC`;
+}
+
 export default function LanguageSwitcher() {
   const [lingua, setLingua] = useState<'pt' | 'en'>('pt');
-  const [pronto, setPronto] = useState(false);
 
-  // 🔥 Carrega o script do Google Translate uma única vez
+  // 🔥 Ao montar: descobre a língua real a partir da cookie (fonte de verdade)
   useEffect(() => {
-    if (document.getElementById('google-translate-script')) {
-      setPronto(true);
-      return;
+    const cookieAtual = lerCookie('googtrans');
+    if (cookieAtual && cookieAtual.includes('/en')) {
+      setLingua('en');
+    } else {
+      setLingua('pt');
     }
 
-    window.googleTranslateElementInit = () => {
-      new window.google.translate.TranslateElement(
-        {
-          pageLanguage: 'pt',
-          includedLanguages: 'en,pt',
-          autoDisplay: false,
-        },
-        'google_translate_element'
-      );
-      setPronto(true);
-    };
-
-    const script = document.createElement('script');
-    script.id = 'google-translate-script';
-    script.src = 'https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
-    script.async = true;
-    document.body.appendChild(script);
-
-    const guardada = localStorage.getItem('siteLang');
-    if (guardada === 'en') {
-      setLingua('en');
+    // Carrega o script do Google Translate (só uma vez)
+    if (!document.getElementById('google-translate-script')) {
+      window.googleTranslateElementInit = () => {
+        new window.google.translate.TranslateElement(
+          { pageLanguage: 'pt', includedLanguages: 'en,pt', autoDisplay: false },
+          'google_translate_element'
+        );
+      };
+      const script = document.createElement('script');
+      script.id = 'google-translate-script';
+      script.src = 'https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
+      script.async = true;
+      document.body.appendChild(script);
     }
   }, []);
 
-  useEffect(() => {
-    if (!pronto) return;
+  const mudarPara = (novaLingua: 'pt' | 'en') => {
+    if (novaLingua === lingua) return;
 
-    const aplicar = () => {
-      if (lingua === 'pt') {
-        const estaTraduzido = document.documentElement.classList.contains('translated-ltr') || 
-                               document.documentElement.classList.contains('translated-rtl');
+    if (novaLingua === 'pt') {
+      // 🔥 Remove a cookie de tradução por completo e recarrega -> volta ao original
+      limparCookieGoogtrans();
+      window.location.reload();
+    } else {
+      // 🔥 Define a cookie para inglês e recarrega -> o Google traduz ao carregar
+      const hostname = window.location.hostname;
+      document.cookie = '/pt/en'.length ? `googtrans=/pt/en; path=/` : '';
+      document.cookie = `googtrans=/pt/en; path=/; domain=${hostname}`;
+      window.location.reload();
+    }
+  };
 
-        if (estaTraduzido) {
-          // 🔥 Limpa todas as variações possíveis da cookie e recarrega para forçar o original
-          document.cookie = 'googtrans=; path=/; max-age=0';
-          document.cookie = `googtrans=; path=/; domain=${window.location.hostname}; max-age=0`;
-          document.cookie = `googtrans=; path=/; domain=.${window.location.hostname}; max-age=0`;
-          localStorage.setItem('siteLang', 'pt');
-          window.location.reload();
-        }
-        return;
-      }
-
-      // Traduz para inglês normalmente
-      const valorCookie = '/pt/en';
-      document.cookie = `googtrans=${valorCookie}; path=/`;
-      document.cookie = `googtrans=${valorCookie}; path=/; domain=${window.location.hostname}`;
-
-      const select = document.querySelector('.goog-te-combo') as HTMLSelectElement | null;
-      if (select) {
-        select.value = 'en';
-        select.dispatchEvent(new Event('change'));
-      } else {
-        setTimeout(aplicar, 300);
-      }
-    };
-
-    aplicar();
-    localStorage.setItem('siteLang', lingua);
-  }, [lingua, pronto]);
-
-  // 🔥 Apenas EMPURRA a barra para fora do ecrã via CSS — não remove nada da DOM,
-  // para não interferir com o motor de tradução do Google.
-  // 🔥 Esconde o container .skiptranslate que o Google injeta como filho direto do body
+  // 🔥 Esconde a barra do Google de forma contínua
   useEffect(() => {
     const escondeBarra = () => {
       const containers = document.querySelectorAll('body > .skiptranslate, iframe.skiptranslate, .goog-te-banner-frame');
@@ -107,20 +89,19 @@ export default function LanguageSwitcher() {
 
       <div className="fixed top-3 right-3 z-[60] flex gap-1 bg-black/60 backdrop-blur-md p-1 rounded-xl border border-white/10 shadow-lg notranslate">
         <button
-          onClick={() => setLingua('pt')}
+          onClick={() => mudarPara('pt')}
           className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${lingua === 'pt' ? 'bg-emerald-500 text-black' : 'text-zinc-400 hover:text-white'}`}
         >
           PT
         </button>
         <button
-          onClick={() => setLingua('en')}
+          onClick={() => mudarPara('en')}
           className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${lingua === 'en' ? 'bg-emerald-500 text-black' : 'text-zinc-400 hover:text-white'}`}
         >
           EN
         </button>
       </div>
 
-      {/* Apenas esconde visualmente a barra (sem remover do DOM, sem afetar o motor) */}
       <style jsx global>{`
         .skiptranslate,
         iframe.skiptranslate,

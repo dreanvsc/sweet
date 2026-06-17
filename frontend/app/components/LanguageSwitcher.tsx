@@ -69,6 +69,20 @@ export default function LanguageSwitcher() {
     localStorage.setItem('siteLang', lingua);
   }, [lingua, pronto]);
 
+  // 🔥 Força o body a manter top:0 mesmo quando o Google Translate tenta empurrá-lo
+  useEffect(() => {
+    const corrigirBody = () => {
+      document.body.style.top = '0px';
+      document.body.style.position = 'static';
+    };
+
+    corrigirBody();
+    const observer = new MutationObserver(corrigirBody);
+    observer.observe(document.body, { attributes: true, attributeFilter: ['style'] });
+
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <>
       {/* Container exigido pelo Google Translate, escondido visualmente */}
@@ -92,15 +106,33 @@ export default function LanguageSwitcher() {
 
       {/* Esconde a barra horrível que o Google Translate injeta no topo */}
       <style jsx global>{`
-        .goog-te-banner-frame.skiptranslate {
+        .goog-te-banner-frame.skiptranslate,
+        iframe.goog-te-banner-frame {
           display: none !important;
+          visibility: hidden !important;
+          height: 0 !important;
         }
         body {
-          top: 0 !important;
+          top: 0px !important;
+          position: static !important;
+        }
+        html {
+          margin-top: 0px !important;
         }
         .goog-te-gadget {
           height: 0;
           overflow: hidden;
+        }
+        #google_translate_element {
+          display: none !important;
+        }
+        .goog-tooltip,
+        .goog-tooltip:hover {
+          display: none !important;
+        }
+        .goog-text-highlight {
+          background: none !important;
+          box-shadow: none !important;
         }
       `}</style>
     </>

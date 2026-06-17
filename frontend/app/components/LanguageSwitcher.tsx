@@ -65,34 +65,17 @@ export default function LanguageSwitcher() {
     localStorage.setItem('siteLang', lingua);
   }, [lingua, pronto]);
 
-  // 🔥 Vigia HTML e BODY constantemente e remove qualquer empurrão/iframe da barra
+  // 🔥 Apenas EMPURRA a barra para fora do ecrã via CSS — não remove nada da DOM,
+  // para não interferir com o motor de tradução do Google.
   useEffect(() => {
-    const limpar = () => {
-      // Remove o top/margin que o Google injeta no html e no body
-      document.documentElement.style.removeProperty('margin-top');
-      document.documentElement.style.top = '0px';
-      document.body.style.top = '0px';
-      document.body.style.position = 'static';
-
-      // Remove fisicamente o iframe da barra se existir
-      const iframes = document.querySelectorAll('iframe.goog-te-banner-frame, iframe.skiptranslate');
-      iframes.forEach((el) => el.remove());
-
-      // Remove a div wrapper que por vezes sobra
-      const banner = document.querySelector('.goog-te-banner-frame');
-      if (banner) banner.remove();
+    const corrigirPosicao = () => {
+      document.documentElement.style.setProperty('margin-top', '0px', 'important');
+      document.body.style.setProperty('top', '0px', 'important');
     };
 
-    limpar();
-    const interval = setInterval(limpar, 500);
-
-    const observer = new MutationObserver(limpar);
-    observer.observe(document.documentElement, { attributes: true, childList: true, subtree: true, attributeFilter: ['style'] });
-
-    return () => {
-      clearInterval(interval);
-      observer.disconnect();
-    };
+    corrigirPosicao();
+    const interval = setInterval(corrigirPosicao, 400);
+    return () => clearInterval(interval);
   }, []);
 
   return (
@@ -114,25 +97,14 @@ export default function LanguageSwitcher() {
         </button>
       </div>
 
+      {/* Apenas esconde visualmente a barra (sem remover do DOM, sem afetar o motor) */}
       <style jsx global>{`
-        .goog-te-banner-frame.skiptranslate,
-        iframe.goog-te-banner-frame,
-        iframe.skiptranslate,
-        .skiptranslate iframe {
-          display: none !important;
-          visibility: hidden !important;
+        .goog-te-banner-frame.skiptranslate {
+          top: -50px !important;
           height: 0 !important;
-          width: 0 !important;
-          position: absolute !important;
-          top: -9999px !important;
-        }
-        html, html.translated-ltr, html.translated-rtl {
-          margin-top: 0px !important;
-          top: 0px !important;
         }
         body {
           top: 0px !important;
-          position: static !important;
         }
         .goog-te-gadget {
           height: 0;

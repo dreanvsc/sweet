@@ -48,13 +48,31 @@ export default function LanguageSwitcher() {
     if (!pronto) return;
 
     const aplicar = () => {
-      const valorCookie = lingua === 'en' ? '/pt/en' : '/pt/pt';
+      if (lingua === 'pt') {
+        // 🔥 Restaura o texto original em vez de "traduzir para português"
+        const linkRestaurar = document.querySelector('.goog-te-banner-frame');
+        const select = document.querySelector('.goog-te-combo') as HTMLSelectElement | null;
+        
+        // Limpa a cookie de tradução para forçar o original
+        document.cookie = 'googtrans=/pt/pt; path=/; max-age=0';
+        document.cookie = `googtrans=; path=/; domain=${window.location.hostname}; max-age=0`;
+        document.cookie = `googtrans=/pt/pt; path=/`;
+
+        if (select) {
+          select.value = 'pt';
+          select.dispatchEvent(new Event('change'));
+        }
+        return;
+      }
+
+      // Traduz para inglês normalmente
+      const valorCookie = '/pt/en';
       document.cookie = `googtrans=${valorCookie}; path=/`;
       document.cookie = `googtrans=${valorCookie}; path=/; domain=${window.location.hostname}`;
 
       const select = document.querySelector('.goog-te-combo') as HTMLSelectElement | null;
       if (select) {
-        select.value = lingua === 'en' ? 'en' : 'pt';
+        select.value = 'en';
         select.dispatchEvent(new Event('change'));
       } else {
         setTimeout(aplicar, 300);

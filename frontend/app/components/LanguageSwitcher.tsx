@@ -49,26 +49,16 @@ export default function LanguageSwitcher() {
 
     const aplicar = () => {
       if (lingua === 'pt') {
-        // 🔥 Clica no botão nativo "Mostrar original" do Google dentro do iframe da barra
-        const iframe = document.querySelector('iframe.goog-te-banner-frame') as HTMLIFrameElement | null;
-        let cliquei = false;
+        const estaTraduzido = document.documentElement.classList.contains('translated-ltr') || 
+                               document.documentElement.classList.contains('translated-rtl');
 
-        if (iframe && iframe.contentDocument) {
-          const botaoRestaurar = iframe.contentDocument.querySelector('[id$=".restore"]') as HTMLElement | null;
-          if (botaoRestaurar) {
-            botaoRestaurar.click();
-            cliquei = true;
-          }
-        }
-
-        if (!cliquei) {
-          // Fallback: limpa cookies e recarrega sem o parâmetro de tradução
+        if (estaTraduzido) {
+          // 🔥 Limpa todas as variações possíveis da cookie e recarrega para forçar o original
           document.cookie = 'googtrans=; path=/; max-age=0';
           document.cookie = `googtrans=; path=/; domain=${window.location.hostname}; max-age=0`;
-          // Só recarrega se a página estiver mesmo traduzida (evita loop infinito)
-          if (document.documentElement.classList.contains('translated-ltr') || document.documentElement.classList.contains('translated-rtl')) {
-            window.location.reload();
-          }
+          document.cookie = `googtrans=; path=/; domain=.${window.location.hostname}; max-age=0`;
+          localStorage.setItem('siteLang', 'pt');
+          window.location.reload();
         }
         return;
       }

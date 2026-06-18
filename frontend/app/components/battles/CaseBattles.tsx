@@ -1,11 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { io } from 'socket.io-client';
+import React, { useState, useEffect, useRef } from 'react';
+import { io, Socket } from 'socket.io-client';
 import BattleArena from './BattleArena';
 import { toast } from 'react-hot-toast';
-
-const socket = io('https://sweet-7ifa.onrender.com');
 
 export default function CaseBattles({ userId, user, saldo, caixas, setView, atualizarTudo }: any) {
   const [batalhas, setBatalhas] = useState<any[]>([]);
@@ -15,21 +13,38 @@ export default function CaseBattles({ userId, user, saldo, caixas, setView, atua
   const [filaCaixas, setFilaCaixas] = useState<any[]>([]);
   const [numJogadores, setNumJogadores] = useState(2);
 
+  // 🔥 Socket criado e destruído junto com o ciclo de vida deste componente
+  // (em vez de uma instância global partilhada, que acumulava listeners antigos)
+  const socketRef = useRef<Socket | null>(null);
+
   useEffect(() => {
+    const socket = io('https://sweet-7ifa.onrender.com');
+    socketRef.current = socket;
+
     socket.emit('pedir_batalhas');
+
     socket.on('batalhas_atualizadas', (lista) => setBatalhas(lista));
-    socket.on('batalha_comecou', (batalha) => setBatalhaAtiva(batalha));
+
+    // 🔥 Só aceita o evento "batalha_comecou" se o utilizador estiver mesmo
+    // listado como jogador dessa batalha específica — protege contra eventos
+    // fantasma de salas antigas/zombie que não nos pertencem.
+    socket.on('batalha_comecou', (batalha) => {
+      const souParticipante = batalha?.jogadores?.some((j: any) => String(j.id) === String(user.id));
+      if (souParticipante) {
+        setBatalhaAtiva(batalha);
+      }
+    });
 
     return () => {
       socket.off('batalhas_atualizadas');
       socket.off('batalha_comecou');
+      socket.disconnect();
+      socketRef.current = null;
     };
-  }, []);
+  }, [user.id]);
 
   // 🔥 RADAR DE RECONEXÃO AUTOMÁTICA 🔥
-  // Se voltares à página e tiveres uma batalha a decorrer, ele abre-a logo!
   useEffect(() => {
-    // Adicionada variável global (sessionStorage) para detetar se o jogador acabou de fechar a arena
     const acabouDeSair = sessionStorage.getItem('saiuDaBatalha');
     
     if (!batalhaAtiva && batalhas.length > 0 && !acabouDeSair) {
@@ -56,8 +71,9 @@ export default function CaseBattles({ userId, user, saldo, caixas, setView, atua
   const criarBatalha = () => {
     if (filaCaixas.length === 0) return toast.error("Adiciona pelo menos 1 caixa!");
     if (saldo < valorTotalFila) return toast.error("Saldo insuficiente!");
+    if (!socketRef.current) return toast.error("Sem ligação ao servidor. Recarrega a página.");
     
-    socket.emit('criar_batalha', {
+    socketRef.current.emit('criar_batalha', {
       userId: user.id, userNome: user.nome || 'Jogador 1', userFoto: user.avatar || '/skins/glock.png',
       caixas: filaCaixas,
       maxJogadores: numJogadores
@@ -71,10 +87,17 @@ export default function CaseBattles({ userId, user, saldo, caixas, setView, atua
 
   const entrarBatalha = (batalha: any) => {
     if (saldo < batalha.precoTotal) return toast.error("Saldo insuficiente para entrar!");
-    socket.emit('entrar_batalha', { batalhaId: batalha.id, userId: user.id, userNome: user.nome || 'Jogador', userFoto: user.avatar || '/skins/glock.png' });
+    if (!socketRef.current) return toast.error("Sem ligação ao servidor. Recarrega a página.");
+
+    socketRef.current.emit('entrar_batalha', { batalhaId: batalha.id, userId: user.id, userNome: user.nome || 'Jogador', userFoto: user.avatar || '/skins/glock.png' });
     toast.success("Entraste na batalha!");
 
     setTimeout(() => { if (typeof atualizarTudo === 'function') atualizarTudo(); }, 500);
+  };
+
+  const chamarBot = (batalhaId: string) => {
+    if (!socketRef.current) return toast.error("Sem ligação ao servidor. Recarrega a página.");
+    socketRef.current.emit('chamar_bot', { batalhaId });
   };
 
   if (batalhaAtiva) {
@@ -83,12 +106,10 @@ export default function CaseBattles({ userId, user, saldo, caixas, setView, atua
         batalha={batalhaAtiva} 
         userId={userId} 
         onLeave={() => { 
-          // 🔥 Marcamos na memória do browser que acabámos de sair propositadamente
           sessionStorage.setItem('saiuDaBatalha', 'true');
           setBatalhaAtiva(null); 
-          socket.emit('pedir_batalhas'); 
+          socketRef.current?.emit('pedir_batalhas'); 
           
-          // Remove a tag passados 5 segundos (tempo suficiente para o servidor apagar a batalha)
           setTimeout(() => sessionStorage.removeItem('saiuDaBatalha'), 5000);
           
           if (typeof atualizarTudo === 'function') atualizarTudo();
@@ -149,7 +170,7 @@ export default function CaseBattles({ userId, user, saldo, caixas, setView, atua
                 {Array.from({ length: b.maxJogadores }).map((_, idx) => {
                   const j = b.jogadores[idx];
                   return j ? (
-                    <img key={idx} src={j.foto} className="w-10 h-10 rounded-lg border-2 border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.3)]" alt="p" title={j.nome} />
+                    <img key={idx} src={j.foto} className="w-10 h-10 rounded-lg border-2 border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.3)] notranslate" alt="p" title={j.nome} />
                   ) : (
                     <div key={idx} className="w-10 h-10 rounded-lg border-2 border-dashed border-zinc-700 bg-black/50 flex items-center justify-center animate-pulse">
                       <span className="text-zinc-500 text-xs">?</span>
@@ -167,7 +188,7 @@ export default function CaseBattles({ userId, user, saldo, caixas, setView, atua
                 {b.estado === 'espera' ? (
                   estouNaSala ? (
                     souOCriador ? (
-                      <button onClick={() => socket.emit('chamar_bot', { batalhaId: b.id })} className="bg-gradient-to-r from-amber-500 to-orange-600 text-white px-6 py-3 rounded-xl font-black uppercase tracking-widest text-xs transition-all hover:scale-105 shadow-[0_0_20px_rgba(245,158,11,0.2)] hover:shadow-[0_0_25px_rgba(245,158,11,0.4)]">
+                      <button onClick={() => chamarBot(b.id)} className="bg-gradient-to-r from-amber-500 to-orange-600 text-white px-6 py-3 rounded-xl font-black uppercase tracking-widest text-xs transition-all hover:scale-105 shadow-[0_0_20px_rgba(245,158,11,0.2)] hover:shadow-[0_0_25px_rgba(245,158,11,0.4)]">
                         🤖 +1 BOT
                       </button>
                     ) : (
@@ -182,7 +203,6 @@ export default function CaseBattles({ userId, user, saldo, caixas, setView, atua
                     </button>
                   )
                 ) : (
-                  // 🔥 NOVO: BOTÃO PARA ASSISTIR OU REENTRAR NA BATALHA A DECORRER
                   <button 
                     onClick={() => setBatalhaAtiva(b)} 
                     className="bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-blue-400 hover:text-blue-300 px-8 py-3 rounded-xl font-black uppercase tracking-widest transition-all duration-300 shadow-[0_0_15px_rgba(59,130,246,0.1)] hover:shadow-[0_0_20px_rgba(59,130,246,0.3)]"

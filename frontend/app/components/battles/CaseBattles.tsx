@@ -49,7 +49,8 @@ export default function CaseBattles({ userId, user, saldo, caixas, setView, atua
     
     if (!batalhaAtiva && batalhas.length > 0 && !acabouDeSair) {
       const minhaBatalha = batalhas.find(b => 
-        (b.estado === 'jogando' || b.estado === 'espera') && b.jogadores.some((j: any) => String(j.id) === String(user.id))
+        // 🛑 CORREÇÃO: Removemos o estado 'espera' daqui para não forçar a entrada precoce
+        b.estado === 'jogando' && b.jogadores.some((j: any) => String(j.id) === String(user.id))
       );
       if (minhaBatalha) {
         setBatalhaAtiva(minhaBatalha);

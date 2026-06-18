@@ -46,6 +46,9 @@ export default function BattleArena({ batalha, userId, onLeave }: any) {
   }, []);
 
   useEffect(() => {
+    // 🛑 TRAVÃO DE EMERGÊNCIA: Se a batalha ainda estiver à espera, congela o código aqui!
+    if (batalha?.estado === 'espera') return;
+
     if (rondaAtual >= totalRondas) {
       setIsSpinning(false);
       
@@ -115,7 +118,7 @@ export default function BattleArena({ batalha, userId, onLeave }: any) {
     }, 7000); 
 
     return () => { clearTimeout(tSpin); clearTimeout(tEnd); };
-  }, [rondaAtual]);
+  }, [rondaAtual, batalha?.estado]);
 
   const getCardStyle = (jId: any) => {
     if (!terminou && !mostrandoDesempate) return 'border-white/5 opacity-100';

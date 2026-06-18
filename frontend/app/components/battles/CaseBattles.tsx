@@ -14,7 +14,6 @@ export default function CaseBattles({ userId, user, saldo, caixas, setView, atua
   const [numJogadores, setNumJogadores] = useState(2);
 
   // 🔥 Socket criado e destruído junto com o ciclo de vida deste componente
-  // (em vez de uma instância global partilhada, que acumulava listeners antigos)
   const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
@@ -25,12 +24,13 @@ export default function CaseBattles({ userId, user, saldo, caixas, setView, atua
 
     socket.on('batalhas_atualizadas', (lista) => setBatalhas(lista));
 
-    // 🔥 Só aceita o evento "batalha_comecou" se o utilizador estiver mesmo
-    // listado como jogador dessa batalha específica — protege contra eventos
-    // fantasma de salas antigas/zombie que não nos pertencem.
+    // 🔥 O GRANDE FILTRO: O frontend agora ignora a ordem do backend se a sala não estiver cheia
+    // ou se o estado não for explicitamente 'jogando'.
     socket.on('batalha_comecou', (batalha) => {
       const souParticipante = batalha?.jogadores?.some((j: any) => String(j.id) === String(user.id));
-      if (souParticipante) {
+      const salaCheia = batalha?.jogadores?.length === batalha?.maxJogadores;
+      
+      if (souParticipante && (batalha.estado === 'jogando' || salaCheia)) {
         setBatalhaAtiva(batalha);
       }
     });
@@ -49,7 +49,7 @@ export default function CaseBattles({ userId, user, saldo, caixas, setView, atua
     
     if (!batalhaAtiva && batalhas.length > 0 && !acabouDeSair) {
       const minhaBatalha = batalhas.find(b => 
-        // 🛑 CORREÇÃO: Removemos o estado 'espera' daqui para não forçar a entrada precoce
+        // 🛑 Aqui puxa apenas se o estado for 'jogando'
         b.estado === 'jogando' && b.jogadores.some((j: any) => String(j.id) === String(user.id))
       );
       if (minhaBatalha) {
@@ -101,7 +101,14 @@ export default function CaseBattles({ userId, user, saldo, caixas, setView, atua
     socketRef.current.emit('chamar_bot', { batalhaId });
   };
 
+  // 🔥 A BARREIRA DE SEGURANÇA VISUAL 🔥
   if (batalhaAtiva) {
+    // Se por algum motivo fantasma a batalha tentar abrir em 'espera', ele bloqueia e manda-te para o lobby!
+    if (batalhaAtiva.estado === 'espera' && batalhaAtiva.jogadores?.length < batalhaAtiva.maxJogadores) {
+      setTimeout(() => setBatalhaAtiva(null), 0);
+      return null;
+    }
+
     return (
       <BattleArena 
         batalha={batalhaAtiva} 

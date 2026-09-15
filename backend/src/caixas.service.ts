@@ -36,6 +36,12 @@ const SUBSTANTIVOS_NOME = [
 ];
 const EMOJIS_CATEGORIA = ['🔥', '⚡', '💀', '🎯', '🐺', '🦅', '💰', '⚔️'];
 
+const CORES_RARIDADE: Record<string, string> = {
+  Comum: '#3b82f6',
+  Raro: '#a855f7',
+  Lendário: '#f59e0b',
+};
+
 @Injectable()
 export class CaixasService {
   constructor(
@@ -273,6 +279,60 @@ export class CaixasService {
     return itens.reduce((s, i) => s + (i.preco * i.probabilidade) / 100, 0);
   }
 
+  /**
+   * Gera uma imagem de "cofre" (crate) para a caixa, na hora, como SVG —
+   * sem depender de nenhum serviço externo. A cor do brilho/moldura muda
+   * conforme a raridade do item em destaque (igual à lógica de cores já
+   * usada no frontend: Comum=azul, Raro=roxo, Lendário=dourado).
+   */
+  private gerarImagemCaixa(itemDestaque: any, precoCaixa: number): string {
+    const cor = CORES_RARIDADE[itemDestaque?.raridade] || CORES_RARIDADE.Comum;
+    const imagemItem = itemDestaque?.imagem || '';
+
+    const svg = `
+<svg width="500" height="500" viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="glow" cx="50%" cy="42%" r="65%">
+      <stop offset="0%" stop-color="${cor}" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#0b0b0d" stop-opacity="1"/>
+    </radialGradient>
+    <linearGradient id="corpo" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2a2a33"/>
+      <stop offset="100%" stop-color="#0f0f13"/>
+    </linearGradient>
+    <filter id="sombraItem" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="10" stdDeviation="14" flood-color="#000" flood-opacity="0.6"/>
+    </filter>
+  </defs>
+
+  <rect width="500" height="500" fill="url(#glow)"/>
+
+  <!-- Corpo do cofre -->
+  <rect x="55" y="115" width="390" height="290" rx="26" fill="url(#corpo)" stroke="${cor}" stroke-width="3" stroke-opacity="0.75"/>
+  <rect x="55" y="115" width="390" height="55" rx="26" fill="${cor}" fill-opacity="0.16"/>
+  <line x1="55" y1="170" x2="445" y2="170" stroke="${cor}" stroke-width="2" stroke-opacity="0.5"/>
+
+  <!-- Cantos decorativos, estilo "loot crate" -->
+  <path d="M55 148 V141 a26 26 0 0 1 26 -26 h22" fill="none" stroke="${cor}" stroke-width="4"/>
+  <path d="M445 148 V141 a26 26 0 0 0 -26 -26 h-22" fill="none" stroke="${cor}" stroke-width="4"/>
+  <path d="M55 372 V379 a26 26 0 0 0 26 26 h22" fill="none" stroke="${cor}" stroke-width="4"/>
+  <path d="M445 372 V379 a26 26 0 0 1 -26 26 h-22" fill="none" stroke="${cor}" stroke-width="4"/>
+
+  <!-- Fecho central -->
+  <circle cx="250" cy="143" r="15" fill="#0b0b0d" stroke="${cor}" stroke-width="3"/>
+  <rect x="244" y="150" width="12" height="16" rx="2" fill="${cor}"/>
+
+  <!-- Item em destaque, com sombra -->
+  ${imagemItem ? `<image href="${imagemItem}" x="125" y="195" width="250" height="180" preserveAspectRatio="xMidYMid meet" filter="url(#sombraItem)"/>` : ''}
+
+  <!-- Faixa do preço -->
+  <rect x="145" y="410" width="210" height="46" rx="23" fill="#0b0b0d" stroke="${cor}" stroke-width="2"/>
+  <text x="250" y="440" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="900" fill="${cor}">€${precoCaixa.toFixed(2)}</text>
+</svg>`.trim();
+
+    return `data:image/svg+xml;base64,${Buffer.from(svg, 'utf-8').toString('base64')}`;
+  }
+
   private aleatorio(lista: string[]) {
     return lista[Math.floor(Math.random() * lista.length)];
   }
@@ -364,15 +424,16 @@ export class CaixasService {
         seguranca++;
       }
 
-      // A imagem/banner da caixa é a do item mais valioso lá dentro
-      // (o mesmo padrão visual que já usas nos itens do Arsenal).
+      // A imagem da caixa é um "cofre" gerado na hora, com brilho/cor
+      // conforme a raridade do item em destaque — não a foto crua da skin.
       const itemDestaque = [...itens].sort((a, b) => b.preco - a.preco)[0];
       const nomeDaCaixa = this.gerarNomeUnico(nomesProibidos);
+      const imagemDaCaixa = this.gerarImagemCaixa(itemDestaque, precoCaixa);
 
       const caixa = await this.criarCaixa({
         nome: nomeDaCaixa,
         preco: precoCaixa,
-        imagem: itemDestaque?.imagem || '/skins/glock.png',
+        imagem: imagemDaCaixa,
         itens,
         ordem: ordemAtual++,
         isEvento: false,

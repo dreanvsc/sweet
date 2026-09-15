@@ -20,6 +20,10 @@ import { GiveawaysService } from './giveaways.service';
 // 💰 O NOVO WEBHOOK DO STRIPE (MÁQUINA DE AFILIADOS):
 import { StripeWebhookController } from './stripe.controller';
 
+// 🤖 O NOVO BOT DE DEPÓSITOS DE SKINS VIA STEAM TRADE:
+import { SteamBotService } from './steam-bot.service';
+import { DepositController } from './deposit.controller';
+
 @Module({
   imports: [
     // 🔥 MÓDULOS: O Relógio do Servidor
@@ -29,7 +33,8 @@ import { StripeWebhookController } from './stripe.controller';
     AppController,
     GiveawaysController,
     // 🔥 O WEBHOOK FICA AQUI A ESCUTAR O BANCO:
-    StripeWebhookController 
+    StripeWebhookController,
+    DepositController,
   ],
   providers: [
     // 🔥 SERVIÇOS E GATEWAYS
@@ -44,7 +49,8 @@ import { StripeWebhookController } from './stripe.controller';
     BattlesGateway,
     CoinflipGateway,
     ChatGateway,
-    GiveawaysService
+    GiveawaysService,
+    SteamBotService
   ],
 })
 export class AppModule {}

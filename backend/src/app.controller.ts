@@ -51,6 +51,12 @@ export class AppController {
     return await this.caixasService.criarCaixa(body);
   }
 
+  // 🤖 Gera N caixas automáticas na hora (por defeito 6), sem esperar pelo cron das 05:00
+  @Post('admin/caixas/gerar-automatico')
+  async gerarCaixasAutomaticas(@Body() body: { quantidade?: number }) {
+    return await this.caixasService.gerarCaixasAutomaticas(body?.quantidade || 6);
+  }
+
   // ==========================================
   // DEPARTAMENTO DOS UTILIZADORES E SALDO
   // ==========================================

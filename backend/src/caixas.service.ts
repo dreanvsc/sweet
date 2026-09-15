@@ -2,6 +2,25 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
 import { FeedGateway } from './feed.gateway';
 import { UsersService } from './users.service';
+import { Cron } from '@nestjs/schedule';
+
+// ==========================================================================
+// 🤖 CONFIGURAÇÃO DA GERAÇÃO AUTOMÁTICA DE CAIXAS
+// ==========================================================================
+// Cada "tier" define uma faixa de preço (relativa ao preço da caixa) e a
+// percentagem total de chance atribuída a essa faixa. Isto imita a estrutura
+// de odds das caixas oficiais (itens baratos com alta chance, itens caros
+// muito raros).
+const TIERS_AUTOMATICOS = [
+  { chance: 70, min: 0.1, max: 0.5, quantidadeItens: 4 },
+  { chance: 22, min: 0.5, max: 1.5, quantidadeItens: 3 },
+  { chance: 6, min: 1.5, max: 4, quantidadeItens: 2 },
+  { chance: 1.8, min: 4, max: 10, quantidadeItens: 1 },
+  { chance: 0.2, min: 10, max: 40, quantidadeItens: 1 }, // 🎯 item "jackpot"
+];
+
+const MARGEM_DA_CASA = 0.12; // 12% de margem alvo — ajusta como quiseres
+const PRECOS_DAS_CAIXAS = [2.5, 5, 10, 15, 25, 50]; // um preço por caixa/dia
 
 @Injectable()
 export class CaixasService {
@@ -181,6 +200,132 @@ export class CaixasService {
 
     } catch (error: any) { 
         throw new BadRequestException(error.message || "Erro ao processar a abertura da caixa."); 
+    }
+  }
+
+  // ==========================================================================
+  // 🤖 GERAÇÃO AUTOMÁTICA DE CAIXAS (6 por dia)
+  // ==========================================================================
+
+  private escolherItensAleatorios(pool: any[], quantidade: number) {
+    const copia = [...pool];
+    const escolhidos: any[] = [];
+    while (escolhidos.length < quantidade && copia.length > 0) {
+      const idx = Math.floor(Math.random() * copia.length);
+      escolhidos.push(copia.splice(idx, 1)[0]);
+    }
+    return escolhidos;
+  }
+
+  /**
+   * Monta a lista de itens + probabilidades para UMA caixa, a partir do
+   * catálogo de Items já existente na BD (preços sincronizados pelo teu
+   * cron noturno em admin.service.ts).
+   */
+  private montarItensDaCaixa(catalogo: any[], precoCaixa: number) {
+    const itens: any[] = [];
+
+    for (const tier of TIERS_AUTOMATICOS) {
+      const candidatos = catalogo.filter(
+        (i) => i.preco >= precoCaixa * tier.min && i.preco <= precoCaixa * tier.max
+      );
+      if (candidatos.length === 0) continue;
+
+      const escolhidos = this.escolherItensAleatorios(
+        candidatos,
+        Math.min(tier.quantidadeItens, candidatos.length)
+      );
+      const chancePorItem = tier.chance / escolhidos.length;
+
+      for (const item of escolhidos) {
+        itens.push({
+          nome: item.nome,
+          imagem: item.imagem,
+          raridade: item.raridade,
+          preco: item.preco,
+          probabilidade: chancePorItem,
+        });
+      }
+    }
+
+    // Normaliza para a soma dar exatamente 100 (evita erros de arredondamento)
+    const total = itens.reduce((s, i) => s + i.probabilidade, 0);
+    itens.forEach((i) => (i.probabilidade = +(i.probabilidade * (100 / total)).toFixed(4)));
+
+    return itens;
+  }
+
+  private calcularEV(itens: any[]) {
+    return itens.reduce((s, i) => s + (i.preco * i.probabilidade) / 100, 0);
+  }
+
+  /**
+   * Gera N caixas novas (por defeito 6), escolhendo skins do catálogo atual
+   * e atribuindo odds automaticamente, respeitando a margem da casa.
+   * Pode ser chamado manualmente (endpoint admin) ou pelo cron diário.
+   */
+  async gerarCaixasAutomaticas(quantidade: number = 6) {
+    const catalogo = await (this.prisma as any).item.findMany();
+    if (catalogo.length === 0) {
+      throw new BadRequestException(
+        'Não há itens na base de dados. Corre primeiro a sincronização do arsenal (admin.service.ts).'
+      );
+    }
+
+    const ultimaCaixa = await (this.prisma as any).caixa.findFirst({ orderBy: { ordem: 'desc' } });
+    let ordemAtual = (ultimaCaixa?.ordem || 0) + 1;
+
+    const dataStr = new Date().toISOString().slice(0, 10);
+    const caixasCriadas: any[] = [];
+
+    for (let i = 0; i < quantidade; i++) {
+      const precoCaixa = PRECOS_DAS_CAIXAS[i % PRECOS_DAS_CAIXAS.length];
+      let itens = this.montarItensDaCaixa(catalogo, precoCaixa);
+      let ev = this.calcularEV(itens);
+
+      // Se a EV ficar acima da margem alvo, reduz gradualmente a chance dos
+      // itens mais caros que o preço da caixa até ficar dentro da margem.
+      let seguranca = 0;
+      while (ev > precoCaixa * (1 - MARGEM_DA_CASA) && seguranca < 20) {
+        itens = itens.map((it) =>
+          it.preco > precoCaixa ? { ...it, probabilidade: it.probabilidade * 0.85 } : it
+        );
+        const total = itens.reduce((s, i) => s + i.probabilidade, 0);
+        itens.forEach((i) => (i.probabilidade = +(i.probabilidade * (100 / total)).toFixed(4)));
+        ev = this.calcularEV(itens);
+        seguranca++;
+      }
+
+      // A imagem/banner da caixa é a do item mais valioso lá dentro
+      // (o mesmo padrão visual que já usas nos itens do Arsenal).
+      const itemDestaque = [...itens].sort((a, b) => b.preco - a.preco)[0];
+
+      const caixa = await this.criarCaixa({
+        nome: `Caixa ${dataStr} #${i + 1}`,
+        preco: precoCaixa,
+        imagem: itemDestaque?.imagem || '/skins/glock.png',
+        itens,
+        ordem: ordemAtual++,
+        isEvento: false,
+        categoria: '🤖 CAIXAS DO DIA',
+      });
+
+      caixasCriadas.push({ ...caixa, expectedValue: +ev.toFixed(2) });
+    }
+
+    return caixasCriadas;
+  }
+
+  // Corre todos os dias às 05:00 (uma hora depois da sincronização de preços
+  // às 04:00 em admin.service.ts, para usar preços frescos).
+  @Cron('0 5 * * *')
+  async gerarCaixasAutomaticasCron() {
+    console.log('🤖 [CRON] A gerar as 6 caixas automáticas do dia...');
+    try {
+      const criadas = await this.gerarCaixasAutomaticas(6);
+      console.log(`✅ [CRON] ${criadas.length} caixas criadas com sucesso.`);
+    } catch (error: any) {
+      console.error('❌ [CRON] Falha ao gerar caixas automáticas:', error.message);
     }
   }
 }

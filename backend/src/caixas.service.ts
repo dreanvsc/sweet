@@ -280,14 +280,36 @@ export class CaixasService {
   }
 
   /**
+   * Descarrega uma imagem externa e devolve-a já como data URI base64,
+   * para poder ser embutida dentro do SVG sem depender de pedidos externos
+   * (que os browsers bloqueiam quando o SVG é usado num <img src="data:...">).
+   */
+  private async imagemParaBase64(url: string): Promise<string | null> {
+    if (!url) return null;
+    try {
+      const resposta = await fetch(url);
+      if (!resposta.ok) return null;
+      const tipo = resposta.headers.get('content-type') || 'image/png';
+      const buffer = Buffer.from(await resposta.arrayBuffer());
+      return `data:${tipo};base64,${buffer.toString('base64')}`;
+    } catch (e) {
+      console.warn(`⚠️ Não foi possível embutir a imagem "${url}" no cofre:`, (e as any).message);
+      return null;
+    }
+  }
+
+  /**
    * Gera uma imagem de "cofre" (crate) para a caixa, na hora, como SVG —
-   * sem depender de nenhum serviço externo. A cor do brilho/moldura muda
+   * sem depender de nenhum serviço externo em tempo de visualização (a
+   * imagem da skin é descarregada UMA VEZ, aqui, e embutida como base64,
+   * porque os browsers bloqueiam pedidos externos feitos de dentro de um
+   * SVG usado como <img src="data:...">). A cor do brilho/moldura muda
    * conforme a raridade do item em destaque (igual à lógica de cores já
    * usada no frontend: Comum=azul, Raro=roxo, Lendário=dourado).
    */
-  private gerarImagemCaixa(itemDestaque: any, precoCaixa: number): string {
+  private async gerarImagemCaixa(itemDestaque: any, precoCaixa: number): Promise<string> {
     const cor = CORES_RARIDADE[itemDestaque?.raridade] || CORES_RARIDADE.Comum;
-    const imagemItem = itemDestaque?.imagem || '';
+    const imagemItemBase64 = await this.imagemParaBase64(itemDestaque?.imagem || '');
 
     const svg = `
 <svg width="500" height="500" viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg">
@@ -322,8 +344,8 @@ export class CaixasService {
   <circle cx="250" cy="143" r="15" fill="#0b0b0d" stroke="${cor}" stroke-width="3"/>
   <rect x="244" y="150" width="12" height="16" rx="2" fill="${cor}"/>
 
-  <!-- Item em destaque, com sombra -->
-  ${imagemItem ? `<image href="${imagemItem}" x="125" y="195" width="250" height="180" preserveAspectRatio="xMidYMid meet" filter="url(#sombraItem)"/>` : ''}
+  <!-- Item em destaque, com sombra (embutido como base64, sem pedido externo) -->
+  ${imagemItemBase64 ? `<image href="${imagemItemBase64}" x="125" y="195" width="250" height="180" preserveAspectRatio="xMidYMid meet" filter="url(#sombraItem)"/>` : ''}
 
   <!-- Faixa do preço -->
   <rect x="145" y="410" width="210" height="46" rx="23" fill="#0b0b0d" stroke="${cor}" stroke-width="2"/>
@@ -428,7 +450,7 @@ export class CaixasService {
       // conforme a raridade do item em destaque — não a foto crua da skin.
       const itemDestaque = [...itens].sort((a, b) => b.preco - a.preco)[0];
       const nomeDaCaixa = this.gerarNomeUnico(nomesProibidos);
-      const imagemDaCaixa = this.gerarImagemCaixa(itemDestaque, precoCaixa);
+      const imagemDaCaixa = await this.gerarImagemCaixa(itemDestaque, precoCaixa);
 
       const caixa = await this.criarCaixa({
         nome: nomeDaCaixa,

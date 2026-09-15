@@ -39,10 +39,18 @@ export class AdminService {
     let inventario: any;
     try {
       const res = await fetch(
-        `https://steamcommunity.com/inventory/${steamIdDestino}/730/2?l=english&count=5000`
+        `https://steamcommunity.com/inventory/${steamIdDestino}/730/2?l=english&count=5000`,
+        {
+          headers: {
+            'User-Agent':
+              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+            Accept: 'application/json',
+          },
+        }
       );
       if (!res.ok) {
-        console.warn(`⚠️ Não foi possível ler o inventário de destino (status ${res.status}). O perfil está público?`);
+        const corpo = await res.text().catch(() => '');
+        console.warn(`⚠️ Não foi possível ler o inventário de destino (status ${res.status}). Corpo: ${corpo.slice(0, 300)}`);
         return;
       }
       inventario = await res.json();

@@ -711,12 +711,44 @@ export class AppController {
     const steamId = user.username;
     
     // 1️⃣ Busca inventário Steam
-    const resInv = await fetch(
-      `https://steamcommunity.com/inventory/${steamId}/730/2?l=english&count=100`
-    );
-    const dataInv = await resInv.json();
+    let resInv: Response;
+    try {
+      resInv = await fetch(
+        `https://steamcommunity.com/inventory/${steamId}/730/2?l=english&count=100`,
+        {
+          headers: {
+            // Sem um User-Agent "normal", a Steam bloqueia/limita muito mais
+            // facilmente pedidos vindos de servidores/datacenters.
+            'User-Agent':
+              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+            Accept: 'application/json',
+          },
+        }
+      );
+    } catch (e: any) {
+      console.error(`❌ [inventario-steam] Erro de rede ao contactar a Steam para ${steamId}:`, e.message);
+      return { items: [] };
+    }
+
+    if (!resInv.ok) {
+      const corpo = await resInv.text().catch(() => '');
+      console.error(
+        `❌ [inventario-steam] Steam respondeu ${resInv.status} para ${steamId}. Corpo: ${corpo.slice(0, 300)}`
+      );
+      return { items: [] };
+    }
+
+    const dataInv = await resInv.json().catch((e) => {
+      console.error(`❌ [inventario-steam] Resposta da Steam não é JSON válido para ${steamId}:`, e.message);
+      return null;
+    });
     
-    if (!dataInv || !dataInv.assets) return { items: [] };
+    if (!dataInv || !dataInv.assets) {
+      console.warn(
+        `⚠️ [inventario-steam] Sem "assets" na resposta para ${steamId}. Resposta: ${JSON.stringify(dataInv)?.slice(0, 300)}`
+      );
+      return { items: [] };
+    }
 
     // 2️⃣ Monta lista de items tradeable (da mochila do utilizador)
     const items = dataInv.assets.map((asset: any) => {

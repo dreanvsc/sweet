@@ -9,6 +9,84 @@ export class AdminService {
   // 🔥 Cache para evitar rate limit da Skinport
   private ultimaAtualizacao: Date | null = null;
 
+  // ==========================================================================
+  // 🤖 CONFIRMAÇÃO AUTOMÁTICA DE DEPÓSITOS (sem bot, sem login na Steam)
+  // ==========================================================================
+  // Continuas a aceitar as trades manualmente na tua conta Steam. Isto só
+  // verifica, de tempos a tempos, se o item que o utilizador disse que ia
+  // enviar já apareceu no inventário público da tua conta — e se sim,
+  // credita o saldo sozinho, sem precisares de clicar em "Confirmar".
+  //
+  // Só precisa de UMA variável de ambiente: STEAM_DESTINO_ID (o SteamID64
+  // da tua conta), e que essa conta tenha o inventário definido como
+  // público nas definições de privacidade da Steam.
+  //
+  // Nota: funciona muito bem para skins normais (cada uma tem um assetId
+  // próprio que costuma manter-se depois da troca). Para itens que se
+  // "empilham" (ex: Cases, Chaves), a Steam pode juntar-los com itens
+  // iguais que já lá estavam e gerar um assetId novo — nesses casos raros,
+  // continua a precisar de confirmação manual no painel admin.
+  @Cron('*/2 * * * *')
+  async verificarDepositosPendentesAutomaticamente() {
+    const steamIdDestino = process.env.STEAM_DESTINO_ID;
+    if (!steamIdDestino) return; // desligado até definires a variável
+
+    const pendentes = await (this.prisma as any).depositoSkin.findMany({
+      where: { status: 'PENDENTE' },
+    });
+    if (pendentes.length === 0) return;
+
+    let inventario: any;
+    try {
+      const res = await fetch(
+        `https://steamcommunity.com/inventory/${steamIdDestino}/730/2?l=english&count=5000`
+      );
+      if (!res.ok) {
+        console.warn(`⚠️ Não foi possível ler o inventário de destino (status ${res.status}). O perfil está público?`);
+        return;
+      }
+      inventario = await res.json();
+    } catch (e) {
+      console.error('❌ Erro ao consultar inventário de destino:', e);
+      return;
+    }
+
+    if (!inventario?.assets) return;
+    const assetIdsPresentes = new Set(inventario.assets.map((a: any) => String(a.assetid)));
+
+    for (const deposito of pendentes) {
+      if (!assetIdsPresentes.has(String(deposito.skinAssetId))) continue;
+
+      // Encontrado no inventário de destino — confirma e credita.
+      await (this.prisma as any).depositoSkin.update({
+        where: { id: deposito.id },
+        data: { status: 'CONFIRMADO' },
+      });
+
+      await (this.prisma as any).user.update({
+        where: { id: deposito.userId },
+        data: {
+          saldo: { increment: deposito.valor },
+          totalDepositado: { increment: deposito.valor },
+        },
+      });
+
+      await (this.prisma as any).historicoJogo.create({
+        data: {
+          userId: deposito.userId,
+          acao: 'Depósito de Skins',
+          detalhe: `Depositou: ${deposito.skinNome}`,
+          valor: deposito.valor,
+          tipo: 'GANHO',
+        },
+      });
+
+      console.log(
+        `✅ Depósito #${deposito.id} confirmado automaticamente (item visto no inventário de destino). Utilizador #${deposito.userId} creditado com ${deposito.valor}€.`
+      );
+    }
+  }
+
   async sincronizarArsenal() {
     try {
       const resSkins = await fetch('https://raw.githubusercontent.com/ByMykel/CSGO-API/main/public/api/en/skins.json');

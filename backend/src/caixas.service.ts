@@ -22,6 +22,20 @@ const TIERS_AUTOMATICOS = [
 const MARGEM_DA_CASA = 0.12; // 12% de margem alvo — ajusta como quiseres
 const PRECOS_DAS_CAIXAS = [2.5, 5, 10, 15, 25, 50]; // um preço por caixa/dia
 
+// Bancos de palavras para gerar nomes temáticos sem usar datas.
+// Adiciona/remove palavras à vontade — quanto mais houver, menor a chance de repetição.
+const ADJETIVOS_NOME = [
+  'Sombrio', 'Relâmpago', 'Selvagem', 'Glacial', 'Ardente', 'Secreto', 'Rebelde',
+  'Élite', 'Oculto', 'Feroz', 'Noturno', 'Dourado', 'Fantasma', 'Blindado', 'Letal',
+  'Silencioso', 'Radioativo', 'Imortal', 'Vermelho', 'Negro',
+];
+const SUBSTANTIVOS_NOME = [
+  'Vórtice', 'Cofre', 'Baú', 'Impacto', 'Trovão', 'Eclipse', 'Fúria', 'Águia',
+  'Cobra', 'Fénix', 'Sombra', 'Arsenal', 'Bunker', 'Reator', 'Cartel', 'Sindicato',
+  'Falcão', 'Lobo', 'Dragão', 'Tempestade',
+];
+const EMOJIS_CATEGORIA = ['🔥', '⚡', '💀', '🎯', '🐺', '🦅', '💰', '⚔️'];
+
 @Injectable()
 export class CaixasService {
   constructor(
@@ -259,9 +273,49 @@ export class CaixasService {
     return itens.reduce((s, i) => s + (i.preco * i.probabilidade) / 100, 0);
   }
 
+  private aleatorio(lista: string[]) {
+    return lista[Math.floor(Math.random() * lista.length)];
+  }
+
+  /**
+   * Gera um nome temático aleatório (sem datas) que ainda não existe em
+   * `nomesProibidos`. Tenta até 50 combinações antes de acrescentar um
+   * sufixo numérico para garantir que nunca há colisão.
+   */
+  private gerarNomeUnico(nomesProibidos: Set<string>, comPrefixo: string = 'Caixa'): string {
+    for (let tentativa = 0; tentativa < 50; tentativa++) {
+      const nome = `${comPrefixo} ${this.aleatorio(ADJETIVOS_NOME)} ${this.aleatorio(SUBSTANTIVOS_NOME)}`;
+      if (!nomesProibidos.has(nome.toLowerCase())) {
+        nomesProibidos.add(nome.toLowerCase());
+        return nome;
+      }
+    }
+    // Fallback (praticamente nunca deve chegar aqui): garante unicidade com um sufixo.
+    const sufixo = Math.floor(Math.random() * 9000) + 1000;
+    const nomeComSufixo = `${comPrefixo} ${this.aleatorio(ADJETIVOS_NOME)} ${this.aleatorio(SUBSTANTIVOS_NOME)} ${sufixo}`;
+    nomesProibidos.add(nomeComSufixo.toLowerCase());
+    return nomeComSufixo;
+  }
+
+  private gerarCategoriaUnica(categoriasProibidas: Set<string>): string {
+    for (let tentativa = 0; tentativa < 50; tentativa++) {
+      const nome = `${this.aleatorio(EMOJIS_CATEGORIA)} COLEÇÃO ${this.aleatorio(ADJETIVOS_NOME).toUpperCase()} ${this.aleatorio(SUBSTANTIVOS_NOME).toUpperCase()}`;
+      if (!categoriasProibidas.has(nome.toLowerCase())) {
+        categoriasProibidas.add(nome.toLowerCase());
+        return nome;
+      }
+    }
+    const sufixo = Math.floor(Math.random() * 9000) + 1000;
+    const nomeComSufixo = `${this.aleatorio(EMOJIS_CATEGORIA)} COLEÇÃO ${sufixo}`;
+    categoriasProibidas.add(nomeComSufixo.toLowerCase());
+    return nomeComSufixo;
+  }
+
   /**
    * Gera N caixas novas (por defeito 6), escolhendo skins do catálogo atual
    * e atribuindo odds automaticamente, respeitando a margem da casa.
+   * Nomes e categoria são temáticos e aleatórios (sem datas), e nunca repetem
+   * nada que já exista na base de dados.
    * Pode ser chamado manualmente (endpoint admin) ou pelo cron diário.
    */
   async gerarCaixasAutomaticas(quantidade: number = 6) {
@@ -272,10 +326,24 @@ export class CaixasService {
       );
     }
 
-    const ultimaCaixa = await (this.prisma as any).caixa.findFirst({ orderBy: { ordem: 'desc' } });
-    let ordemAtual = (ultimaCaixa?.ordem || 0) + 1;
+    const caixasExistentes = await (this.prisma as any).caixa.findMany({
+      select: { nome: true, categoria: true, ordem: true },
+    });
 
-    const dataStr = new Date().toISOString().slice(0, 10);
+    const ordemAtual0 = caixasExistentes.reduce((max: number, c: any) => Math.max(max, c.ordem || 0), 0);
+    let ordemAtual = ordemAtual0 + 1;
+
+    // Junta os nomes/categorias já usados (em minúsculas, para comparar sem
+    // sensibilidade a maiúsculas) para nunca gerar nada repetido.
+    const nomesProibidos = new Set<string>(caixasExistentes.map((c: any) => c.nome.toLowerCase()));
+    const categoriasProibidas = new Set<string>(
+      caixasExistentes.map((c: any) => (c.categoria || '').toLowerCase())
+    );
+
+    // Uma categoria nova e única para este lote — assim as 6 caixas ficam
+    // agrupadas na mesma secção na loja, com um nome que nunca se repete.
+    const categoriaDoLote = this.gerarCategoriaUnica(categoriasProibidas);
+
     const caixasCriadas: any[] = [];
 
     for (let i = 0; i < quantidade; i++) {
@@ -299,15 +367,16 @@ export class CaixasService {
       // A imagem/banner da caixa é a do item mais valioso lá dentro
       // (o mesmo padrão visual que já usas nos itens do Arsenal).
       const itemDestaque = [...itens].sort((a, b) => b.preco - a.preco)[0];
+      const nomeDaCaixa = this.gerarNomeUnico(nomesProibidos);
 
       const caixa = await this.criarCaixa({
-        nome: `Caixa ${dataStr} #${i + 1}`,
+        nome: nomeDaCaixa,
         preco: precoCaixa,
         imagem: itemDestaque?.imagem || '/skins/glock.png',
         itens,
         ordem: ordemAtual++,
         isEvento: false,
-        categoria: '🤖 CAIXAS DO DIA',
+        categoria: categoriaDoLote,
       });
 
       caixasCriadas.push({ ...caixa, expectedValue: +ev.toFixed(2) });

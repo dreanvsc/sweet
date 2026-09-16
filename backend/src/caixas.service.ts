@@ -280,22 +280,22 @@ export class CaixasService {
   }
 
   /**
-   * Gera uma arte 3D de cofre/case única via API de geração de imagens da
-   * OpenAI, e envia o resultado para o ImgBB (o mesmo serviço que já usas
-   * nos banners), devolvendo o link final.
+   * Gera uma arte 3D de cofre/case única via Pollinations.ai — um serviço
+   * de geração de imagens GRATUITO, sem chave de API nem cartão de crédito.
+   * Depois envia o resultado para o ImgBB (o mesmo serviço que já usas nos
+   * banners), para ficar com um link permanente e rápido de carregar.
    *
-   * Requer as variáveis de ambiente OPENAI_API_KEY e IMGBB_API_KEY.
-   * Se qualquer passo falhar (sem chave, API em baixo, etc.), devolve null
-   * e quem chamar esta função deve usar o cofre em SVG como alternativa.
+   * Requer apenas a variável de ambiente IMGBB_API_KEY.
+   * Se qualquer passo falhar, devolve null e quem chamar esta função deve
+   * usar o cofre em SVG como alternativa.
    */
   private async gerarImagemCaixaIA(
     nomeDaCaixa: string,
     itemDestaque: any,
     precoCaixa: number,
   ): Promise<string | null> {
-    const openaiKey = process.env.OPENAI_API_KEY;
     const imgbbKey = process.env.IMGBB_API_KEY;
-    if (!openaiKey || !imgbbKey) return null;
+    if (!imgbbKey) return null;
 
     const corTema =
       itemDestaque?.raridade === 'Lendário'
@@ -311,32 +311,20 @@ export class CaixasService {
       `no text, no watermark, no letters on the crate itself.`;
 
     try {
-      // 1) Gera a imagem com a OpenAI
-      const resOpenAI = await fetch('https://api.openai.com/v1/images/generations', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${openaiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'gpt-image-1',
-          prompt,
-          size: '1024x1024',
-          n: 1,
-        }),
-      });
+      // 1) Gera a imagem via Pollinations.ai (grátis, sem chave)
+      const seed = Math.floor(Math.random() * 1_000_000); // evita cache repetido do mesmo prompt
+      const urlPollinations =
+        `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}` +
+        `?width=1024&height=1024&seed=${seed}&nologo=true&model=flux`;
 
-      if (!resOpenAI.ok) {
-        console.error(`❌ [imagem-ia] OpenAI respondeu ${resOpenAI.status}: ${(await resOpenAI.text()).slice(0, 300)}`);
+      const resPollinations = await fetch(urlPollinations);
+      if (!resPollinations.ok) {
+        console.error(`❌ [imagem-ia] Pollinations respondeu ${resPollinations.status}.`);
         return null;
       }
 
-      const dataOpenAI = await resOpenAI.json();
-      const base64Imagem = dataOpenAI?.data?.[0]?.b64_json;
-      if (!base64Imagem) {
-        console.error('❌ [imagem-ia] OpenAI não devolveu b64_json.');
-        return null;
-      }
+      const bufferImagem = Buffer.from(await resPollinations.arrayBuffer());
+      const base64Imagem = bufferImagem.toString('base64');
 
       // 2) Envia para o ImgBB para ficar com um link permanente e leve
       const corpoImgbb = new URLSearchParams();
@@ -438,6 +426,10 @@ export class CaixasService {
     return `data:image/svg+xml;base64,${Buffer.from(svg, 'utf-8').toString('base64')}`;
   }
 
+  private aguardar(ms: number) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
   private aleatorio(lista: string[]) {
     return lista[Math.floor(Math.random() * lista.length)];
   }
@@ -512,6 +504,11 @@ export class CaixasService {
     const caixasCriadas: any[] = [];
 
     for (let i = 0; i < quantidade; i++) {
+      // O plano gratuito da Pollinations aceita 1 pedido a cada 15s —
+      // esperamos um pouco entre caixas (exceto na primeira) para reduzir a
+      // chance de sermos limitados. Se mesmo assim falhar, cai para o SVG.
+      if (i > 0) await this.aguardar(8000);
+
       const precoCaixa = PRECOS_DAS_CAIXAS[i % PRECOS_DAS_CAIXAS.length];
       let itens = this.montarItensDaCaixa(catalogo, precoCaixa);
       let ev = this.calcularEV(itens);

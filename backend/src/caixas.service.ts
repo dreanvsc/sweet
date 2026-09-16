@@ -280,6 +280,77 @@ export class CaixasService {
   }
 
   /**
+   * Gera uma arte 3D de cofre/case única via Pollinations.ai — um serviço
+   * de geração de imagens GRATUITO, sem chave de API nem cartão de crédito.
+   * Depois envia o resultado para o ImgBB (o mesmo serviço que já usas nos
+   * banners), para ficar com um link permanente e rápido de carregar.
+   *
+   * Requer apenas a variável de ambiente IMGBB_API_KEY.
+   * Se qualquer passo falhar, devolve null e quem chamar esta função deve
+   * usar o cofre em SVG como alternativa.
+   */
+  private async gerarImagemCaixaIA(
+    nomeDaCaixa: string,
+    itemDestaque: any,
+    precoCaixa: number,
+  ): Promise<string | null> {
+    const imgbbKey = process.env.IMGBB_API_KEY;
+    if (!imgbbKey) return null;
+
+    const corTema =
+      itemDestaque?.raridade === 'Lendário'
+        ? 'gold and amber'
+        : itemDestaque?.raridade === 'Raro'
+        ? 'purple and violet'
+        : 'blue and cyan';
+
+    const prompt =
+      `A single premium 3D rendered video game loot crate icon, titled "${nomeDaCaixa}", ` +
+      `military sci-fi style metal case with glowing ${corTema} accent lights and engraved emblem, ` +
+      `dark background, dramatic studio lighting, high detail, centered composition, square format, ` +
+      `no text, no watermark, no letters on the crate itself.`;
+
+    try {
+      // 1) Gera a imagem via Pollinations.ai (grátis, sem chave)
+      const seed = Math.floor(Math.random() * 1_000_000); // evita cache repetido do mesmo prompt
+      const urlPollinations =
+        `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}` +
+        `?width=1024&height=1024&seed=${seed}&nologo=true&model=flux`;
+
+      const resPollinations = await fetch(urlPollinations);
+      if (!resPollinations.ok) {
+        console.error(`❌ [imagem-ia] Pollinations respondeu ${resPollinations.status}.`);
+        return null;
+      }
+
+      const bufferImagem = Buffer.from(await resPollinations.arrayBuffer());
+      const base64Imagem = bufferImagem.toString('base64');
+
+      // 2) Envia para o ImgBB para ficar com um link permanente e leve
+      const corpoImgbb = new URLSearchParams();
+      corpoImgbb.set('image', base64Imagem);
+
+      const resImgbb = await fetch(`https://api.imgbb.com/1/upload?key=${imgbbKey}`, {
+        method: 'POST',
+        body: corpoImgbb,
+      });
+
+      const dataImgbb = await resImgbb.json();
+      const urlFinal = dataImgbb?.data?.url;
+      if (!urlFinal) {
+        console.error('❌ [imagem-ia] ImgBB não devolveu URL:', JSON.stringify(dataImgbb).slice(0, 300));
+        return null;
+      }
+
+      console.log(`✅ [imagem-ia] Imagem gerada para "${nomeDaCaixa}": ${urlFinal}`);
+      return urlFinal;
+    } catch (e: any) {
+      console.error('❌ [imagem-ia] Erro inesperado:', e.message);
+      return null;
+    }
+  }
+
+  /**
    * Descarrega uma imagem externa e devolve-a já como data URI base64,
    * para poder ser embutida dentro do SVG sem depender de pedidos externos
    * (que os browsers bloqueiam quando o SVG é usado num <img src="data:...">).
@@ -353,6 +424,10 @@ export class CaixasService {
 </svg>`.trim();
 
     return `data:image/svg+xml;base64,${Buffer.from(svg, 'utf-8').toString('base64')}`;
+  }
+
+  private aguardar(ms: number) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   private aleatorio(lista: string[]) {
@@ -429,6 +504,11 @@ export class CaixasService {
     const caixasCriadas: any[] = [];
 
     for (let i = 0; i < quantidade; i++) {
+      // O plano gratuito da Pollinations aceita 1 pedido a cada 15s —
+      // esperamos um pouco entre caixas (exceto na primeira) para reduzir a
+      // chance de sermos limitados. Se mesmo assim falhar, cai para o SVG.
+      if (i > 0) await this.aguardar(8000);
+
       const precoCaixa = PRECOS_DAS_CAIXAS[i % PRECOS_DAS_CAIXAS.length];
       let itens = this.montarItensDaCaixa(catalogo, precoCaixa);
       let ev = this.calcularEV(itens);
@@ -446,11 +526,13 @@ export class CaixasService {
         seguranca++;
       }
 
-      // A imagem da caixa é um "cofre" gerado na hora, com brilho/cor
-      // conforme a raridade do item em destaque — não a foto crua da skin.
+      // A imagem da caixa é uma arte 3D gerada por IA (OpenAI + ImgBB).
+      // Se isso falhar por algum motivo, usa o cofre em SVG como alternativa.
       const itemDestaque = [...itens].sort((a, b) => b.preco - a.preco)[0];
       const nomeDaCaixa = this.gerarNomeUnico(nomesProibidos);
-      const imagemDaCaixa = await this.gerarImagemCaixa(itemDestaque, precoCaixa);
+      const imagemDaCaixa =
+        (await this.gerarImagemCaixaIA(nomeDaCaixa, itemDestaque, precoCaixa)) ||
+        (await this.gerarImagemCaixa(itemDestaque, precoCaixa));
 
       const caixa = await this.criarCaixa({
         nome: nomeDaCaixa,
